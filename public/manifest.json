@@ -1,0 +1,95 @@
+{
+  "name": "Fisioterapia Gossos - Sistema de Reservas",
+  "short_name": "FisioGossos",
+  "description": "Sistema de reservas profesional para fisioterapia canina. Reserva citas, gestiona tus perros y accede a servicios de rehabilitación e hidroterapia.",
+  "start_url": "/?utm_source=homescreen&utm_medium=pwa",
+  "id": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "background_color": "#ffffff",
+  "theme_color": "#4a90a4",
+  "categories": ["health", "lifestyle", "productivity"],
+  "lang": "es",
+  "dir": "ltr",
+  "icons": [
+    {
+      "src": "/pwa-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Nueva Reserva",
+      "short_name": "Reservar",
+      "description": "Crear una nueva reserva de cita",
+      "url": "/?shortcut=booking",
+      "icons": [
+        {
+          "src": "/pwa-192x192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Mis Citas",
+      "short_name": "Citas",
+      "description": "Ver y gestionar mis citas",
+      "url": "/?shortcut=mybookings",
+      "icons": [
+        {
+          "src": "/pwa-192x192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Mis Perros",
+      "short_name": "Perros",
+      "description": "Gestionar información de mis mascotas",
+      "url": "/?shortcut=mydogs",
+      "icons": [
+        {
+          "src": "/pwa-192x192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
+  ],
+  "prefer_related_applications": false,
+  "edge_side_panel": {
+    "preferred_width": 400
+  },
+  "launch_handler": {
+    "client_mode": "focus-existing"
+  },
+  "protocol_handlers": [
+    {
+      "protocol": "web+fisugoggos",
+      "url": "/?protocol=%s"
+    }
+  ]
+}

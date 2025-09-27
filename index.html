@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    
+    <!-- Viewport optimizado para iOS -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
+    
+    <!-- SEO y descripción -->
+    <meta name="description" content="Sistema de reservas profesional para fisioterapia canina" />
+    <meta name="keywords" content="fisioterapia, perros, mascotas, reservas, citas, veterinaria" />
+    <meta name="author" content="Fisioterapia Gossos" />
+    
+    <!-- PWA Theme Colors -->
+    <meta name="theme-color" content="#4a90a4" />
+    <meta name="msapplication-TileColor" content="#4a90a4" />
+    
+    <!-- iOS Safari PWA Configuration -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="FisioGossos" />
+    
+    <!-- Apple Touch Icons para diferentes dispositivos iOS -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="apple-touch-icon" sizes="152x152" href="/pwa-192x192.png" />
+    <link rel="apple-touch-icon" sizes="120x120" href="/pwa-192x192.png" />
+    <link rel="apple-touch-icon" sizes="76x76" href="/pwa-192x192.png" />
+    
+    <!-- Startup Images para iOS (opcional - mejora la experiencia) -->
+    <link rel="apple-touch-startup-image" href="/pwa-512x512.png" />
+    
+    <!-- Manifest PWA -->
+    <link rel="manifest" href="/manifest.json" />
+    
+    <!-- Fallback icons para otros dispositivos -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/pwa-192x192.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/pwa-192x192.png" />
+    
+    <!-- Preconnect to external resources -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    
+    <!-- Open Graph para compartir en redes sociales -->
+    <meta property="og:title" content="Fisioterapia Gossos - Sistema de Reservas" />
+    <meta property="og:description" content="Sistema de reservas profesional para fisioterapia canina" />
+    <meta property="og:image" content="/pwa-512x512.png" />
+    <meta property="og:url" content="https://tu-dominio.com" />
+    <meta property="og:type" content="website" />
+    
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Fisioterapia Gossos - Sistema de Reservas" />
+    <meta name="twitter:description" content="Sistema de reservas profesional para fisioterapia canina" />
+    <meta name="twitter:image" content="/pwa-512x512.png" />
+    
+    <title>Fisioterapia Gossos - Sistema de Reservas</title>
+  </head>
+  <body class="bg-gray-50 antialiased">
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+    
+    <!-- Script para detectar instalación en iOS -->
+    <script>
+      // Detectar si ya está instalada en iOS Safari
+      if (window.navigator.standalone) {
+        // La app ya está instalada en iOS
+        console.log('PWA: Running in standalone mode on iOS');
+      }
+      
+      // Detectar cambios en el display mode
+      window.matchMedia('(display-mode: standalone)').addEventListener('change', (e) => {
+        if (e.matches) {
+          console.log('PWA: App was installed');
+        }
+      });
+    </script>
+  </body>
+</html>

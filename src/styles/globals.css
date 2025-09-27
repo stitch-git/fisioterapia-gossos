@@ -1,0 +1,317 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom base styles */
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  
+  body {
+    font-feature-settings: 'cv11', 'ss01';
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
+  * {
+    @apply border-gray-200;
+  }
+  
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  
+  input[type="number"] {
+    -moz-appearance: textfield;
+  }
+}
+
+/* Custom component styles */
+@layer components {
+  /* Button styles */
+  .btn {
+    @apply inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-lg 
+           transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  
+  .btn-primary {
+    @apply bg-primary-500 text-white hover:bg-primary-600 focus:ring-primary-500 
+           shadow-sm hover:shadow-md transform hover:-translate-y-0.5;
+  }
+  
+  .btn-secondary {
+    @apply bg-gray-100 text-gray-700 hover:bg-gray-200 focus:ring-gray-500 
+           border border-gray-300;
+  }
+  
+  .btn-success {
+    @apply bg-green-500 text-white hover:bg-green-600 focus:ring-green-500;
+  }
+  
+  .btn-danger {
+    @apply bg-red-500 text-white hover:bg-red-600 focus:ring-red-500;
+  }
+  
+  .btn-lg {
+    @apply px-6 py-3 text-base;
+  }
+  
+  .btn-sm {
+    @apply px-3 py-1.5 text-xs;
+  }
+  
+  /* Card styles */
+  .card {
+    @apply bg-white rounded-xl shadow-card border border-gray-100 
+           transition-all duration-200;
+  }
+  
+  .card-hover {
+    @apply hover:shadow-card-hover hover:-translate-y-1;
+  }
+  
+  .card-body {
+    @apply p-6;
+  }
+  
+  .card-header {
+    @apply px-6 py-4 border-b border-gray-100 bg-gray-50/50;
+  }
+  
+  /* Input styles */
+  .input {
+    @apply block w-full px-3 py-2 border border-gray-300 rounded-lg 
+           shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 
+           focus:ring-primary-500 focus:border-transparent 
+           disabled:bg-gray-50 disabled:text-gray-500;
+  }
+  
+  .input-error {
+    @apply border-red-300 focus:ring-red-500 focus:border-red-500;
+  }
+  
+  /* Layout styles */
+  .container-app {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+  
+  /* Navigation styles */
+  .nav-link {
+    @apply flex items-center px-4 py-3 text-sm font-medium rounded-lg 
+           transition-colors duration-200;
+  }
+  
+  .nav-link-active {
+    @apply bg-primary-100 text-primary-700 border-r-2 border-primary-500;
+  }
+  
+  .nav-link-inactive {
+    @apply text-gray-600 hover:bg-gray-100 hover:text-gray-900;
+  }
+  
+  /* Service card styles */
+  .service-card {
+    @apply card card-hover cursor-pointer relative overflow-hidden 
+           border-2 border-transparent transition-all duration-300;
+  }
+  
+  .service-card:hover {
+    @apply border-primary-200;
+  }
+  
+  .service-card.selected {
+    @apply border-primary-500 bg-primary-50 ring-2 ring-primary-500 ring-opacity-20;
+  }
+  
+  /* Time slot styles */
+  .time-slot {
+    @apply px-4 py-3 border-2 border-gray-200 rounded-lg text-center 
+           cursor-pointer transition-all duration-200 text-sm font-medium;
+  }
+  
+  .time-slot:hover:not(.disabled) {
+    @apply border-primary-300 bg-primary-50;
+  }
+  
+  .time-slot.selected {
+    @apply border-primary-500 bg-primary-500 text-white;
+  }
+  
+  .time-slot.occupied {
+    @apply border-red-300 bg-red-50 text-red-700 cursor-not-allowed;
+  }
+  
+  .time-slot.disabled {
+    @apply border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed;
+  }
+  
+  /* Status badges */
+  .status-badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+  
+  .status-confirmed {
+    @apply status-badge bg-green-100 text-green-800;
+  }
+  
+  .status-pending {
+    @apply status-badge bg-yellow-100 text-yellow-800;
+  }
+  
+  .status-cancelled {
+    @apply status-badge bg-red-100 text-red-800;
+  }
+  
+  .status-completed {
+    @apply status-badge bg-blue-100 text-blue-800;
+  }
+  
+  /* Loading styles */
+  .loading-spinner {
+    @apply animate-spin rounded-full h-6 w-6 border-2 border-gray-300 border-t-primary-500;
+  }
+  
+  .loading-dots {
+    @apply animate-pulse flex space-x-1;
+  }
+  
+  .loading-dot {
+    @apply h-2 w-2 bg-primary-400 rounded-full animate-bounce;
+  }
+  
+  /* Mobile-first responsive utilities */
+  .mobile-menu {
+    @apply lg:hidden;
+  }
+  
+  .desktop-menu {
+    @apply hidden lg:flex;
+  }
+
+  /* Country selector with emoji support */
+  .country-select {
+    @apply appearance-none bg-white border border-gray-300 text-gray-900 text-sm 
+           focus:ring-primary-500 focus:border-primary-500 block px-3 py-2;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", 
+                 Arial, "Noto Color Emoji", "Apple Color Emoji", "Segoe UI Emoji", 
+                 "Segoe UI Symbol", sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  
+  .country-select option {
+    font-family: inherit;
+    padding: 8px 12px;
+    font-size: 14px;
+    line-height: 1.4;
+  }
+
+  /* Selectores específicos para compatibilidad */
+  select[name="pais_codigo"] {
+    @apply country-select;
+  }
+
+  /* Mejorar visualización en navegadores específicos */
+  select[name="pais_codigo"]::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  select[name="pais_codigo"]::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+  }
+
+  select[name="pais_codigo"]::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+  }
+
+  select[name="pais_codigo"]::-webkit-scrollbar-thumb:hover {
+    background: #a1a1a1;
+  }
+
+  /* Estilos adicionales para mejor UX */
+  .phone-input-group {
+    @apply flex rounded-md shadow-sm;
+  }
+
+  .phone-input-group .country-select {
+    @apply rounded-l-md border-r-0 flex-shrink-0 w-auto min-w-[120px];
+  }
+
+  .phone-input-group input[type="tel"] {
+    @apply rounded-r-md border-l-0 flex-1 min-w-0;
+  }
+}
+
+/* Custom utility styles */
+@layer utilities {
+  .text-shadow {
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  }
+  
+  .text-shadow-lg {
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+  
+  .gradient-primary {
+    background: linear-gradient(135deg, theme('colors.primary.500') 0%, theme('colors.secondary.500') 100%);
+  }
+  
+  .gradient-text {
+    background: linear-gradient(135deg, theme('colors.primary.600') 0%, theme('colors.primary.400') 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  
+  /* Scroll styles */
+  .scroll-smooth {
+    scroll-behavior: smooth;
+  }
+  
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: theme('colors.gray.400') theme('colors.gray.100');
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: theme('colors.gray.100');
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: theme('colors.gray.400');
+    border-radius: 3px;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background: theme('colors.gray.500');
+  }
+}
+
+/* Print styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}
+
+/* Reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
