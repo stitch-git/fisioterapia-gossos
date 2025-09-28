@@ -17,9 +17,16 @@
   "plugins": [
     "react"
   ],
+  "globals": {
+    "__APP_VERSION__": "readonly",
+    "__BUILD_TIME__": "readonly", 
+    "__BUILD_VERSION__": "readonly",
+    "originalDebugMode": "readonly"
+  },
   "rules": {
     "no-unused-vars": ["warn", { "argsIgnorePattern": "^_" }],
     "no-console": "warn",
+    "no-unreachable": "warn",
     "react/jsx-uses-react": "off",
     "react/react-in-jsx-scope": "off"
   },
