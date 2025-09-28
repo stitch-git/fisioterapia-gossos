@@ -1,0 +1,65 @@
+name: 🚀 Deploy Fisioterapia Gossos
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 📥 Checkout código
+      uses: actions/checkout@v4
+      
+    - name: 📦 Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        
+    - name: 🔧 Instalar dependencias
+      run: npm ci
+      
+    - name: 🧪 Ejecutar linter
+      run: npm run lint
+      
+    - name: 🏗️ Build del proyecto
+      run: npm run build
+      env:
+        VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+        VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        
+    - name: 📊 Verificar build
+      run: |
+        echo "Build completado exitosamente"
+        ls -la dist/
+        
+    # Deployment condicional solo en main
+    - name: 🚀 Deploy a producción
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      run: |
+        echo "🎯 Desplegando a producción..."
+        echo "📁 Archivos generados en dist/"
+        echo "🔗 Conectar con tu servidor Docker aquí"
+        
+    # Deployment a staging en develop  
+    - name: 🧪 Deploy a staging
+      if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+      run: |
+        echo "🧪 Desplegando a ambiente de pruebas..."
+        echo "📁 Archivos generados en dist/"
+        
+    - name: 📝 Comentario en PR
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: '✅ Build completado exitosamente! El código está listo para merge.'
+          })

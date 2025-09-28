@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../../lib/supabase'
 import { format, parseISO, addDays, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday, isBefore, startOfDay } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -6,6 +6,7 @@ import toast from 'react-hot-toast'
 import ConfirmModal from '../common/ConfirmModal'
 import { useBookingNotifications } from "../NotificationProvider";
 import { useNotifications } from '../../hooks/useNotifications'
+import { useRealtimeBookings, useRealtimeBookingUpdates } from '../../hooks/useRealtimeBookings' // ✅ NUEVA IMPORTACIÓN
 
 import { 
   generateFilteredTimeSlots,
@@ -19,6 +20,8 @@ import {
 } from '../../utils/bookingUtils'
 
 export default function BookingsManagement() {
+  const { forceUpdate } = useRealtimeBookings() // ✅ NUEVO: Activar realtime
+  
   const [bookings, setBookings] = useState([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('pendiente')
@@ -30,6 +33,8 @@ export default function BookingsManagement() {
   const [viewMode, setViewMode] = useState('desktop')
   const { notifyBookingConfirmed, notifyBookingCanceled } = useBookingNotifications()
   const { notifyAdminCancellation } = useNotifications()
+  const [selectedService, setSelectedService] = useState(null);
+
 
   // Estados para crear nueva cita
   const [clients, setClients] = useState([])
@@ -59,6 +64,64 @@ export default function BookingsManagement() {
   const [dayAvailability, setDayAvailability] = useState({})
   const [endTimeSlots, setEndTimeSlots] = useState([])
 
+  // ✅ NUEVA FUNCIÓN: Cargar reservas con callback para realtime
+  const loadBookings = useCallback(async (skipLoadingState = false) => {
+    try {
+      if (!skipLoadingState) setLoading(true)
+      
+      const { data, error } = await supabase
+        .from('bookings')
+        .select(`
+          id,
+          fecha_hora,
+          duracion_minutos,
+          precio,
+          estado,
+          observaciones,
+          created_at,
+          updated_at,
+          services!inner(id, nombre, tipo, duracion_minutos, precio),
+          dogs!inner(id, nombre, raza),
+          profiles!bookings_client_id_fkey(id, nombre_completo, telefono, email),
+          spaces(nombre)
+        `)
+        .order('fecha_hora', { ascending: false })
+
+      if (error) throw error
+      
+      // ✅ ACTUALIZACIÓN SUAVE: Solo actualizar si hay cambios reales
+      setBookings(prevBookings => {
+        const bookingsChanged = JSON.stringify(prevBookings) !== JSON.stringify(data)
+        if (bookingsChanged) {
+          console.log(`📊 Admin - Reservas actualizadas: ${prevBookings.length} → ${data?.length || 0}`)
+        }
+        return data || []
+      })
+      
+    } catch (error) {
+      console.error('Error loading bookings:', error)
+      if (!skipLoadingState) {
+        toast.error('Error cargando citas')
+      }
+    } finally {
+      if (!skipLoadingState) setLoading(false)
+    }
+  }, [])
+
+  // ✅ NUEVO: Hook para responder a cambios realtime en bookings
+  useRealtimeBookingUpdates(newBooking.fecha, selectedService, () => {
+    // Recargar reservas sin loading state para evitar parpadeo
+    loadBookings(true)
+    
+    // Si hay una fecha seleccionada en el formulario, recargar horarios
+    if (newBooking.fecha && newBooking.service_id) {
+      loadAvailableSlots(true) // Sin loading state
+    }
+    
+    // Recargar disponibilidad del mes
+    loadMonthAvailability()
+  })
+
   useEffect(() => {
     loadBookings()
     loadClients()
@@ -72,7 +135,7 @@ export default function BookingsManagement() {
     handleResize()
     window.addEventListener('resize', handleResize)
     return () => window.removeEventListener('resize', handleResize)
-  }, [])
+  }, [loadBookings])
 
   // Cargar opciones de hora fin cuando cambia hora inicio
   useEffect(() => {
@@ -88,12 +151,36 @@ export default function BookingsManagement() {
     loadEndTimes()
   }, [newBooking.hora_inicio_domicilio, newBooking.fecha])
 
-  // Cargar horarios disponibles cuando cambia fecha y servicio
+  // ✅ OPTIMIZADO: Refresh automático menos agresivo ya que tenemos realtime
   useEffect(() => {
     if (newBooking.fecha && newBooking.service_id) {
-      loadAvailableSlots()
+      const interval = setInterval(() => {
+        loadAvailableSlots(true) // Sin loading state como backup
+      }, 30000) // 30 segundos como backup del realtime
+      
+      return () => clearInterval(interval)
     }
   }, [newBooking.fecha, newBooking.service_id])
+
+  // ✅ OPTIMIZADO: Refresh cuando admin vuelve a la ventana
+  useEffect(() => {
+    const handleFocus = () => {
+      if (newBooking.fecha && newBooking.service_id) {
+        console.log('🔄 Admin - refrescando horarios')
+        loadAvailableSlots(true)
+      }
+      // También recargar bookings
+      loadBookings(true)
+    }
+    
+    window.addEventListener('focus', handleFocus)
+    document.addEventListener('visibilitychange', handleFocus)
+    
+    return () => {
+      window.removeEventListener('focus', handleFocus)
+      document.removeEventListener('visibilitychange', handleFocus)
+    }
+  }, [newBooking.fecha, newBooking.service_id, loadBookings])
 
   useEffect(() => {
     if (newBooking.client_id) {
@@ -106,19 +193,19 @@ export default function BookingsManagement() {
     loadMonthAvailability()
   }, [currentMonth, services, bookings])
 
-  // CORREGIDO: Listener para actualizaciones en tiempo real
+  // ✅ LEGACY: Listener para actualizaciones (mantenido como fallback)
   useEffect(() => {
     const handleBookingUpdate = (event) => {
       const { dateString, timestamp } = event.detail
       
-      console.log('📡 Admin recibió actualización de reserva:', { dateString, timestamp })
+      console.log('📡 Admin recibió actualización de reserva (legacy):', { dateString, timestamp })
       
       // Recargar todas las reservas para mantener la vista actualizada
-      loadBookings()
+      loadBookings(true)
       
       // Si hay una fecha seleccionada en el formulario, recargar horarios
       if (newBooking.fecha && (!dateString || dateString === newBooking.fecha)) {
-        loadAvailableSlots()
+        loadAvailableSlots(true)
       }
       
       // Recargar disponibilidad del mes
@@ -131,7 +218,7 @@ export default function BookingsManagement() {
     return () => {
       window.removeEventListener('booking-updated', handleBookingUpdate)
     }
-  }, [newBooking.fecha]) // CORREGIDO: Solo el estado en dependencias
+  }, [newBooking.fecha, loadBookings])
 
   // Función para calcular la disponibilidad de los días del mes
   const calculateMonthAvailability = async (monthStart, monthEnd) => {
@@ -238,38 +325,6 @@ export default function BookingsManagement() {
     
     const availability = await calculateMonthAvailability(monthStart, monthEnd)
     setDayAvailability(availability)
-  }
-
-
-  const loadBookings = async () => {
-    try {
-      setLoading(true)
-      const { data, error } = await supabase
-        .from('bookings')
-        .select(`
-          id,
-          fecha_hora,
-          duracion_minutos,
-          precio,
-          estado,
-          observaciones,
-          created_at,
-          updated_at,
-          services!inner(id, nombre, tipo, duracion_minutos, precio),
-          dogs!inner(id, nombre, raza),
-          profiles!bookings_client_id_fkey(id, nombre_completo, telefono, email),
-          spaces(nombre)
-        `)
-        .order('fecha_hora', { ascending: false })
-
-      if (error) throw error
-      setBookings(data)
-    } catch (error) {
-      console.error('Error loading bookings:', error)
-      toast.error('Error cargando citas')
-    } finally {
-      setLoading(false)
-    }
   }
 
   const loadClients = async () => {
@@ -384,9 +439,10 @@ export default function BookingsManagement() {
     }
   }
 
-  // Cargar horarios disponibles
-  const loadAvailableSlots = async () => {
-    setLoadingSlots(true)
+  // ✅ OPTIMIZADA: Cargar horarios disponibles
+  const loadAvailableSlots = useCallback(async (skipLoadingState = false) => {
+    if (!skipLoadingState) setLoadingSlots(true)
+    
     try {
       const selectedService = services.find(s => s.id === parseInt(newBooking.service_id))
       if (!selectedService) return
@@ -422,16 +478,24 @@ export default function BookingsManagement() {
         homeVisits       // Datos frescos
       )
       
-      setAvailableSlots(available)
-      console.log(`✅ Admin - Horarios disponibles: ${available.length}`)
+      // ✅ ACTUALIZACIÓN SUAVE: Solo actualizar si hay cambios reales
+      setAvailableSlots(prevSlots => {
+        const slotsChanged = JSON.stringify(prevSlots) !== JSON.stringify(available)
+        if (slotsChanged) {
+          console.log(`✅ Admin - Horarios actualizados: ${prevSlots.length} → ${available.length}`)
+        }
+        return available
+      })
       
     } catch (error) {
       console.error('Error loading available slots:', error)
-      toast.error('Error cargando horarios disponibles')
+      if (!skipLoadingState) {
+        toast.error('Error cargando horarios disponibles')
+      }
     } finally {
-      setLoadingSlots(false)
+      if (!skipLoadingState) setLoadingSlots(false)
     }
-  }
+  }, [newBooking.fecha, newBooking.service_id, services])
 
   const handleDateSelect = (date) => {
     const dateStr = format(date, 'yyyy-MM-dd')
@@ -705,6 +769,7 @@ export default function BookingsManagement() {
       console.log('🔒 Admin - Verificación final de disponibilidad...')
       
       let targetTime
+      const selectedService = services.find(s => s.id === parseInt(newBooking.service_id))
       const isHomeVisit = selectedService?.tipo === 'rehabilitacion_domicilio'
       
       if (isHomeVisit) {
@@ -748,8 +813,6 @@ export default function BookingsManagement() {
           return
         }
       }
-      
-      const selectedService = services.find(s => s.id === parseInt(newBooking.service_id))
       
       const getSpaceForService = (serviceType) => {
         switch (serviceType) {
@@ -1361,7 +1424,7 @@ export default function BookingsManagement() {
                     />
                     <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
                       <svg className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 002 2z" />
                       </svg>
                     </div>
                   </div>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../contexts/AuthContext'
 import toast from 'react-hot-toast'
@@ -16,11 +16,16 @@ import {
 } from '../../utils/bookingUtils'
 import { useBookingNotifications } from '../NotificationProvider'
 import { useNotifications } from '../../hooks/useNotifications'
+import { useRealtimeBookings, useRealtimeBookingUpdates } from '../../hooks/useRealtimeBookings' // ✅ NUEVA IMPORTACIÓN
 
 export default function BookingSection({ onNavigateToSection }) {
   const { user, profile } = useAuth()
   const { notifyBookingConfirmed } = useBookingNotifications()
   const { notifyAdminNewBooking } = useNotifications()
+  
+  // ✅ NUEVO: Activar realtime updates
+  const { forceUpdate } = useRealtimeBookings()
+  
   const [services, setServices] = useState([])
   const [userDogs, setUserDogs] = useState([])
   const [selectedService, setSelectedService] = useState(null)
@@ -201,21 +206,38 @@ export default function BookingSection({ onNavigateToSection }) {
     }
   }
 
-  // FUNCIÓN CORREGIDA: Load available slots with proper filtering
-  const loadAvailableSlots = async () => {
-    setLoadingSlots(true)
+  // ✅ FUNCIÓN CORREGIDA: Load available slots with proper filtering - OPTIMIZADA PARA REALTIME
+  const loadAvailableSlots = useCallback(async (skipLoadingState = false) => {
+    if (!skipLoadingState) setLoadingSlots(true)
+    
     try {
       // 🚨 OBTENER RESERVAS FRESCAS DIRECTAMENTE DE BD
+      // 🚨 FORZAR INVALIDACIÓN DE CACHE ANTES DE CONSULTA
+      clearAvailableTimeSlotsCache(selectedDate)
+      console.log(`🔄 Cache invalidado para ${selectedDate}`)
+
+      // 🚨 OBTENER RESERVAS FRESCAS CON DATOS COMPLETOS
       const { data: freshBookings, error: bookingsError } = await supabase
         .from('bookings')
         .select(`
+          id,
           fecha_hora, 
           duracion_minutos,
-          services!inner(tipo)
+          estado,
+          created_at,
+          services!inner(tipo, nombre)
         `)
         .gte('fecha_hora', `${selectedDate}T00:00:00`)
         .lt('fecha_hora', `${selectedDate}T23:59:59`)
-        .in('estado', ['pendiente'])
+        .eq('estado', 'pendiente')
+        .order('created_at', { ascending: false })
+
+      console.log(`📊 Reservas encontradas para ${selectedDate}:`, freshBookings?.length || 0)
+      if (freshBookings && freshBookings.length > 0) {
+        freshBookings.forEach(booking => {
+          console.log(`   - ${booking.fecha_hora.substring(11, 16)} (${booking.services?.tipo}) ID:${booking.id}`)
+        })
+      }
         
       if (bookingsError) {
         console.error('Error obteniendo reservas:', bookingsError)
@@ -236,16 +258,35 @@ export default function BookingSection({ onNavigateToSection }) {
       
       // Aplicar filtro del día actual
       const filteredSlots = filterTodaySlots(freshSlots, selectedDate)
-      setAvailableSlots(filteredSlots)
+      
+      // ✅ ACTUALIZACIÓN SUAVE: Solo actualizar si hay cambios reales
+      setAvailableSlots(prevSlots => {
+        const slotsChanged = JSON.stringify(prevSlots) !== JSON.stringify(filteredSlots)
+        if (slotsChanged) {
+          console.log(`🎯 Horarios actualizados: ${prevSlots.length} → ${filteredSlots.length}`)
+        }
+        return filteredSlots
+      })
       
     } catch (error) {
       console.error('Error loading available slots:', error)
       toast.error('Error cargando horarios')
       setAvailableSlots([])
     } finally {
-      setLoadingSlots(false)
+      if (!skipLoadingState) setLoadingSlots(false)
     }
-  }
+  }, [selectedDate, selectedService])
+
+  // ✅ NUEVO: Hook para responder a cambios realtime
+  useRealtimeBookingUpdates(selectedDate, selectedService, () => {
+    // Llamar loadAvailableSlots sin loading state para evitar parpadeo
+    loadAvailableSlots(true)
+    
+    // También actualizar disponibilidad del calendario si es necesario
+    if (selectedService) {
+      loadDayAvailability()
+    }
+  })
 
   // Load services and user's dogs on mount
   useEffect(() => {
@@ -265,32 +306,56 @@ export default function BookingSection({ onNavigateToSection }) {
     if (selectedDate && selectedService) {
       loadAvailableSlots()
     }
-  }, [selectedDate, selectedService])
+  }, [selectedDate, selectedService, loadAvailableSlots])
 
-  // Refresh automático de horarios cada 30 segundos
+  // ✅ MANTENIDO: Refresh automático de horarios cada 30 segundos (como backup del realtime)
   useEffect(() => {
     if (!selectedDate || !selectedService) return
     
     const interval = setInterval(() => {
-      loadAvailableSlots()
-    }, 30000) // 30 segundos
+      loadAvailableSlots(true) // Sin loading state para no molestar
+    }, 30000) // Aumentado a 30 segundos ya que realtime es el principal
     
     return () => clearInterval(interval)
-  }, [selectedDate, selectedService])
+  }, [selectedDate, selectedService, loadAvailableSlots])
 
-  // CORREGIDO: Listener para actualizaciones en tiempo real
+  // ✅ MANTENIDO: Refresh cuando la ventana recupera el focus
+  useEffect(() => {
+    const handleFocus = () => {
+      if (selectedDate && selectedService) {
+        console.log('🔄 Ventana recuperó focus - refrescando horarios')
+        loadAvailableSlots(true)
+      }
+    }
+    
+    const handleVisibilityChange = () => {
+      if (!document.hidden && selectedDate && selectedService) {
+        console.log('🔄 Tab se hizo visible - refrescando horarios')
+        loadAvailableSlots(true)
+      }
+    }
+    
+    window.addEventListener('focus', handleFocus)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    
+    return () => {
+      window.removeEventListener('focus', handleFocus)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [selectedDate, selectedService, loadAvailableSlots])
+
+  // ✅ LEGACY: Listener para actualizaciones en tiempo real (mantenido como fallback)
   useEffect(() => {
     const handleBookingUpdate = (event) => {
       const { dateString, timestamp } = event.detail
       
-      console.log('📡 Recibida actualización de reserva:', { dateString, timestamp })
+      console.log('📡 Recibida actualización de reserva (legacy):', { dateString, timestamp })
       
       // Si la actualización afecta la fecha seleccionada, recargar horarios
       if (selectedDate && (!dateString || dateString === selectedDate)) {
-        console.log('🔄 Actualizando horarios por cambio de reserva')
-        // Llamar la función directamente si hay fecha y servicio seleccionados
+        console.log('🔄 Actualizando horarios por cambio de reserva (legacy)')
         if (selectedDate && selectedService) {
-          loadAvailableSlots()
+          loadAvailableSlots(true)
         }
       }
       
@@ -306,7 +371,7 @@ export default function BookingSection({ onNavigateToSection }) {
     return () => {
       window.removeEventListener('booking-updated', handleBookingUpdate)
     }
-  }, [selectedDate, selectedService]) // CORREGIDO: Solo estados en dependencias
+  }, [selectedDate, selectedService, loadAvailableSlots])
 
   const handleServiceSelect = (service) => {
     setSelectedService(service)
@@ -487,7 +552,6 @@ export default function BookingSection({ onNavigateToSection }) {
 
       // Enviar notificaciones (opcional - no bloquean el flujo)
       try {
-
         // Email al cliente
         await notifyBookingConfirmed({
           pet_name: dogData.nombre,
@@ -774,7 +838,7 @@ export default function BookingSection({ onNavigateToSection }) {
                   />
                   <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                     <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 002 2z" />
                     </svg>
                   </div>
                 </div>
