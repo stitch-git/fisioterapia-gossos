@@ -3,20 +3,20 @@ import { supabase } from '../../lib/supabase'
 import toast from 'react-hot-toast'
 import ConfirmModal from '../common/ConfirmModal'
 import { format, addWeeks, subWeeks, startOfWeek, endOfWeek, eachDayOfInterval, isToday, addDays } from 'date-fns'
-import { es } from 'date-fns/locale'
-import { invalidateTimeSlotsCache } from '../../utils/bookingUtils'
+import { es, ca } from 'date-fns/locale'
+import { invalidateTimeSlotsCache, timeToMinutes } from '../../utils/bookingUtils'
+import { useTranslation } from 'react-i18next'
 
 export default function ConfigurationPanel() {
-  // Estados principales
+  const { t, i18n } = useTranslation()
+  
   const [currentWeek, setCurrentWeek] = useState(new Date())
   const [timeSlots, setTimeSlots] = useState({})
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   
-  // Estados de selección
   const [selectedDates, setSelectedDates] = useState([])
   
-  // Estado del formulario
   const [newSlot, setNewSlot] = useState({
     start_hour: '',
     start_minute: '',
@@ -24,12 +24,20 @@ export default function ConfigurationPanel() {
     end_minute: ''
   })
   
-  // Estados del modal
+  const [isAdminOnly, setIsAdminOnly] = useState(false)
+  
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [slotToDelete, setSlotToDelete] = useState(null)
   const [viewMode, setViewMode] = useState('desktop')
 
-  // Effects
+  const [filterMode, setFilterMode] = useState('all')
+
+  const [isEditMode, setIsEditMode] = useState(false)
+  const [slotToEdit, setSlotToEdit] = useState(null)
+
+  // Determinar locale para date-fns según idioma actual
+  const getDateLocale = () => i18n.language === 'ca' ? ca : es
+
   useEffect(() => {
     loadWeekTimeSlots()
     
@@ -42,7 +50,6 @@ export default function ConfigurationPanel() {
     return () => window.removeEventListener('resize', handleResize)
   }, [currentWeek])
 
-  // Funciones principales
   const getWeekDays = () => {
     const start = startOfWeek(currentWeek, { weekStartsOn: 1 })
     const end = endOfWeek(currentWeek, { weekStartsOn: 1 })
@@ -80,13 +87,12 @@ export default function ConfigurationPanel() {
       setTimeSlots(slotsByDate)
     } catch (error) {
       console.error('Error loading time slots:', error)
-      toast.error('Error cargando configuración de horarios')
+      toast.error(t('configurationPanel.toasts.errorLoading'))
     } finally {
       setLoading(false)
     }
   }
 
-  // Funciones de selección múltiple
   const toggleDateSelection = (dateStr) => {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
@@ -95,7 +101,7 @@ export default function ConfigurationPanel() {
     dateObj.setHours(0, 0, 0, 0)
 
     if (dateObj < today) {
-      toast.error("No puedes seleccionar un día anterior a hoy")
+      toast.error(t('configurationPanel.toasts.cannotSelectPast'))
       return
     }
 
@@ -113,7 +119,6 @@ export default function ConfigurationPanel() {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
     
-    // Filtrar solo días de hoy en adelante
     const validDates = weekDays
       .filter(day => {
         const dayDate = new Date(day)
@@ -129,108 +134,166 @@ export default function ConfigurationPanel() {
     setSelectedDates([])
   }
 
-  // Funciones de horarios
   const addTimeSlot = async () => {
-    if (selectedDates.length === 0 || !newSlot.start_hour || !newSlot.start_minute || !newSlot.end_hour || !newSlot.end_minute) {
-      toast.error('Selecciona al menos un día y completa todos los campos de horario')
+    if (isEditMode) {
+      updateTimeSlot()
+      return
+    }
+
+    if (selectedDates.length === 0) {
+      toast.error(t('configurationPanel.toasts.selectAtLeastOneDay'))
+      return
+    }
+    
+    if (!newSlot.start_hour || !newSlot.start_minute || !newSlot.end_hour || !newSlot.end_minute) {
+      toast.error(t('configurationPanel.toasts.completeAllFields'))
       return
     }
 
     const start_time = `${newSlot.start_hour}:${newSlot.start_minute}:00`
     const end_time = `${newSlot.end_hour}:${newSlot.end_minute}:00`
 
-    console.log('🚀 Iniciando addTimeSlot:', {
-      selectedDates,
-      start_time,
-      end_time,
-      newSlot
-    })
-
     if (end_time <= start_time) {
-      toast.error('La hora de fin debe ser posterior a la hora de inicio')
+      toast.error(t('configurationPanel.toasts.endAfterStart'), {
+        duration: 4000,
+      })
+      return
+    }
+
+    const startMinutes = timeToMinutes(start_time)
+    const endMinutes = timeToMinutes(end_time)
+    const durationMinutes = endMinutes - startMinutes
+    
+    if (durationMinutes < 30) {
+      toast.error(t('configurationPanel.toasts.minimumDuration'), {
+        duration: 4000,
+      })
       return
     }
 
     try {
       setSaving(true)
       
-      // PASO 1: Verificar datos existentes de forma exhaustiva
-      console.log('🔍 PASO 1: Verificando datos existentes...')
-      
-      for (const date of selectedDates) {
-        console.log(`📅 Verificando fecha: ${date}`)
-        
-        // Verificar TODOS los registros (activos e inactivos)
-        const { data: allSlots, error: allSlotsError } = await supabase
-          .from('available_time_slots')
-          .select('*')
-          .eq('date', date)
-        
-        console.log(`  📊 TODOS los registros para ${date}:`, allSlots)
-        
-        // Verificar solo activos
-        const { data: activeSlots, error: activeSlotsError } = await supabase
-          .from('available_time_slots')
-          .select('*')
-          .eq('date', date)
-          .eq('is_active', true)
-        
-        console.log(`  ✅ Registros ACTIVOS para ${date}:`, activeSlots)
-        
-        if (allSlotsError) console.error(`  ❌ Error obteniendo todos los slots: `, allSlotsError)
-        if (activeSlotsError) console.error(`  ❌ Error obteniendo slots activos: `, activeSlotsError)
-      }
-
-      // PASO 2: Intentar insert UNO POR UNO para identificar cuál falla
-      console.log('🔍 PASO 2: Insertando uno por uno...')
-      
       const successfulInserts = []
+      const errors = []
       
       for (const date of selectedDates) {
-        console.log(`📤 Intentando insertar para fecha: ${date}`)
-        
-        const singleSlot = {
-          date: date,
-          start_time: start_time,
-          end_time: end_time,
-          is_active: true
-        }
-        
-        console.log(`  📋 Datos a insertar:`, singleSlot)
-        
         try {
+          const { data: exactMatch, error: exactMatchError } = await supabase
+            .from('available_time_slots')
+            .select('*')
+            .eq('date', date)
+            .eq('start_time', start_time)
+            .eq('end_time', end_time)
+            .eq('is_active', true)
+
+          if (exactMatchError) {
+            errors.push({
+              date,
+              error: `Error técnico al verificar horarios: ${exactMatchError.message}`
+            })
+            continue
+          }
+
+          if (exactMatch && exactMatch.length > 0) {
+            errors.push({
+              date,
+              error: t('configurationPanel.toasts.alreadyExists', { 
+                time: `${start_time.substring(0, 5)} - ${end_time.substring(0, 5)}` 
+              })
+            })
+            continue
+          }
+
+          const { data: existingSlots, error: existingSlotsError } = await supabase
+            .from('available_time_slots')
+            .select('*')
+            .eq('date', date)
+            .eq('is_active', true)
+
+          if (existingSlotsError) {
+            errors.push({
+              date,
+              error: `Error técnico al verificar solapamientos: ${existingSlotsError.message}`
+            })
+            continue
+          }
+
+          let hasOverlap = false
+          let overlappingSlot = null
+
+          for (const existingSlot of existingSlots || []) {
+            const existingStart = timeToMinutes(existingSlot.start_time.substring(0, 5))
+            const existingEnd = timeToMinutes(existingSlot.end_time.substring(0, 5))
+            const newStart = timeToMinutes(start_time.substring(0, 5))
+            const newEnd = timeToMinutes(end_time.substring(0, 5))
+
+            if (
+              (newStart >= existingStart && newStart < existingEnd) ||
+              (newEnd > existingStart && newEnd <= existingEnd) ||
+              (newStart <= existingStart && newEnd >= existingEnd)
+            ) {
+              hasOverlap = true
+              overlappingSlot = existingSlot
+              break
+            }
+          }
+
+          if (hasOverlap) {
+            errors.push({
+              date,
+              error: t('configurationPanel.toasts.overlap', {
+                newTime: `${start_time.substring(0, 5)} - ${end_time.substring(0, 5)}`,
+                existingTime: `${overlappingSlot.start_time.substring(0, 5)} - ${overlappingSlot.end_time.substring(0, 5)}`
+              })
+            })
+            continue
+          }
+
+          const singleSlot = {
+            date: date,
+            start_time: start_time,
+            end_time: end_time,
+            is_active: true,
+            admin_only: isAdminOnly
+          }
+
           const { data: insertResult, error: insertError } = await supabase
             .from('available_time_slots')
             .insert(singleSlot)
             .select()
-          
+
           if (insertError) {
-            console.error(`  ❌ ERROR ESPECÍFICO para ${date}:`, {
-              code: insertError.code,
-              message: insertError.message,
-              details: insertError.details,
-              hint: insertError.hint,
-              singleSlot
-            })
-            
-            // Mostrar error específico al usuario
-            toast.error(`Error en ${date}: ${insertError.message}`)
+            if (insertError.code === '23505') {
+              errors.push({
+                date,
+                error: 'Este horario ya existe en la base de datos (duplicado)'
+              })
+            } else if (insertError.code === '23503') {
+              errors.push({
+                date,
+                error: 'Error de integridad: referencia inválida en la base de datos'
+              })
+            } else {
+              errors.push({
+                date,
+                error: `Error al guardar: ${insertError.message}`
+              })
+            }
             continue
           }
-          
-          console.log(`  ✅ INSERT EXITOSO para ${date}:`, insertResult)
+
           successfulInserts.push(...insertResult)
-          
+
         } catch (unexpectedError) {
-          console.error(`  💥 ERROR INESPERADO para ${date}:`, unexpectedError)
-          toast.error(`Error inesperado en ${date}: ${unexpectedError.message}`)
+          errors.push({
+            date,
+            error: `Error inesperado: ${unexpectedError.message}`
+          })
         }
       }
 
-      // PASO 3: Actualizar estado local solo con inserts exitosos
       if (successfulInserts.length > 0) {
-        console.log('✅ PASO 3: Actualizando estado local con inserts exitosos:', successfulInserts)
-        
         setTimeSlots(prev => {
           const updated = { ...prev }
           
@@ -240,7 +303,6 @@ export default function ConfigurationPanel() {
               updated[dateKey] = []
             }
             
-            // Verificar que no existe ya antes de añadir
             const exists = updated[dateKey].some(existingSlot => 
               existingSlot.start_time === slot.start_time && 
               existingSlot.end_time === slot.end_time
@@ -250,42 +312,221 @@ export default function ConfigurationPanel() {
               updated[dateKey].push(slot)
             }
             
-            // Ordenar por hora
             updated[dateKey].sort((a, b) => a.start_time.localeCompare(b.start_time))
           })
           
           return updated
         })
 
-        // Limpiar formulario solo si hubo al menos un éxito
         setNewSlot({ 
           start_hour: '', 
           start_minute: '', 
           end_hour: '', 
           end_minute: '' 
         })
-        
-        const successCount = successfulInserts.length
-        const totalCount = selectedDates.length
-        
-        if (successCount === totalCount) {
-          toast.success(`Horario agregado a ${successCount} día${successCount !== 1 ? 's' : ''} correctamente`)
-        } else {
-          toast.warning(`Horario agregado a ${successCount} de ${totalCount} días. Revisa los errores en consola.`)
-        }
+        setIsAdminOnly(false)
         
         invalidateTimeSlotsCache()
+
+        const successCount = successfulInserts.length
+        const errorCount = errors.length
+        const totalCount = selectedDates.length
+
+        if (errorCount === 0) {
+          toast.success(t('configurationPanel.toasts.scheduleAdded', { count: successCount }), {
+            duration: 3000,
+          })
+        } else {
+          toast(t('configurationPanel.toasts.scheduleAddedPartial', { 
+            success: successCount, 
+            total: totalCount, 
+            errors: errorCount 
+          }), {
+            duration: 5000,
+            icon: '⚠️',
+            style: {
+              background: '#FEF3C7',
+              color: '#92400E',
+              border: '1px solid #FCD34D',
+            },
+          })
+        }
       } else {
-        console.error('❌ No se pudo insertar en ninguna fecha')
-        toast.error('No se pudo añadir el horario en ninguna fecha. Revisa los errores en consola.')
+        toast.error(t('configurationPanel.toasts.couldNotAdd'), {
+          duration: 4000,
+        })
+      }
+
+      if (errors.length > 0) {
+        console.group('📋 Errores al añadir horarios:')
+        errors.forEach(({ date, error }) => {
+          console.error(`${format(new Date(date), 'dd/MM/yyyy')}: ${error}`)
+          
+          setTimeout(() => {
+            toast.error(`${format(new Date(date), 'dd/MM')}: ${error}`, {
+              duration: 5000,
+            })
+          }, 100)
+        })
+        console.groupEnd()
       }
 
     } catch (error) {
-      console.error('💥 ERROR GENERAL en addTimeSlot:', error)
-      toast.error('Error general: ' + error.message)
+      console.error('💥 ERROR GENERAL:', error)
+      toast.error(`❌ Error inesperado: ${error.message}`, {
+        duration: 4000,
+      })
     } finally {
       setSaving(false)
     }
+  }
+
+  const startEditTimeSlot = (slot) => {
+    setNewSlot({
+      start_hour: slot.start_time.substring(0, 2),
+      start_minute: slot.start_time.substring(3, 5),
+      end_hour: slot.end_time.substring(0, 2),
+      end_minute: slot.end_time.substring(3, 5)
+    })
+    
+    setIsAdminOnly(false)
+    
+    setSelectedDates([slot.date])
+    
+    setIsEditMode(true)
+    setSlotToEdit(slot)
+    
+    const formElement = document.querySelector('#horario-form')
+    if (formElement) {
+      formElement.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+    
+    toast.info(t('configurationPanel.toasts.editingSchedule', { 
+      time: `${slot.start_time.substring(0, 5)} - ${slot.end_time.substring(0, 5)}` 
+    }))
+  }
+
+  const updateTimeSlot = async () => {
+    if (!slotToEdit) return
+    
+    if (!newSlot.start_hour || !newSlot.start_minute || !newSlot.end_hour || !newSlot.end_minute) {
+      toast.error(t('configurationPanel.toasts.completeAllFields'))
+      return
+    }
+
+    const start_time = `${newSlot.start_hour}:${newSlot.start_minute}:00`
+    const end_time = `${newSlot.end_hour}:${newSlot.end_minute}:00`
+
+    if (end_time <= start_time) {
+      toast.error(t('configurationPanel.toasts.endAfterStart'), {
+        duration: 4000,
+      })
+      return
+    }
+
+    const startMinutes = timeToMinutes(start_time)
+    const endMinutes = timeToMinutes(end_time)
+    const durationMinutes = endMinutes - startMinutes
+    
+    if (durationMinutes < 30) {
+      toast.error(t('configurationPanel.toasts.minimumDuration'), {
+        duration: 4000,
+      })
+      return
+    }
+
+    try {
+      setSaving(true)
+
+      const { data: existingSlots, error: existingSlotsError } = await supabase
+        .from('available_time_slots')
+        .select('*')
+        .eq('date', slotToEdit.date)
+        .eq('is_active', true)
+        .neq('id', slotToEdit.id)
+
+      if (existingSlotsError) {
+        throw existingSlotsError
+      }
+
+      for (const existingSlot of existingSlots || []) {
+        const existingStart = timeToMinutes(existingSlot.start_time.substring(0, 5))
+        const existingEnd = timeToMinutes(existingSlot.end_time.substring(0, 5))
+        const newStart = timeToMinutes(start_time.substring(0, 5))
+        const newEnd = timeToMinutes(end_time.substring(0, 5))
+
+        if (
+          (newStart >= existingStart && newStart < existingEnd) ||
+          (newEnd > existingStart && newEnd <= existingEnd) ||
+          (newStart <= existingStart && newEnd >= existingEnd)
+        ) {
+          toast.error(t('configurationPanel.toasts.overlap', {
+            newTime: `${start_time.substring(0, 5)} - ${end_time.substring(0, 5)}`,
+            existingTime: `${existingSlot.start_time.substring(0, 5)} - ${existingSlot.end_time.substring(0, 5)}`
+          }), {
+            duration: 5000,
+          })
+          return
+        }
+      }
+
+      const { error: updateError } = await supabase
+        .from('available_time_slots')
+        .update({
+          start_time: start_time,
+          end_time: end_time,
+          admin_only: isAdminOnly,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', slotToEdit.id)
+
+      if (updateError) throw updateError
+
+      setTimeSlots(prev => {
+        const updated = { ...prev }
+        const dateKey = slotToEdit.date
+        
+        if (updated[dateKey]) {
+          updated[dateKey] = updated[dateKey].map(slot => 
+            slot.id === slotToEdit.id 
+              ? { ...slot, start_time, end_time, admin_only: isAdminOnly, updated_at: new Date().toISOString() }
+              : slot
+          )
+          updated[dateKey].sort((a, b) => a.start_time.localeCompare(b.start_time))
+        }
+        
+        return updated
+      })
+
+      cancelEdit()
+      
+      invalidateTimeSlotsCache(slotToEdit.date)
+      
+      toast.success(t('configurationPanel.toasts.scheduleUpdated'), {
+        duration: 3000,
+      })
+
+    } catch (error) {
+      console.error('Error updating time slot:', error)
+      toast.error(t('configurationPanel.toasts.errorUpdating', { error: error.message }), {
+        duration: 4000,
+      })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const cancelEdit = () => {
+    setIsEditMode(false)
+    setSlotToEdit(null)
+    setNewSlot({
+      start_hour: '',
+      start_minute: '',
+      end_hour: '',
+      end_minute: ''
+    })
+    setIsAdminOnly(false)
+    setSelectedDates([])
   }
 
   const deleteTimeSlot = async () => {
@@ -313,11 +554,11 @@ export default function ConfigurationPanel() {
         return updated
       })
 
-      toast.success('Horario eliminado correctamente')
+      toast.success(t('configurationPanel.toasts.scheduleDeleted'))
       invalidateTimeSlotsCache()
     } catch (error) {
       console.error('Error deleting time slot:', error)
-      toast.error('Error eliminando horario')
+      toast.error(t('configurationPanel.toasts.errorDeleting'))
     } finally {
       setSaving(false)
       setShowDeleteModal(false)
@@ -333,7 +574,7 @@ export default function ConfigurationPanel() {
   const clearDaySlots = async (date) => {
     const daySlots = timeSlots[date] || []
     if (daySlots.length === 0) {
-      toast.info('No hay horarios para eliminar en este día')
+      toast.info(t('configurationPanel.toasts.noDaySchedules'))
       return
     }
 
@@ -354,11 +595,13 @@ export default function ConfigurationPanel() {
         return updated
       })
 
-      toast.success(`Todos los horarios del ${format(new Date(date), 'dd/MM/yyyy')} han sido eliminados`)
+      toast.success(t('configurationPanel.toasts.daySchedulesCleared', { 
+        date: format(new Date(date), 'dd/MM/yyyy', { locale: getDateLocale() }) 
+      }))
       invalidateTimeSlotsCache()
     } catch (error) {
       console.error('Error clearing day slots:', error)
-      toast.error('Error eliminando horarios del día')
+      toast.error(t('configurationPanel.toasts.errorClearingDay'))
     } finally {
       setSaving(false)
     }
@@ -366,11 +609,10 @@ export default function ConfigurationPanel() {
 
   const clearSelectedDaysSlots = async () => {
     if (selectedDates.length === 0) {
-      toast.error('No hay días seleccionados para limpiar')
+      toast.error(t('configurationPanel.toasts.noSelectedDays'))
       return
     }
 
-    // Verificar si hay horarios en los días seleccionados
     const slotsToDelete = []
     selectedDates.forEach(date => {
       const daySlots = timeSlots[date] || []
@@ -380,7 +622,7 @@ export default function ConfigurationPanel() {
     })
 
     if (slotsToDelete.length === 0) {
-      toast.info('No hay horarios para eliminar en los días seleccionados')
+      toast.info(t('configurationPanel.toasts.noDaysWithSchedules'))
       return
     }
 
@@ -394,7 +636,6 @@ export default function ConfigurationPanel() {
 
       if (error) throw error
 
-      // Actualizar estado local
       setTimeSlots(prev => {
         const updated = { ...prev }
         selectedDates.forEach(date => {
@@ -405,26 +646,26 @@ export default function ConfigurationPanel() {
 
       const dayCount = selectedDates.length
       const slotCount = slotsToDelete.length
-      toast.success(`${slotCount} horario${slotCount !== 1 ? 's' : ''} eliminado${slotCount !== 1 ? 's' : ''} de ${dayCount} día${dayCount !== 1 ? 's' : ''}`)
+      toast.success(t('configurationPanel.toasts.selectedDaysCleared', { 
+        slotCount, 
+        dayCount 
+      }))
       invalidateTimeSlotsCache()
 
-      // Limpiar selección después de la operación
       setSelectedDates([])
       
     } catch (error) {
       console.error('Error clearing selected days slots:', error)
-      toast.error('Error eliminando horarios de los días seleccionados')
+      toast.error(t('configurationPanel.toasts.errorClearingSelected'))
     } finally {
       setSaving(false)
     }
   }
 
-  // Navegación
   const goToPreviousWeek = () => setCurrentWeek(subWeeks(currentWeek, 1))
   const goToNextWeek = () => setCurrentWeek(addWeeks(currentWeek, 1))
   const goToCurrentWeek = () => setCurrentWeek(new Date())
 
-  // Utilidades
   const formatTimeSlot = (slot) => {
     return `${slot.start_time.substring(0, 5)} - ${slot.end_time.substring(0, 5)}`
   }
@@ -451,12 +692,10 @@ export default function ConfigurationPanel() {
            newSlot.end_minute
   }
 
-  // Componentes de renderizado
   const renderDayCard = (day) => {
     const dayStr = format(day, 'yyyy-MM-dd')
     const daySlots = timeSlots[dayStr] || []
     
-    // Calcular si es día pasado
     const today = new Date()
     today.setHours(0, 0, 0, 0)
     const dayDate = new Date(day)
@@ -484,17 +723,17 @@ export default function ConfigurationPanel() {
             )}
             <div>
               <h3 className={`font-semibold ${isToday(day) ? 'text-blue-600' : 'text-gray-900'}`}>
-                {format(day, 'EEEE', { locale: es })}
+                {format(day, 'EEEE', { locale: getDateLocale() })}
               </h3>
               <p className="text-sm text-gray-600">
-                {format(day, 'dd MMM', { locale: es })}
-                {isPastDay && <span className="text-red-500 ml-1">(pasado)</span>}
+                {format(day, 'dd MMM', { locale: getDateLocale() })}
+                {isPastDay && <span className="text-red-500 ml-1">({t('configurationPanel.dayCard.past')})</span>}
               </p>
             </div>
           </div>
           <div className="flex flex-col items-end gap-1">
             <span className="text-xs font-medium text-gray-500">
-              {daySlots.length} horario{daySlots.length !== 1 ? 's' : ''}
+              {t('configurationPanel.dayCard.schedules', { count: daySlots.length })}
             </span>
             {!isPastDay && daySlots.length > 0 && (
               <button
@@ -502,7 +741,7 @@ export default function ConfigurationPanel() {
                 disabled={saving}
                 className="text-xs px-2 py-1 bg-red-100 text-red-600 rounded hover:bg-red-200 disabled:opacity-50"
               >
-                Limpiar
+                {t('configurationPanel.dayCard.clear')}
               </button>
             )}
           </div>
@@ -511,27 +750,55 @@ export default function ConfigurationPanel() {
         <div className="space-y-2 max-h-40 overflow-y-auto">
           {daySlots.length === 0 ? (
             <p className="text-sm text-gray-400 text-center py-4">
-              Sin horarios configurados
+              {t('configurationPanel.dayCard.noSchedules')}
             </p>
           ) : (
-            daySlots.map(slot => (
+            daySlots
+              .filter(slot => {
+                if (filterMode === 'all') return true
+                if (filterMode === 'normal') return !slot.admin_only
+                if (filterMode === 'admin_only') return slot.admin_only
+                return true
+              })
+              .map(slot => (
               <div 
                 key={slot.id} 
                 className="flex justify-between items-center bg-gray-50 rounded px-3 py-2"
               >
-                <span className="text-sm font-mono">
-                  {formatTimeSlot(slot)}
-                </span>
+                <div className="flex flex-col">
+                  <span className="text-sm font-mono">
+                    {formatTimeSlot(slot)}
+                  </span>
+                  {slot.admin_only && (
+                    <span className="text-xs text-red-600 font-medium mt-0.5">
+                      {t('configurationPanel.filters.adminOnly')}
+                    </span>
+                  )}
+                </div>
                 {!isPastDay && (
-                  <button
-                    onClick={() => openDeleteModal(slot)}
-                    disabled={saving}
-                    className="text-red-500 hover:text-red-700 disabled:opacity-50"
-                  >
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => startEditTimeSlot(slot)}
+                      disabled={saving}
+                      className="text-blue-500 hover:text-blue-700 disabled:opacity-50 transition-colors"
+                      title={t('configurationPanel.dayCard.edit')}
+                    >
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                    </button>
+                    
+                    <button
+                      onClick={() => openDeleteModal(slot)}
+                      disabled={saving}
+                      className="text-red-500 hover:text-red-700 disabled:opacity-50 transition-colors"
+                      title={t('configurationPanel.dayCard.delete')}
+                    >
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  </div>
                 )}
               </div>
             ))
@@ -546,10 +813,9 @@ export default function ConfigurationPanel() {
 
     return (
       <div className="space-y-4">
-        {/* Selector múltiple para móvil */}
         <div className="bg-white rounded-lg p-4 border">
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Días seleccionados ({selectedDates.length})
+            {t('configurationPanel.mobile.selectedDays')} ({selectedDates.length})
           </label>
           {selectedDates.length > 0 ? (
             <div className="flex flex-wrap gap-2 mb-3">
@@ -571,7 +837,7 @@ export default function ConfigurationPanel() {
               ))}
             </div>
           ) : (
-            <p className="text-sm text-gray-500 mb-3">Ningún día seleccionado</p>
+            <p className="text-sm text-gray-500 mb-3">{t('configurationPanel.mobile.noDaysSelected')}</p>
           )}
           
           <select
@@ -579,17 +845,16 @@ export default function ConfigurationPanel() {
             onChange={(e) => {
               if (e.target.value) {
                 toggleDateSelection(e.target.value)
-                e.target.value = "" // Reset del select
+                e.target.value = ""
               }
             }}
             className="w-full border border-gray-300 rounded-md px-3 py-2"
           >
-            <option value="">Seleccionar día...</option>
+            <option value="">{t('configurationPanel.mobile.selectDay')}</option>
             {weekDays.map(day => {
               const dayStr = format(day, 'yyyy-MM-dd')
               const isAlreadySelected = selectedDates.includes(dayStr)
               
-              // Verificar si es un día pasado
               const today = new Date()
               today.setHours(0, 0, 0, 0)
               const dayDate = new Date(day)
@@ -602,16 +867,15 @@ export default function ConfigurationPanel() {
                   value={dayStr}
                   disabled={isAlreadySelected || isPastDay}
                 >
-                  {format(day, 'EEEE dd \'de\' MMMM', { locale: es })}
-                  {isAlreadySelected ? ' (seleccionado)' : ''}
-                  {isPastDay ? ' (pasado)' : ''}
+                  {format(day, 'EEEE dd \'de\' MMMM', { locale: getDateLocale() })}
+                  {isAlreadySelected ? ` (${t('configurationPanel.mobile.selected')})` : ''}
+                  {isPastDay ? ` (${t('configurationPanel.mobile.past')})` : ''}
                 </option>
               )
             })}
           </select>
         </div>
 
-        {/* Cards de todos los días de la semana */}
         <div className="space-y-3">
           {getWeekDays().map(renderDayCard)}
         </div>
@@ -625,7 +889,7 @@ export default function ConfigurationPanel() {
     return (
       <div className="flex justify-center items-center py-12">
         <div className="loading-spinner mr-3"></div>
-        <span className="text-gray-600">Cargando configuración...</span>
+        <span className="text-gray-600">{t('configurationPanel.loadingConfig')}</span>
       </div>
     )
   }
@@ -633,17 +897,15 @@ export default function ConfigurationPanel() {
   return (
     <div className="w-full max-w-full overflow-hidden">
       <div className="space-y-4 sm:space-y-6">
-        {/* Header */}
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
           <div>
-            <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">Configuración de Horarios</h2>
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">{t('configurationPanel.title')}</h2>
             <p className="text-sm sm:text-base text-gray-600">
-              Define horarios disponibles por fecha específica
+              {t('configurationPanel.subtitle')}
             </p>
           </div>
         </div>
 
-        {/* Navegación de semanas */}
         <div className="bg-white p-4 rounded-lg shadow-sm border">
           <div className="flex flex-col sm:flex-row justify-between items-center gap-3">
             <button 
@@ -653,19 +915,19 @@ export default function ConfigurationPanel() {
               <svg className="w-4 h-4 sm:w-5 sm:h-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
-              <span className="text-sm sm:text-base">Anterior</span>
+              <span className="text-sm sm:text-base">{t('configurationPanel.previous')}</span>
             </button>
             
             <div className="text-center">
               <h3 className="text-sm sm:text-lg font-semibold">
-                Semana del {format(startOfWeek(currentWeek, { weekStartsOn: 1 }), 'd')} al{' '}
-                {format(endOfWeek(currentWeek, { weekStartsOn: 1 }), 'd \'de\' MMMM yyyy', { locale: es })}
+                {t('configurationPanel.weekOf')} {format(startOfWeek(currentWeek, { weekStartsOn: 1 }), 'd')} {t('configurationPanel.to')}{' '}
+                {format(endOfWeek(currentWeek, { weekStartsOn: 1 }), 'd \'de\' MMMM yyyy', { locale: getDateLocale() })}
               </h3>
               <button 
                 onClick={goToCurrentWeek} 
                 className="text-xs sm:text-sm text-blue-600 hover:text-blue-800 mt-1 transition-colors"
               >
-                Ir a semana actual
+                {t('configurationPanel.goToCurrentWeek')}
               </button>
             </div>
             
@@ -673,7 +935,7 @@ export default function ConfigurationPanel() {
               onClick={goToNextWeek} 
               className="flex items-center px-3 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded w-full sm:w-auto justify-center sm:justify-start transition-colors"
             >
-              <span className="text-sm sm:text-base">Siguiente</span>
+              <span className="text-sm sm:text-base">{t('configurationPanel.next')}</span>
               <svg className="w-4 h-4 sm:w-5 sm:h-5 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
@@ -681,32 +943,78 @@ export default function ConfigurationPanel() {
           </div>
         </div>
 
-        {/* Estadísticas */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
           <div className="bg-white p-3 sm:p-4 rounded-lg shadow-sm border">
             <div className="text-xl sm:text-2xl font-bold text-blue-600">{stats.totalSlots}</div>
-            <div className="text-xs sm:text-sm text-gray-600">Total horarios configurados</div>
+            <div className="text-xs sm:text-sm text-gray-600">{t('configurationPanel.stats.totalSchedules')}</div>
           </div>
           <div className="bg-white p-3 sm:p-4 rounded-lg shadow-sm border">
             <div className="text-xl sm:text-2xl font-bold text-green-600">{stats.totalDaysWithSlots}</div>
-            <div className="text-xs sm:text-sm text-gray-600">Días con horarios</div>
+            <div className="text-xs sm:text-sm text-gray-600">{t('configurationPanel.stats.daysWithSchedules')}</div>
           </div>
         </div>
 
-        {/* Formulario para añadir horarios */}
         <div className="bg-white p-4 rounded-lg shadow-sm border">
-          <h3 className="font-semibold text-gray-900 mb-4">Añadir Nuevo Horario</h3>
+          <h4 className="font-medium text-gray-900 mb-3">{t('configurationPanel.filters.title')}</h4>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => setFilterMode('all')}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                filterMode === 'all'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              {t('configurationPanel.filters.all')}
+            </button>
+            <button
+              onClick={() => setFilterMode('normal')}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                filterMode === 'normal'
+                  ? 'bg-green-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              {t('configurationPanel.filters.normal')}
+            </button>
+            <button
+              onClick={() => setFilterMode('admin_only')}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                filterMode === 'admin_only'
+                  ? 'bg-red-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              {t('configurationPanel.filters.adminOnly')}
+            </button>
+          </div>
+        </div>
+
+        <div className="bg-white p-4 rounded-lg shadow-sm border" id="horario-form">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="font-semibold text-gray-900">
+              {isEditMode ? t('configurationPanel.form.edit') : t('configurationPanel.form.addNew')}
+            </h3>
+            {isEditMode && (
+              <button
+                onClick={cancelEdit}
+                className="text-sm px-3 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
+              >
+                {t('configurationPanel.form.cancelEdit')}
+              </button>
+            )}
+          </div>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Hora inicio *
+                {t('configurationPanel.form.startHour')} *
               </label>
               <div className="relative">
                 <input
                   type="number"
                   min="6"
-                  max="23"
+                  max="22"
                   value={newSlot.start_hour}
                   onChange={(e) => {
                     const value = e.target.value
@@ -727,50 +1035,39 @@ export default function ConfigurationPanel() {
                     }
                   }}
                   className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-                  placeholder="08"
+                  placeholder="06"
                 />
                 <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
                   <span className="text-gray-400 text-sm">h</span>
                 </div>
               </div>
-              <p className="text-xs text-gray-500 mt-1 text-center">Introducir 06 - 23</p>
+              <p className="text-xs text-gray-500 mt-1 text-center">{t('configurationPanel.form.enter')} 06 - 22</p>
             </div>
             
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Minuto de inicio *
+                {t('configurationPanel.form.startMinute')} *
               </label>
               <div className="relative">
-                <input
-                  type="number"
-                  min="0"
-                  max="59"
-                  step="1"
+                <select
                   value={newSlot.start_minute}
-                  onChange={(e) => {
-                    const value = e.target.value
-                    if (value === '' || (parseInt(value) >= 0 && parseInt(value) <= 59)) {
-                      setNewSlot({...newSlot, start_minute: value})
-                    }
-                  }}
-                  onBlur={(e) => {
-                    if (e.target.value && !isNaN(e.target.value)) {
-                      setNewSlot({...newSlot, start_minute: parseInt(e.target.value).toString().padStart(2, '0')})
-                    }
-                  }}
+                  onChange={(e) => setNewSlot({...newSlot, start_minute: e.target.value})}
                   className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-                  placeholder="00"
-                />
-                <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
-                  <span className="text-gray-400 text-sm">m</span>
-                </div>
+                  required
+                >
+                  <option value="">--</option>
+                  <option value="00">00</option>
+                  <option value="15">15</option>
+                  <option value="30">30</option>
+                  <option value="45">45</option>
+                </select>
               </div>
-              <p className="text-xs text-gray-500 mt-1 text-center">Introducir 00 - 59</p>
+              <p className="text-xs text-gray-500 mt-1 text-center">{t('configurationPanel.form.onlyIntervals')}</p>
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Hora fin *
+                {t('configurationPanel.form.endHour')} *
               </label>
               <div className="relative">
                 <input
@@ -797,81 +1094,84 @@ export default function ConfigurationPanel() {
                     }
                   }}
                   className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-                  placeholder="21"
+                  placeholder="23"
                 />
                 <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
                   <span className="text-gray-400 text-sm">h</span>
                 </div>
               </div>
-              <p className="text-xs text-gray-500 mt-1 text-center">Introducir 06 - 23</p>
+              <p className="text-xs text-gray-500 mt-1 text-center">{t('configurationPanel.form.enter')} 06 - 23</p>
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Minuto fin *
+                {t('configurationPanel.form.endMinute')} *
               </label>
               <div className="relative">
-                <input
-                  type="number"
-                  min="0"
-                  max="59"
-                  step="1"
+                <select
                   value={newSlot.end_minute}
-                  onChange={(e) => {
-                    const value = e.target.value
-                    if (value === '' || (parseInt(value) >= 0 && parseInt(value) <= 59)) {
-                      setNewSlot({...newSlot, end_minute: value})
-                    }
-                  }}
-                  onBlur={(e) => {
-                    if (e.target.value && !isNaN(e.target.value)) {
-                      setNewSlot({...newSlot, end_minute: parseInt(e.target.value).toString().padStart(2, '0')})
-                    }
-                  }}
+                  onChange={(e) => setNewSlot({...newSlot, end_minute: e.target.value})}
                   className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-                  placeholder="00"
-                />
-                <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
-                  <span className="text-gray-400 text-sm">m</span>
-                </div>
+                  required
+                >
+                  <option value="">--</option>
+                  <option value="00">00</option>
+                  <option value="15">15</option>
+                  <option value="30">30</option>
+                  <option value="45">45</option>
+                </select>
               </div>
-              <p className="text-xs text-gray-500 mt-1 text-center">Introducir 00 - 59</p>
+              <p className="text-xs text-gray-500 mt-1 text-center">{t('configurationPanel.form.onlyIntervals')}</p>
             </div>
             
-            <div className="flex flex-col items-end">
+            <div className="flex flex-col items-end gap-3">
+              <div className="w-full">
+                <label className="flex items-center gap-2 cursor-pointer bg-red-50 border border-red-200 rounded-md p-3 hover:bg-red-100 transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={isAdminOnly}
+                    onChange={(e) => setIsAdminOnly(e.target.checked)}
+                    className="w-4 h-4 text-red-600 bg-gray-100 border-gray-300 rounded focus:ring-red-500 focus:ring-2"
+                  />
+                  <div className="flex-1">
+                    <span className="text-sm font-medium text-red-700">{t('configurationPanel.form.adminOnlyLabel')}</span>
+                    <p className="text-xs text-red-600 mt-0.5">{t('configurationPanel.form.adminOnlyDesc')}</p>
+                  </div>
+                </label>
+              </div>
+              
               <button
                 onClick={(e) => {
                   e.preventDefault()
                   if (!saving) {
-                    addTimeSlot()
+                    isEditMode ? updateTimeSlot() : addTimeSlot()
                   }
                 }}
                 disabled={saving || !isFormValid()}
-                className="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm mt-6"
+                className={`w-full ${isEditMode ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700'} text-white px-4 py-2 rounded-md disabled:opacity-50 disabled:cursor-not-allowed text-sm`}
               >
                 {saving ? (
                   <div className="flex items-center justify-center">
                     <div className="loading-spinner mr-2"></div>
-                    Añadiendo...
+                    {isEditMode ? t('configurationPanel.form.updating') : t('configurationPanel.form.adding')}
                   </div>
                 ) : (
-                  'Añadir'
+                  isEditMode ? t('configurationPanel.form.update') : t('configurationPanel.form.add')
                 )}
               </button>
             </div>
           </div>
 
-          {/* Sugerencias rápidas de horarios comunes */}
           <div className="mt-4 pt-4 border-t border-gray-200">
             <div className="flex flex-wrap gap-2">
-              <span className="text-sm text-gray-600 mr-2">Sugerencias rápidas:</span>
+              <span className="text-sm text-gray-600 mr-2">{t('configurationPanel.form.quickSuggestions')}</span>
               
               <button
                 type="button"
                 onClick={() => setNewSlot({start_hour: '08', start_minute: '00', end_hour: '12', end_minute: '00'})}
                 className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
               >
-                Mañana (08:00-12:00)
+                {t('configurationPanel.form.morning')}
               </button>
               
               <button
@@ -879,7 +1179,7 @@ export default function ConfigurationPanel() {
                 onClick={() => setNewSlot({start_hour: '14', start_minute: '00', end_hour: '18', end_minute: '00'})}
                 className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
               >
-                Tarde (14:00-18:00)
+                {t('configurationPanel.form.afternoon')}
               </button>
               
               <button
@@ -887,7 +1187,7 @@ export default function ConfigurationPanel() {
                 onClick={() => setNewSlot({start_hour: '08', start_minute: '00', end_hour: '18', end_minute: '00'})}
                 className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
               >
-                Jornada completa (08:00-18:00)
+                {t('configurationPanel.form.fullDay')}
               </button>
               
               <button
@@ -895,7 +1195,7 @@ export default function ConfigurationPanel() {
                 onClick={() => setNewSlot({start_hour: '09', start_minute: '00', end_hour: '09', end_minute: '30'})}
                 className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
               >
-                30 min (09:00-09:30)
+                {t('configurationPanel.form.thirtyMin')}
               </button>
               
               <button
@@ -903,21 +1203,20 @@ export default function ConfigurationPanel() {
                 onClick={() => setNewSlot({start_hour: '10', start_minute: '00', end_hour: '11', end_minute: '00'})}
                 className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
               >
-                1 hora (10:00-11:00)
+                {t('configurationPanel.form.oneHour')}
               </button>
             </div>
           </div>
 
-          {/* Panel de selección múltiple */}
           <div className="mt-4 pt-4 border-t border-gray-200">
             <div className="bg-gray-50 rounded-lg p-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
                 <div>
-                  <h4 className="font-medium text-gray-900">Selección de Días</h4>
+                  <h4 className="font-medium text-gray-900">{t('configurationPanel.selection.title')}</h4>
                   <p className="text-sm text-gray-600">
                     {selectedDates.length === 0 
-                      ? 'Selecciona los días donde quieres añadir el horario' 
-                      : `${selectedDates.length} día${selectedDates.length !== 1 ? 's' : ''} seleccionado${selectedDates.length !== 1 ? 's' : ''}`
+                      ? t('configurationPanel.selection.instruction')
+                      : t('configurationPanel.selection.selected', { count: selectedDates.length })
                     }
                   </p>
                 </div>
@@ -927,7 +1226,7 @@ export default function ConfigurationPanel() {
                     disabled={saving}
                     className="text-xs px-3 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 disabled:opacity-50"
                   >
-                    Seleccionar todos
+                    {t('configurationPanel.selection.selectAll')}
                   </button>
                   
                   <button
@@ -935,7 +1234,7 @@ export default function ConfigurationPanel() {
                     disabled={saving || selectedDates.length === 0}
                     className="text-xs px-3 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 disabled:opacity-50"
                   >
-                    Limpiar selección
+                    {t('configurationPanel.selection.clearSelection')}
                   </button>
                 </div>
                 <button
@@ -943,7 +1242,7 @@ export default function ConfigurationPanel() {
                     disabled={saving || selectedDates.length === 0}
                     className="text-xs px-3 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 disabled:opacity-50"
                   >
-                    Limpiar horarios días seleccionados
+                    {t('configurationPanel.selection.clearSchedules')}
                   </button>
               </div>
               
@@ -968,38 +1267,39 @@ export default function ConfigurationPanel() {
                 </div>
               )}
               
-              {/* Ayuda contextual */}
               <div className="text-xs text-gray-500 bg-blue-50 p-3 rounded mt-3">
-                <strong>Cómo usar:</strong> Marca los días con los checkboxes azules, configura el horario y haz clic en "Añadir" para aplicarlo a todos los días seleccionados.
+                <strong>{t('configurationPanel.selection.howToUse')}</strong> {t('configurationPanel.selection.howToUseText')}
+                {isEditMode && (
+                  <div className="mt-2 text-green-700 bg-green-50 p-2 rounded">
+                    <strong>{t('configurationPanel.selection.editMode')}</strong> {t('configurationPanel.selection.editModeText')}
+                  </div>
+                )}
               </div>
             </div>
           </div>
         </div>
 
-        {/* Toggle vista móvil/desktop */}
         <div className="lg:hidden flex bg-gray-100 rounded-md p-1">
           <button
             onClick={() => setViewMode('mobile')}
             className={`flex-1 px-3 py-1 text-xs rounded transition-colors ${viewMode === 'mobile' ? 'bg-white shadow text-blue-600' : 'text-gray-600'}`}
           >
-            Vista por Día
+            {t('configurationPanel.viewToggle.byDay')}
           </button>
           <button
             onClick={() => setViewMode('desktop')}
             className={`flex-1 px-3 py-1 text-xs rounded transition-colors ${viewMode === 'desktop' ? 'bg-white shadow text-blue-600' : 'text-gray-600'}`}
           >
-            Vista Completa
+            {t('configurationPanel.viewToggle.complete')}
           </button>
         </div>
 
-        {/* Configuración de horarios - Vista adaptativa */}
         {viewMode === 'mobile' ? renderMobileView() : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
             {getWeekDays().map(renderDayCard)}
           </div>
         )}
 
-        {/* Modal de confirmación para eliminar */}
         <ConfirmModal
           isOpen={showDeleteModal}
           onClose={() => {
@@ -1007,10 +1307,13 @@ export default function ConfigurationPanel() {
             setSlotToDelete(null)
           }}
           onConfirm={deleteTimeSlot}
-          title="Eliminar Horario"
-          message={`¿Estás seguro que quieres eliminar el horario ${slotToDelete ? formatTimeSlot(slotToDelete) : ''} del ${slotToDelete ? format(new Date(slotToDelete.date), 'dd/MM/yyyy') : ''}?`}
-          confirmText="Eliminar"
-          cancelText="Cancelar"
+          title={t('configurationPanel.deleteModal.title')}
+          message={t('configurationPanel.deleteModal.message', {
+            slot: slotToDelete ? formatTimeSlot(slotToDelete) : '',
+            date: slotToDelete ? format(new Date(slotToDelete.date), 'dd/MM/yyyy', { locale: getDateLocale() }) : ''
+          })}
+          confirmText={t('configurationPanel.deleteModal.confirm')}
+          cancelText={t('configurationPanel.deleteModal.cancel')}
           confirmButtonClass="bg-red-600 hover:bg-red-700"
           icon={
             <div className="flex items-center justify-center w-10 h-10 mx-auto bg-red-100 rounded-full">

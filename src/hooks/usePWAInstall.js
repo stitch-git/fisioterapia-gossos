@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 
 export const usePWAInstall = () => {
+  const { t } = useTranslation()
   const [installPrompt, setInstallPrompt] = useState(null)
   const [isInstallable, setIsInstallable] = useState(false)
   const [isInstalled, setIsInstalled] = useState(false)
   const [browserInfo, setBrowserInfo] = useState({})
   const [showIOSBanner, setShowIOSBanner] = useState(false)
 
-  // Detectar información del navegador mejorada para iOS
   const detectBrowser = () => {
     const userAgent = navigator.userAgent
     const isIOS = /iPad|iPhone|iPod/.test(userAgent)
@@ -16,14 +17,11 @@ export const usePWAInstall = () => {
     const isSafari = /^((?!chrome|android).)*safari/i.test(userAgent)
     const isDesktop = !isIOS && !isAndroid
     
-    // Detección más precisa de Chrome en iOS
     const isChromeIOS = isIOS && /CriOS/.test(userAgent)
     const isSafariIOS = isIOS && !isChromeIOS && /Safari/.test(userAgent)
     
-    // Detectar versión de iOS para compatibilidad
     const iOSVersion = isIOS ? navigator.userAgent.match(/OS (\d+)_/)?.[1] : null
     
-    // Detectar si es iPad específicamente
     const isIPad = /iPad/.test(userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
     
     return {
@@ -46,39 +44,28 @@ export const usePWAInstall = () => {
     const browser = detectBrowser()
     setBrowserInfo(browser)
 
-    // Verificar si ya está instalada la PWA (mejorado para iOS)
     const checkIfInstalled = () => {
-      // Método principal para iOS: navigator.standalone
       const isIOSStandalone = window.navigator.standalone === true
-      
-      // Método para otros navegadores: display mode
       const isInStandaloneMode = window.matchMedia('(display-mode: standalone)').matches
-      
-      // Método adicional: verificar start_url con parámetros
       const hasHomeScreenParam = window.location.search.includes('utm_source=homescreen')
-      
-      // Verificar Android PWA
       const isAndroidPWA = document.referrer.includes('android-app://')
       
       const isPWAInstalled = isIOSStandalone || isInStandaloneMode || hasHomeScreenParam || isAndroidPWA
 
       setIsInstalled(isPWAInstalled)
       
-      // Si está instalada, no mostrar banner ni botón
       if (isPWAInstalled) {
         setShowIOSBanner(false)
         return
       }
 
-      // Mostrar banner educativo para iOS Safari (solo primera visita)
       if (browser.isSafariIOS && !localStorage.getItem('ios-install-banner-seen')) {
-        setTimeout(() => setShowIOSBanner(true), 3000) // Mostrar después de 3 segundos
+        setTimeout(() => setShowIOSBanner(true), 3000)
       }
     }
 
     checkIfInstalled()
 
-    // Escuchar el evento beforeinstallprompt (solo Chrome Desktop/Android)
     const handleBeforeInstallPrompt = (event) => {
       console.log('PWA: beforeinstallprompt event fired')
       event.preventDefault()
@@ -86,7 +73,6 @@ export const usePWAInstall = () => {
       setIsInstallable(true)
     }
 
-    // Escuchar cuando la app se instala
     const handleAppInstalled = () => {
       console.log('PWA: App was installed')
       setIsInstalled(true)
@@ -95,7 +81,6 @@ export const usePWAInstall = () => {
       setShowIOSBanner(false)
     }
 
-    // Escuchar cambios en display mode (útil para iOS)
     const handleDisplayModeChange = (e) => {
       if (e.matches) {
         console.log('PWA: Display mode changed to standalone')
@@ -104,22 +89,18 @@ export const usePWAInstall = () => {
       }
     }
 
-    // Agregar listeners según el navegador
     if (browser.isChromeDesktop || browser.isChromeAndroid) {
       window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
       window.addEventListener('appinstalled', handleAppInstalled)
     }
 
-    // Listener para cambios en display mode (iOS principalmente)
     const displayModeQuery = window.matchMedia('(display-mode: standalone)')
     displayModeQuery.addEventListener('change', handleDisplayModeChange)
 
-    // Para iOS (Safari y Chrome), la app es "instalable" si no está ya instalada
     if ((browser.isSafariIOS || browser.isChromeIOS) && !isInstalled) {
       setIsInstallable(true)
     }
 
-    // Cleanup
     return () => {
       if (browser.isChromeDesktop || browser.isChromeAndroid) {
         window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
@@ -129,9 +110,7 @@ export const usePWAInstall = () => {
     }
   }, [isInstalled])
 
-  // Función para instalar la PWA
   const installPWA = async () => {
-    // Para Chrome Desktop/Android con prompt disponible
     if (installPrompt && (browserInfo.isChromeDesktop || browserInfo.isChromeAndroid)) {
       try {
         installPrompt.prompt()
@@ -152,127 +131,75 @@ export const usePWAInstall = () => {
     return false
   }
 
-  // Función para obtener instrucciones de instalación manual mejoradas
   const getManualInstallInstructions = () => {
     if (browserInfo.isSafariIOS) {
       const deviceType = browserInfo.isIPad ? 'iPad' : 'iPhone'
       return {
-        platform: `Safari iOS (${deviceType})`,
+        platform: t('pwaInstall.platforms.safariIOS', { device: deviceType }),
         deviceType,
-        steps: [
-          `En la parte inferior de Safari, toca el botón de "compartir" (cuadrado con flecha hacia arriba)`,
-          'En el menú que aparece, desplázate hacia abajo hasta encontrar "Añadir a pantalla de inicio"',
-          'Toca "Añadir a pantalla de inicio"',
-          'Confirma tocando "Añadir" en la parte superior derecha',
-          'La app aparecerá en tu pantalla de inicio como cualquier otra aplicación'
-        ],
-        benefits: [
-          'Acceso rápido desde tu pantalla de inicio',
-          'Experiencia de aplicación nativa',
-          'Funciona sin conexión para ciertas funciones',
-          'Sin barra de direcciones del navegador'
-        ],
-        troubleshooting: [
-          'Si no ves el botón de compartir, asegúrate de estar usando Safari (no Chrome)',
-          'Si "Añadir a pantalla de inicio" no aparece, actualiza Safari a la última versión',
-          'Algunos bloqueadores de contenido pueden interferir - desactívalos temporalmente'
-        ]
+        steps: t('pwaInstall.instructions.safariIOS.steps', { returnObjects: true }),
+        benefits: t('pwaInstall.instructions.safariIOS.benefits', { returnObjects: true }),
+        troubleshooting: t('pwaInstall.instructions.safariIOS.troubleshooting', { returnObjects: true })
       }
     } 
     
     if (browserInfo.isChromeIOS) {
       return {
-        platform: 'Chrome iOS',
+        platform: t('pwaInstall.platforms.chromeIOS'),
         deviceType: browserInfo.isIPad ? 'iPad' : 'iPhone',
-        steps: [
-          'Toca los tres puntos (⋯) en la esquina superior derecha de Chrome',
-          'Busca y selecciona "Añadir a pantalla de inicio"',
-          'Confirma tocando "Añadir"'
-        ],
-        note: 'Chrome en iOS tiene limitaciones para PWAs. Para la mejor experiencia, recomendamos usar Safari.',
+        steps: t('pwaInstall.instructions.chromeIOS.steps', { returnObjects: true }),
+        note: t('pwaInstall.instructions.chromeIOS.note'),
         safariRecommendation: true,
-        benefits: [
-          'Acceso rápido desde tu pantalla de inicio',
-          'Marcador mejorado (no es una PWA completa en Chrome iOS)'
-        ]
+        benefits: t('pwaInstall.instructions.chromeIOS.benefits', { returnObjects: true })
       }
     }
 
     if (browserInfo.isChromeDesktop && !installPrompt) {
       return {
-        platform: 'Chrome Desktop',
+        platform: t('pwaInstall.platforms.chromeDesktop'),
         deviceType: 'Desktop',
-        steps: [
-          'Toca los tres puntos (⋮) en la esquina superior derecha',
-          'Busca la opción "Enviar, guardar y compartir"',
-          'Haz clic en "Instalar página como aplicación"',
-          'La aplicación se abrirá en una ventana independiente'
-        ],
-        benefits: [
-          'Ventana de aplicación independiente',
-          'Acceso rápido desde el escritorio',
-          'Notificaciones del sistema',
-          'Funciona offline para ciertas funciones'
-        ]
+        steps: t('pwaInstall.instructions.chromeDesktop.steps', { returnObjects: true }),
+        benefits: t('pwaInstall.instructions.chromeDesktop.benefits', { returnObjects: true })
       }
     }
 
     if (browserInfo.isChromeAndroid && !installPrompt) {
       return {
-        platform: 'Chrome Android',
+        platform: t('pwaInstall.platforms.chromeAndroid'),
         deviceType: 'Android',
-        steps: [
-          'Toca los tres puntos (⋮) en la esquina superior derecha',
-          'Selecciona "Añadir a pantalla de inicio" o "Instalar aplicación"',
-          'Confirma tocando "Añadir" o "Instalar"',
-          'La app aparecerá en tu cajón de aplicaciones y pantalla de inicio'
-        ],
-        benefits: [
-          'Aplicación nativa completa',
-          'Notificaciones push',
-          'Funciona offline',
-          'Acceso desde el cajón de aplicaciones'
-        ]
+        steps: t('pwaInstall.instructions.chromeAndroid.steps', { returnObjects: true }),
+        benefits: t('pwaInstall.instructions.chromeAndroid.benefits', { returnObjects: true })
       }
     }
     
     return null
   }
 
-  // Función para verificar si el botón debe mostrarse
   const shouldShowInstallButton = () => {
     if (isInstalled) return false
-    
-    // Mostrar si hay prompt disponible (Chrome Desktop/Android)
     if (installPrompt) return true
-    
-    // Mostrar para iOS (necesita instalación manual)
     if (browserInfo.isSafariIOS || browserInfo.isChromeIOS) return true
-    
-    // Mostrar para Chrome Desktop/Android sin prompt (fallback)
     if (browserInfo.isChromeDesktop || browserInfo.isChromeAndroid) return true
     
     return false
   }
 
-  // Función para obtener el texto del botón según la plataforma
   const getInstallButtonText = () => {
     if (browserInfo.isSafariIOS) {
-      return 'Añadir a Inicio'
+      return t('pwaInstall.buttons.addToHome')
     }
     
     if (browserInfo.isChromeIOS) {
-      return 'Añadir a Inicio'
+      return t('pwaInstall.buttons.addToHome')
     }
     
     if (browserInfo.isChromeDesktop || browserInfo.isChromeAndroid) {
-      return installPrompt ? 'Instalar App' : 'Instalar App'
+      return t('pwaInstall.buttons.installApp')
     }
     
-    return 'Instalar App'
+    return t('pwaInstall.buttons.installApp')
   }
 
-  // Función para cerrar el banner de iOS
   const dismissIOSBanner = () => {
     setShowIOSBanner(false)
     localStorage.setItem('ios-install-banner-seen', 'true')

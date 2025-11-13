@@ -1,21 +1,25 @@
-// src/hooks/useNotifications.js
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabase'
 import toast from 'react-hot-toast'
 
 export const useNotifications = () => {
+  const { t, i18n } = useTranslation()
   const [loading, setLoading] = useState(false)
 
-  // Función base para enviar emails usando tu Edge Function
-  const sendEmail = async (emailType, to, data) => {
+  const sendEmail = async (emailType, to, data, language = null) => {
     try {
       console.log(`📧 Enviando email tipo: ${emailType} a: ${to}`)
+
+      // Determinar el idioma a usar
+      const emailLanguage = language || i18n.language || 'es'
 
       const emailPayload = {
         emailType,
         to,
         clientName: data.clientName,
         subject: data.subject,
+        language: emailLanguage,
         ...data
       }
 
@@ -25,7 +29,7 @@ export const useNotifications = () => {
 
       if (error) throw error
       
-      console.log(`✅ Email ${emailType} enviado correctamente:`, response?.emailId)
+      console.log(`✅ Email ${emailType} enviado correctamente (${emailLanguage}):`, response?.emailId)
       return { success: true, data: response }
       
     } catch (error) {
@@ -34,7 +38,6 @@ export const useNotifications = () => {
     }
   }
 
-  // ✅ NUEVA: Obtener email del administrador
   const getAdminEmail = async () => {
     try {
       const { data, error } = await supabase
@@ -55,17 +58,39 @@ export const useNotifications = () => {
     }
   }
 
-  // 1. Email de bienvenida
-  const sendWelcomeEmail = async (to, clientName) => {
-    return await sendEmail('welcome', to, {
-      clientName: clientName || to?.split('@')[0] || 'Usuario',
-      subject: '¡Bienvenido a Fisioterapia Gossos!'
-    })
+  const getUserLanguage = async (userEmail) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('preferred_language')
+        .eq('email', userEmail)
+        .single()
+
+      if (error || !data) {
+        console.log(`⚠️ No se pudo obtener idioma para ${userEmail}, usando idioma actual`)
+        return i18n.language || 'es'
+      }
+
+      return data.preferred_language || i18n.language || 'es'
+    } catch (error) {
+      console.error('Error obteniendo idioma del usuario:', error)
+      return i18n.language || 'es'
+    }
   }
 
-  // 2. Email confirmación de cita
+  const sendWelcomeEmail = async (to, clientName) => {
+    const userLanguage = await getUserLanguage(to)
+    
+    return await sendEmail('welcome', to, {
+      clientName: clientName || to?.split('@')[0] || t('emailNotifications.fallbacks.user'),
+      subject: t('emailNotifications.subjects.welcome')
+    }, userLanguage)
+  }
+
   const sendBookingConfirmationEmail = async (bookingData) => {
-    return await sendEmail('booking', bookingData.to, {
+    const userLanguage = await getUserLanguage(bookingData.to)
+    
+    return await sendEmail('confirmation', bookingData.to, {
       clientName: bookingData.clientName,
       dogName: bookingData.dogName,
       service: bookingData.service,
@@ -73,12 +98,13 @@ export const useNotifications = () => {
       time: bookingData.time,
       duration: bookingData.duration,
       price: bookingData.price,
-      subject: '📅 Confirmación de cita - Fisioterapia Gossos'
-    })
+      subject: t('emailNotifications.subjects.bookingConfirmation')
+    }, userLanguage)
   }
 
-  // 3. Email cancelación de cita
   const sendBookingCancellationEmail = async (bookingData) => {
+    const userLanguage = await getUserLanguage(bookingData.to)
+    
     return await sendEmail('cancellation', bookingData.to, {
       clientName: bookingData.clientName,
       dogName: bookingData.dogName,
@@ -86,12 +112,13 @@ export const useNotifications = () => {
       date: bookingData.date,
       time: bookingData.time,
       cancellationReason: bookingData.cancellationReason,
-      subject: '❌ Cita cancelada - Fisioterapia Gossos'
-    })
+      subject: t('emailNotifications.subjects.cancellation')
+    }, userLanguage)
   }
 
-  // 4. Email recordatorio 24h
   const sendReminderEmail = async (bookingData) => {
+    const userLanguage = await getUserLanguage(bookingData.to)
+    
     return await sendEmail('reminder', bookingData.to, {
       clientName: bookingData.clientName,
       dogName: bookingData.dogName,
@@ -99,25 +126,28 @@ export const useNotifications = () => {
       date: bookingData.date,
       time: bookingData.time,
       duration: bookingData.duration,
-      subject: '🔔 Recordatorio de cita - Fisioterapia Gossos'
-    })
+      subject: t('emailNotifications.subjects.reminder')
+    }, userLanguage)
   }
 
-  // 5. Email reset de contraseña
   const sendPasswordResetEmail = async (to, resetData) => {
+    const userLanguage = await getUserLanguage(to)
+    
     return await sendEmail('password_reset', to, {
-      clientName: resetData.clientName || to?.split('@')[0] || 'Usuario',
+      clientName: resetData.clientName || to?.split('@')[0] || t('emailNotifications.fallbacks.user'),
       resetUrl: resetData.resetUrl,
       expirationTime: resetData.expirationTime || '60 minutos',
-      subject: '🔑 Restablece tu contraseña - Fisioterapia Gossos'
-    })
+      subject: t('emailNotifications.subjects.passwordReset')
+    }, userLanguage)
   }
 
-  // 6. Email confirmación de cambio de contraseña
   const sendPasswordChangedEmail = async (to, clientName) => {
+    const userLanguage = await getUserLanguage(to)
+    const locale = userLanguage === 'ca' ? 'ca-ES' : 'es-ES'
+    
     return await sendEmail('password_changed', to, {
-      clientName: clientName || to?.split('@')[0] || 'Usuario',
-      changeTime: new Date().toLocaleString('es-ES', {
+      clientName: clientName || to?.split('@')[0] || t('emailNotifications.fallbacks.user'),
+      changeTime: new Date().toLocaleString(locale, {
         weekday: 'long',
         year: 'numeric',
         month: 'long',
@@ -125,17 +155,18 @@ export const useNotifications = () => {
         hour: '2-digit',
         minute: '2-digit'
       }),
-      subject: '✅ Contraseña actualizada - Fisioterapia Gossos'
-    })
+      subject: t('emailNotifications.subjects.passwordChanged')
+    }, userLanguage)
   }
 
-  // ✅ 7. NUEVA: Email al admin sobre nueva reserva
   const sendAdminNewBookingEmail = async (bookingData) => {
     const adminEmail = await getAdminEmail()
     if (!adminEmail) {
       console.warn('No se pudo obtener el email del administrador')
       return { success: false, error: 'Admin email not found' }
     }
+
+    const adminLanguage = await getUserLanguage(adminEmail)
 
     return await sendEmail('admin_new_booking', adminEmail, {
       clientName: bookingData.clientName,
@@ -148,17 +179,18 @@ export const useNotifications = () => {
       price: bookingData.price,
       spaces: bookingData.spaces,
       observations: bookingData.observations,
-      subject: '🔔 Nueva reserva registrada - Fisioterapia Gossos'
-    })
+      subject: t('emailNotifications.subjects.adminNewBooking')
+    }, adminLanguage)
   }
 
-  // ✅ 8. NUEVA: Email al admin sobre cancelación
   const sendAdminCancellationEmail = async (cancellationData) => {
     const adminEmail = await getAdminEmail()
     if (!adminEmail) {
       console.warn('No se pudo obtener el email del administrador')
       return { success: false, error: 'Admin email not found' }
     }
+
+    const adminLanguage = await getUserLanguage(adminEmail)
 
     return await sendEmail('admin_booking_cancelled', adminEmail, {
       clientName: cancellationData.clientName,
@@ -170,11 +202,10 @@ export const useNotifications = () => {
       cancellationReason: cancellationData.cancellationReason,
       hasLateCharge: cancellationData.hasLateCharge || false,
       chargeAmount: cancellationData.chargeAmount || '0',
-      subject: '❌ Cita cancelada - Fisioterapia Gossos'
-    })
+      subject: t('emailNotifications.subjects.adminCancellation')
+    }, adminLanguage)
   }
 
-  // Función para mostrar toast notifications
   const showToast = (type, message) => {
     switch (type) {
       case 'success':
@@ -191,7 +222,6 @@ export const useNotifications = () => {
     }
   }
 
-  // Función mejorada: Reset de contraseña completo
   const handlePasswordReset = async (email, customResetUrl = null) => {
     try {
       setLoading(true)
@@ -213,7 +243,6 @@ export const useNotifications = () => {
     }
   }
 
-  // Función: Confirmar cambio de contraseña exitoso
   const confirmPasswordChanged = async (userEmail, userName) => {
     try {
       await sendPasswordChangedEmail(userEmail, userName)
@@ -224,9 +253,8 @@ export const useNotifications = () => {
     }
   }
 
-  // ✅ FUNCIONES COMPATIBLES con tu NotificationProvider existente
   const sendWelcome = async (userData) => {
-    const displayName = userData.nombre_completo || userData.email?.split('@')[0] || 'Usuario'
+    const displayName = userData.nombre_completo || userData.email?.split('@')[0] || t('emailNotifications.fallbacks.user')
     return await sendWelcomeEmail(userData.email, displayName)
   }
 
@@ -252,7 +280,7 @@ export const useNotifications = () => {
       service: cancelationData.service_name || cancelationData.service,
       date: formatDate(cancelationData.fecha || cancelationData.date),
       time: formatTime(cancelationData.hora || cancelationData.time),
-      cancellationReason: cancelationData.motivo_cancelacion || cancelationData.cancellationReason || 'Cancelación de cita'
+      cancellationReason: cancelationData.motivo_cancelacion || cancelationData.cancellationReason || t('emailNotifications.fallbacks.defaultCancellationReason')
     }
     return await sendBookingCancellationEmail(emailData)
   }
@@ -270,7 +298,6 @@ export const useNotifications = () => {
     return await sendReminderEmail(emailData)
   }
 
-  // ✅ NUEVAS FUNCIONES DE ALTO NIVEL para usar en los componentes
   const notifyAdminNewBooking = async (bookingData) => {
     try {
       const adminEmailData = {
@@ -322,12 +349,12 @@ export const useNotifications = () => {
     }
   }
 
-  // Utilidades de formato
   const formatDate = (dateStr) => {
     if (!dateStr) return ''
     try {
       const date = new Date(dateStr)
-      return date.toLocaleDateString('es-ES', {
+      const locale = i18n.language === 'ca' ? 'ca-ES' : 'es-ES'
+      return date.toLocaleDateString(locale, {
         weekday: 'long',
         year: 'numeric',
         month: 'long',
@@ -342,39 +369,38 @@ export const useNotifications = () => {
   const formatTime = (timeStr) => {
     if (!timeStr) return ''
     try {
-      return timeStr.substring(0, 5) // HH:MM
+      return timeStr.substring(0, 5)
     } catch (error) {
       console.error('Error formateando hora:', error)
       return timeStr
     }
   }
 
-  // Función de testing para desarrollo
   const testEmailSystem = async (testEmail) => {
     if (process.env.NODE_ENV !== 'development') {
-      console.log('⚠️ Test de emails solo disponible en desarrollo')
+      console.log(t('emailNotifications.test.onlyInDevelopment'))
       return false
     }
 
-    console.log('🧪 Iniciando test del sistema de emails...')
+    console.log(t('emailNotifications.test.startingTest'))
 
     const testData = {
-      clientName: 'Juan Pérez',
+      clientName: t('emailNotifications.test.testData.clientName'),
       clientEmail: 'juan@test.com',
-      dogName: 'Max',
-      service: 'Hidroterapia',
-      date: 'viernes, 20 de diciembre de 2024',
+      dogName: t('emailNotifications.test.testData.dogName'),
+      service: t('emailNotifications.test.testData.service'),
+      date: formatDate(new Date().toISOString()),
       time: '10:30',
       duration: '45',
       price: '40',
       spaces: 'Piscina (Hidroterapia/Aqua Agility)',
-      observations: 'Test de observaciones'
+      observations: t('emailNotifications.test.testData.observations')
     }
 
     const tests = [
       { 
         type: 'welcome', 
-        func: () => sendWelcomeEmail(testEmail, 'Juan Pérez')
+        func: () => sendWelcomeEmail(testEmail, t('emailNotifications.test.testData.clientName'))
       },
       { 
         type: 'booking_confirmed', 
@@ -389,20 +415,20 @@ export const useNotifications = () => {
         func: () => sendBookingCancellationEmail({ 
           to: testEmail, 
           ...testData, 
-          cancellationReason: 'Motivos personales' 
+          cancellationReason: t('emailNotifications.test.testData.cancellationReason')
         })
       },
       { 
         type: 'password_reset', 
         func: () => sendPasswordResetEmail(testEmail, {
-          clientName: 'Juan Pérez',
+          clientName: t('emailNotifications.test.testData.clientName'),
           resetUrl: `${window.location.origin}/reset-password?token=test123`,
           expirationTime: '60 minutos'
         })
       },
       { 
         type: 'password_changed', 
-        func: () => sendPasswordChangedEmail(testEmail, 'Juan Pérez')
+        func: () => sendPasswordChangedEmail(testEmail, t('emailNotifications.test.testData.clientName'))
       },
       { 
         type: 'admin_new_booking', 
@@ -412,7 +438,7 @@ export const useNotifications = () => {
         type: 'admin_cancellation', 
         func: () => sendAdminCancellationEmail({
           ...testData,
-          cancellationReason: 'Cancelación por parte del cliente',
+          cancellationReason: t('emailNotifications.test.testData.adminCancellationReason'),
           hasLateCharge: true,
           chargeAmount: '10'
         })
@@ -422,52 +448,41 @@ export const useNotifications = () => {
     const results = []
 
     for (const test of tests) {
-      console.log(`🔬 Testeando email tipo: ${test.type}`)
+      console.log(`${t('emailNotifications.test.testingType')} ${test.type}`)
       const result = await test.func()
       results.push({ type: test.type, success: result.success })
       
-      // Delay entre tests
       await new Promise(resolve => setTimeout(resolve, 2000))
     }
 
-    console.log('📋 Resultados del test:', results)
+    console.log(t('emailNotifications.test.results'), results)
     return results
   }
 
   return {
-    // Funciones principales de email
     sendWelcomeEmail,
     sendBookingConfirmationEmail,
     sendBookingCancellationEmail,
     sendReminderEmail,
     sendPasswordResetEmail,
     sendPasswordChangedEmail,
-    sendAdminNewBookingEmail,        // ✅ NUEVO
-    sendAdminCancellationEmail,      // ✅ NUEVO
-    
-    // Funciones de alto nivel
+    sendAdminNewBookingEmail,
+    sendAdminCancellationEmail,
     handlePasswordReset,
     confirmPasswordChanged,
-    notifyAdminNewBooking,           // ✅ NUEVO - Para usar en componentes
-    notifyAdminCancellation,         // ✅ NUEVO - Para usar en componentes
-    
-    // Funciones compatibles con tu NotificationProvider
+    notifyAdminNewBooking,
+    notifyAdminCancellation,
     sendWelcome,
     confirmBooking,
     cancelBooking,
     sendReminder,
-    
-    // Utilidades
     showToast,
     testEmailSystem,
     formatDate,
     formatTime,
-    getAdminEmail,                   // ✅ NUEVO
-    
-    // Estado
+    getAdminEmail,
+    getUserLanguage,
     loading,
-    
-    // Función base para casos personalizados
     sendEmail
   }
 }

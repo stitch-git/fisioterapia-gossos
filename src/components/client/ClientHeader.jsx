@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
 import ConfirmModal from '../common/ConfirmModal'
+import { useTranslation } from 'react-i18next'
 
 export default function ClientHeader({ setSidebarOpen, sidebarOpen }) {
   const { profile, signOut, getDisplayName } = useAuth()
+  const { t } = useTranslation()
   const [showProfileDropdown, setShowProfileDropdown] = useState(false)
   const [showLogoutModal, setShowLogoutModal] = useState(false)
   const dropdownRef = useRef(null)
@@ -13,11 +15,10 @@ export default function ClientHeader({ setSidebarOpen, sidebarOpen }) {
   }
 
   const openLogoutModal = () => {
-    setShowProfileDropdown(false) // Cerrar dropdown
+    setShowProfileDropdown(false)
     setShowLogoutModal(true)
   }
 
-  // Cerrar dropdown cuando se hace clic fuera
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -40,13 +41,12 @@ export default function ClientHeader({ setSidebarOpen, sidebarOpen }) {
         <div className="container-app">
           <div className="flex justify-between items-center py-3 lg:py-4">
             
-            {/* Botón hamburguesa para móviles */}
             <div className="flex items-center">
               <button
                 id="hamburger-button"
                 onClick={() => setSidebarOpen(!sidebarOpen)}
                 className="lg:hidden p-2 rounded-md text-white hover:bg-white hover:bg-opacity-15 transition-colors duration-200 mr-3"
-                aria-label="Abrir menú"
+                aria-label={t('clientHeader.openMenu')}
               >
                 <svg 
                   className={`w-6 h-6 transition-transform duration-300 ${sidebarOpen ? 'rotate-90' : ''}`} 
@@ -62,33 +62,30 @@ export default function ClientHeader({ setSidebarOpen, sidebarOpen }) {
                 </svg>
               </button>
 
-              {/* Logo */}
               <div className="flex items-center">
                 <div className="h-8 w-8 lg:h-10 lg:w-10 bg-white rounded-full flex items-center justify-center mr-2 lg:mr-3 overflow-hidden">
                   <img 
                     src="https://uymcuavjzygvsfnqdciy.supabase.co/storage/v1/object/public/app-assets/logos/dog-logo.jpg"
-                    alt="Fisioterapia Gossos Logo"
+                    alt={t('clientHeader.logoAlt')}
                     className="h-5 w-5 lg:h-7 lg:w-7 object-contain"
                   />
                 </div>
                 <div className="hidden sm:block">
                   <h1 className="text-lg lg:text-xl font-bold text-white">
-                    Fisioterapia Gossos
+                    {t('clientHeader.title')}
                   </h1>
                   <p className="text-xs lg:text-sm text-blue-100">
-                    Sistema de Reservas
+                    {t('clientHeader.subtitle')}
                   </p>
                 </div>
-                {/* Logo solo en móviles muy pequeños */}
                 <div className="sm:hidden">
                   <h1 className="text-base font-bold text-white">
-                    Fisioterapia Gossos
+                    {t('clientHeader.title')}
                   </h1>
                 </div>
               </div>
             </div>
 
-            {/* User Profile */}
             <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => setShowProfileDropdown(!showProfileDropdown)}
@@ -100,17 +97,15 @@ export default function ClientHeader({ setSidebarOpen, sidebarOpen }) {
                   </svg>
                 </div>
                 
-                {/* Información del usuario - oculta en móviles muy pequeños */}
                 <div className="text-left hidden sm:block">
                   <p className="text-xs lg:text-sm font-medium truncate max-w-[120px] lg:max-w-none">
                     {getDisplayName()}
                   </p>
                   <p className="text-xs text-blue-100">
-                    Cliente
+                    {t('clientHeader.client')}
                   </p>
                 </div>
                 
-                {/* Solo mostrar inicial en móviles muy pequeños */}
                 <div className="text-left sm:hidden">
                   <p className="text-sm font-medium">
                     {getDisplayName()?.charAt(0) || 'U'}
@@ -122,7 +117,6 @@ export default function ClientHeader({ setSidebarOpen, sidebarOpen }) {
                 </svg>
               </button>
 
-              {/* Dropdown Menu */}
               {showProfileDropdown && (
                 <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
                   <div className="px-4 py-2 border-b border-gray-100">
@@ -141,7 +135,7 @@ export default function ClientHeader({ setSidebarOpen, sidebarOpen }) {
                     <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                     </svg>
-                    Cerrar Sesión
+                    {t('clientHeader.logout')}
                   </button>
                 </div>
               )}
@@ -150,15 +144,14 @@ export default function ClientHeader({ setSidebarOpen, sidebarOpen }) {
         </div>
       </header>
 
-      {/* Modal de confirmación de logout */}
       <ConfirmModal
         isOpen={showLogoutModal}
         onClose={() => setShowLogoutModal(false)}
         onConfirm={handleSignOut}
-        title="Cerrar Sesión"
-        message="¿Estás seguro que quieres cerrar sesión? Tendrás que volver a iniciar sesión para acceder a tu cuenta."
-        confirmText="Cerrar Sesión"
-        cancelText="Cancelar"
+        title={t('clientHeader.logoutModal.title')}
+        message={t('clientHeader.logoutModal.message')}
+        confirmText={t('clientHeader.logoutModal.confirm')}
+        cancelText={t('clientHeader.logoutModal.cancel')}
         confirmButtonClass="bg-red-600 hover:bg-red-700"
         icon={
           <div className="flex items-center justify-center w-10 h-10 mx-auto bg-red-100 rounded-full">

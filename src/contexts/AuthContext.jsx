@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
 import { supabase, handleAuthError } from '../lib/supabase'
 import toast from 'react-hot-toast'
+import { useTranslation } from 'react-i18next'
+import i18n from '../i18n'
 
 const AuthContext = createContext({})
 
@@ -13,12 +15,12 @@ export const useAuth = () => {
 }
 
 export const AuthProvider = ({ children }) => {
+  const { t } = useTranslation()
   const [user, setUser] = useState(null)
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
   const [initializing, setInitializing] = useState(true)
 
-  // Timeout wrapper for queries
   const withTimeout = (promise, timeoutMs = 8000) => {
     return Promise.race([
       promise,
@@ -28,11 +30,10 @@ export const AuthProvider = ({ children }) => {
     ])
   }
 
-  // Create fallback profile
   const createFallbackProfile = (currentUser) => {
     return { 
       id: currentUser.id, 
-      nombre_completo: currentUser.email?.split('@')[0] || 'Usuario', 
+      nombre_completo: currentUser.email?.split('@')[0] || t('auth.user'), 
       telefono: '',
       email: currentUser.email,
       pais_codigo: '+34',
@@ -42,7 +43,13 @@ export const AuthProvider = ({ children }) => {
     }
   }
 
-  // Load user profile
+  const applyUserLanguage = (userProfile) => {
+    if (userProfile?.preferred_language && i18n.language !== userProfile.preferred_language) {
+      console.log(`🌍 Aplicando idioma del usuario: ${userProfile.preferred_language}`)
+      i18n.changeLanguage(userProfile.preferred_language)
+    }
+  }
+
   const loadUserProfile = async (userId, currentUser) => {
     if (!userId) return null
 
@@ -69,7 +76,6 @@ export const AuthProvider = ({ children }) => {
     }
   }
 
-  // Initialize auth state with tab visibility handling
   useEffect(() => {
     let mounted = true
     let initialized = false
@@ -80,9 +86,33 @@ export const AuthProvider = ({ children }) => {
       if (initialized) return
       
       try {
+        const isPersistent = localStorage.getItem('persistentSession')
+        
+        if (isPersistent === 'false') {
+          const hasSessionFlag = sessionStorage.getItem('activeSession')
+          
+          if (!hasSessionFlag) {
+            console.log('🔒 Sesión temporal expirada, cerrando sesión...')
+            await supabase.auth.signOut()
+            localStorage.removeItem('persistentSession')
+            
+            if (mounted) {
+              setUser(null)
+              setProfile(null)
+              setLoading(false)
+              setInitializing(false)
+            }
+            return
+          }
+        }
+        
+        if (isPersistent === 'false') {
+          sessionStorage.setItem('activeSession', 'true')
+        }
+        
         const { data: { session }, error } = await withTimeout(
           supabase.auth.getSession(),
-          8000 // Increased timeout
+          8000
         )
         
         if (!mounted) return
@@ -98,6 +128,7 @@ export const AuthProvider = ({ children }) => {
           if (mounted) {
             currentProfile = userProfile
             setProfile(userProfile)
+            applyUserLanguage(userProfile)
           }
         }
         
@@ -116,32 +147,34 @@ export const AuthProvider = ({ children }) => {
       }
     }
 
-    // Tab visibility handler - prevent reinitialization
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible' && initialized && currentUser) {
-        // Tab became visible again - restore state without re-fetching
         setUser(currentUser)
         setProfile(currentProfile)
         setLoading(false)
       }
     }
 
-    // Auth state listener - SIMPLE
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!mounted) return
         
-        // Only process real auth changes, ignore token refresh
         if (event === 'SIGNED_IN' && session?.user && !currentUser) {
           currentUser = session.user
           setUser(session.user)
           setLoading(true)
+          
+          const isPersistent = localStorage.getItem('persistentSession')
+          if (isPersistent === 'false') {
+            sessionStorage.setItem('activeSession', 'true')
+          }
           
           const userProfile = await loadUserProfile(session.user.id, session.user)
           if (mounted) {
             currentProfile = userProfile
             setProfile(userProfile)
             setLoading(false)
+            applyUserLanguage(userProfile)
           }
           
         } else if (event === 'SIGNED_OUT') {
@@ -150,12 +183,14 @@ export const AuthProvider = ({ children }) => {
           setUser(null)
           setProfile(null)
           setLoading(false)
+          
+          localStorage.removeItem('persistentSession')
+          localStorage.removeItem('rememberedEmail')
+          sessionStorage.removeItem('activeSession')
         }
-        // Ignore TOKEN_REFRESHED and other events that don't change auth state
       }
     )
 
-    // Add visibility listener
     document.addEventListener('visibilitychange', handleVisibilityChange)
     
     initializeAuth()
@@ -182,13 +217,14 @@ export const AuthProvider = ({ children }) => {
             pais_nombre: userData.pais_nombre,
             whatsapp_notifications: userData.whatsapp_notifications,
             email_notifications: userData.email_notifications,
+            preferred_language: userData.preferred_language || 'ca',
             role: userData.role || 'cliente'
           }
         }
       })
 
       if (authError) throw authError
-      if (!authData.user) throw new Error('No se pudo crear el usuario')
+      if (!authData.user) throw new Error(t('auth.signUp.errorCreatingUser'))
 
       const profileData = {
         id: authData.user.id,
@@ -199,12 +235,12 @@ export const AuthProvider = ({ children }) => {
         pais_nombre: userData.pais_nombre,
         whatsapp_notifications: userData.whatsapp_notifications,
         email_notifications: userData.email_notifications,
+        preferred_language: userData.preferred_language || 'ca',
         role: userData.role || 'cliente',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       }
 
-      // Try to create profile in database
       try {
         const { data: createdProfile } = await withTimeout(
           supabase
@@ -224,9 +260,8 @@ export const AuthProvider = ({ children }) => {
         setProfile(profileData)
       }
       
-      toast.success('Cuenta creada exitosamente. Revisa tu email para confirmar tu cuenta.')
+      toast.success(t('auth.signUp.success'))
       
-      // Trigger welcome email (será manejado por NotificationProvider)
       setTimeout(() => {
         const welcomeEvent = new CustomEvent('sendWelcomeEmail', {
           detail: {
@@ -249,7 +284,7 @@ export const AuthProvider = ({ children }) => {
     }
   }
 
-  const signIn = async (email, password) => {
+  const signIn = async (email, password, rememberMe = false) => {
     try {
       setLoading(true)
 
@@ -262,9 +297,19 @@ export const AuthProvider = ({ children }) => {
       )
 
       if (error) throw error
-      if (!data.user) throw new Error('Error en el inicio de sesión')
+      if (!data.user) throw new Error(t('auth.signIn.error'))
 
-      toast.success('Sesión iniciada correctamente')
+      if (rememberMe) {
+        localStorage.setItem('rememberedEmail', email)
+        localStorage.setItem('persistentSession', 'true')
+        console.log(t('auth.signIn.persistentSession'))
+      } else {
+        localStorage.removeItem('rememberedEmail')
+        localStorage.setItem('persistentSession', 'false')
+        console.log(t('auth.signIn.temporarySession'))
+      }
+
+      toast.success(t('auth.signIn.success'))
       return { user: data.user, error: null }
 
     } catch (error) {
@@ -285,11 +330,16 @@ export const AuthProvider = ({ children }) => {
 
       setUser(null)
       setProfile(null)
-      toast.success('Sesión cerrada correctamente')
+      
+      localStorage.removeItem('persistentSession')
+      localStorage.removeItem('rememberedEmail')
+      sessionStorage.removeItem('activeSession')
+      
+      toast.success(t('auth.signOut.success'))
 
     } catch (error) {
       console.error('Error signing out:', error)
-      toast.error('Error cerrando sesión')
+      toast.error(t('auth.signOut.error'))
     } finally {
       setLoading(false)
     }
@@ -300,7 +350,7 @@ export const AuthProvider = ({ children }) => {
       setLoading(true)
 
       if (!user?.id) {
-        throw new Error('No hay usuario autenticado')
+        throw new Error(t('auth.profile.noAuthenticatedUser'))
       }
 
       const updateData = {
@@ -321,11 +371,11 @@ export const AuthProvider = ({ children }) => {
       if (error) throw error
 
       setProfile(data)
-      toast.success('Perfil actualizado correctamente')
+      toast.success(t('auth.profile.updateSuccess'))
       return { data, error: null }
 
     } catch (error) {
-      toast.error('Error actualizando perfil')
+      toast.error(t('auth.profile.updateError'))
       return { data: null, error: error.message }
     } finally {
       setLoading(false)
@@ -336,7 +386,6 @@ export const AuthProvider = ({ children }) => {
     try {
       setLoading(true)
 
-      // 1. Solo verificar que el usuario existe
       const { data: profile, error: profileError } = await withTimeout(
         supabase
           .from('profiles')
@@ -347,10 +396,9 @@ export const AuthProvider = ({ children }) => {
       )
 
       if (profileError || !profile) {
-        throw new Error('No encontramos una cuenta registrada con ese email')
+        throw new Error(t('auth.passwordReset.noAccountFound'))
       }
 
-      // 2. Enviar ÚNICAMENTE tu email personalizado
       const { error: emailError } = await withTimeout(
         supabase.functions.invoke('resend-email', {
           body: {
@@ -364,9 +412,9 @@ export const AuthProvider = ({ children }) => {
         10000
       )
 
-      if (emailError) throw new Error('Error enviando email de recuperación')
+      if (emailError) throw new Error(t('auth.passwordReset.errorSendingEmail'))
 
-      toast.success('Email de recuperación enviado')
+      toast.success(t('auth.passwordReset.success'))
       return { error: null }
 
     } catch (error) {
@@ -378,7 +426,6 @@ export const AuthProvider = ({ children }) => {
     }
   }
 
-  // Utility functions
   const hasRole = (role) => {
     if (!profile) return false
     if (Array.isArray(role)) {
@@ -392,7 +439,7 @@ export const AuthProvider = ({ children }) => {
   const isClient = () => hasRole('cliente')
 
   const getDisplayName = () => {
-    return profile?.nombre_completo || user?.email || 'Usuario'
+    return profile?.nombre_completo || user?.email || t('auth.user')
   }
 
   const getNotificationPreferences = () => {
@@ -405,7 +452,7 @@ export const AuthProvider = ({ children }) => {
 
   const updateNotificationPreferences = async (whatsapp, email) => {
     if (!whatsapp && !email) {
-      toast.error('Debe mantener al menos una preferencia de notificación activada')
+      toast.error(t('auth.notifications.atLeastOne'))
       return { success: false }
     }
 
@@ -417,22 +464,16 @@ export const AuthProvider = ({ children }) => {
     return { success: !result.error }
   }
 
-  // Context value
   const value = {
-    // State
     user,
     profile,
     loading,
     initializing,
-    
-    // Auth methods
     signUp,
     signIn,
     signOut,
     updateProfile,
     resetPassword,
-    
-    // Utility methods
     hasRole,
     isAdmin,
     isSuper,
@@ -447,4 +488,22 @@ export const AuthProvider = ({ children }) => {
       {children}
     </AuthContext.Provider>
   )
+}
+
+// ✅ NUEVO: Interceptor global de toast.error para capturar errores automáticamente
+if (typeof window !== 'undefined') {
+  const originalToastError = toast.error
+
+  toast.error = (message, options) => {
+    // Capturar el error en la BD
+    if (message) {
+      const captureEvent = new CustomEvent('captureUserError', {
+        detail: { message, context: { source: 'toast.error' } }
+      })
+      window.dispatchEvent(captureEvent)
+    }
+    
+    // Llamar al toast.error original
+    return originalToastError(message, options)
+  }
 }

@@ -1,10 +1,15 @@
 import React from 'react'
+import { useTranslation } from 'react-i18next'
 
 export default function LoadingSpinner({ 
-  message = "Cargando...",
+  message,
   size = "normal", // "small", "normal", "large"
   fullScreen = true 
 }) {
+  const { t } = useTranslation()
+  
+  // Si no se proporciona mensaje, usar el traducido por defecto
+  const displayMessage = message || t('loadingSpinner.defaultMessage')
   
   // Tamaños responsive del spinner
   const spinnerSizes = {
@@ -20,9 +25,9 @@ export default function LoadingSpinner({
         <div className={`${spinnerSizes[size]} flex items-center justify-center rounded-full bg-primary-100`}>
           <div className="loading-spinner"></div>
         </div>
-        {message && (
+        {displayMessage && (
           <span className="ml-3 text-sm sm:text-base text-gray-600">
-            {message}
+            {displayMessage}
           </span>
         )}
       </div>
@@ -42,7 +47,7 @@ export default function LoadingSpinner({
             
             {/* Mensaje responsive */}
             <h3 className="mt-4 sm:mt-6 text-base sm:text-lg font-medium text-gray-900 px-2">
-              {message}
+              {displayMessage}
             </h3>
             
             {/* Loading dots responsive */}

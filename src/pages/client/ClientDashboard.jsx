@@ -5,8 +5,8 @@ import { usePWAInstall } from '../../hooks/usePWAInstall'
 import ConfirmModal from '../../components/common/ConfirmModal'
 import IOSInstallBanner from '../../components/common/IOSInstallBanner'
 import toast from 'react-hot-toast'
+import { useTranslation } from 'react-i18next'
 
-// Import client components
 import ClientHeader from '../../components/client/ClientHeader'
 import BookingSection from '../../components/client/BookingSection'
 import MyBookings from '../../components/client/MyBookings'
@@ -15,12 +15,12 @@ import MyProfile from '../../components/client/MyProfile'
 import Footer from '../../components/common/Footer'
 
 export default function ClientDashboard() {
+  const { t, i18n } = useTranslation()
   const { profile } = useAuth()
   const [activeSection, setActiveSection] = useState('booking')
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [showInstallModal, setShowInstallModal] = useState(false)
 
-  // PWA Install Hook
   const {
     shouldShowInstallButton,
     getInstallButtonText,
@@ -30,23 +30,17 @@ export default function ClientDashboard() {
     browserInfo
   } = usePWAInstall()
 
-  // Función para navegar entre secciones
   const handleNavigateToSection = (section) => {
     setActiveSection(section)
-    // Cerrar sidebar en móviles después de navegar
     setSidebarOpen(false)
   }
 
-  // Función para manejar la instalación PWA
   const handleInstallPWA = async () => {
-    // Cerrar sidebar en móviles tras hacer clic
     setSidebarOpen(false)
     
-    // Intentar instalación automática primero
     const installed = await installPWA()
     
     if (!installed) {
-      // Si no se puede instalar automáticamente, mostrar instrucciones
       const instructions = getManualInstallInstructions()
       if (instructions) {
         setShowInstallModal(true)
@@ -54,19 +48,17 @@ export default function ClientDashboard() {
       }
     }
 
-    // Para iOS (Safari y Chrome) - siempre mostrar instrucciones
     if (browserInfo.isSafariIOS || browserInfo.isChromeIOS) {
       setShowInstallModal(true)
       return
     }
 
-    // Si no hay instalación automática disponible, mostrar instrucciones
     if (!installed) {
       const instructions = getManualInstallInstructions()
       if (instructions) {
         setShowInstallModal(true)
       } else {
-        toast('Para instalar la aplicación, busca la opción "Instalar" en el menú de tu navegador.', {
+        toast(t('clientDashboard.pwa.toastMessage'), {
           icon: '💡',
           duration: 6000
         })
@@ -74,7 +66,6 @@ export default function ClientDashboard() {
     }
   }
 
-  // Cerrar sidebar cuando se hace clic fuera en móviles
   useEffect(() => {
     const handleClickOutside = (event) => {
       const sidebar = document.getElementById('mobile-sidebar')
@@ -95,7 +86,6 @@ export default function ClientDashboard() {
     }
   }, [sidebarOpen])
 
-  // Prevenir scroll del body cuando sidebar está abierto en móviles
   useEffect(() => {
     if (sidebarOpen) {
       document.body.style.overflow = 'hidden'
@@ -108,11 +98,10 @@ export default function ClientDashboard() {
     }
   }, [sidebarOpen])
 
-  // Items de navegación
   const navigationItems = [
     {
       id: 'booking',
-      label: 'Reservar Cita',
+      label: t('clientDashboard.navigation.booking'),
       icon: (
         <svg className="w-5 h-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -121,7 +110,7 @@ export default function ClientDashboard() {
     },
     {
       id: 'my-bookings',
-      label: 'Mis Citas',
+      label: t('clientDashboard.navigation.myBookings'),
       icon: (
         <svg className="w-5 h-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
@@ -130,7 +119,7 @@ export default function ClientDashboard() {
     },
     {
       id: 'my-dogs',
-      label: 'Mis Perros',
+      label: t('clientDashboard.navigation.myDogs'),
       icon: (
         <svg className="w-5 h-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
@@ -139,7 +128,7 @@ export default function ClientDashboard() {
     },
     {
       id: 'profile',
-      label: 'Mi Perfil',
+      label: t('clientDashboard.navigation.profile'),
       icon: (
         <svg className="w-5 h-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -148,12 +137,10 @@ export default function ClientDashboard() {
     }
   ]
 
-  // Modal de instrucciones PWA mejorado para iOS
   const InstallModal = () => {
     const instructions = getManualInstallInstructions()
     if (!instructions) return null
 
-    // Iconos específicos por plataforma
     const getPlatformIcon = () => {
       if (browserInfo.isSafariIOS) {
         return (
@@ -181,11 +168,11 @@ export default function ClientDashboard() {
         isOpen={showInstallModal}
         onClose={() => setShowInstallModal(false)}
         onConfirm={() => setShowInstallModal(false)}
-        title={`Instalar en ${instructions.platform}`}
+        title={t('clientDashboard.installModal.title', { platform: instructions.platform })}
         message={
           <div className="text-left">
             <p className="text-sm text-gray-600 mb-4">
-              Sigue estos pasos para instalar la aplicación:
+              {t('clientDashboard.installModal.intro')}
             </p>
             <ol className="list-decimal list-inside space-y-3 text-sm text-gray-700">
               {instructions.steps.map((step, index) => (
@@ -193,10 +180,11 @@ export default function ClientDashboard() {
               ))}
             </ol>
             
-            {/* Beneficios específicos de iOS */}
             {browserInfo.isSafariIOS && instructions.benefits && (
               <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                <p className="text-xs font-medium text-blue-800 mb-2">Beneficios de instalar:</p>
+                <p className="text-xs font-medium text-blue-800 mb-2">
+                  {t('clientDashboard.installModal.benefits')}
+                </p>
                 <ul className="text-xs text-blue-700 space-y-1">
                   {instructions.benefits.slice(0, 3).map((benefit, index) => (
                     <li key={index} className="flex items-start">
@@ -211,14 +199,14 @@ export default function ClientDashboard() {
             {browserInfo.isChromeIOS && (
               <div className="mt-4 p-3 bg-orange-50 rounded-lg border border-orange-200">
                 <p className="text-xs text-orange-600 leading-relaxed">
-                  💡 <strong>Recomendación:</strong> Para una mejor experiencia en iOS, considera usar Safari en lugar de Chrome.
+                  💡 <strong>{t('clientDashboard.installModal.recommendation')}</strong> {t('clientDashboard.installModal.chromeIOSNote')}
                 </p>
               </div>
             )}
           </div>
         }
-        confirmText="Entendido"
-        cancelText="Cancelar"
+        confirmText={t('clientDashboard.installModal.confirm')}
+        cancelText={t('clientDashboard.installModal.cancel')}
         confirmButtonClass="bg-blue-600 hover:bg-blue-700"
         cancelButtonClass="bg-red-600 hover:bg-red-700"
         icon={
@@ -232,7 +220,6 @@ export default function ClientDashboard() {
 
   return (
     <>
-      {/* Banner educativo para iOS Safari - 100% responsive */}
       <IOSInstallBanner />
       
       <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -240,7 +227,6 @@ export default function ClientDashboard() {
         <ClientHeader setSidebarOpen={setSidebarOpen} sidebarOpen={sidebarOpen} />
         
         <div className="flex relative flex-1">
-          {/* Overlay para móviles */}
           {sidebarOpen && (
             <div 
               className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
@@ -248,7 +234,6 @@ export default function ClientDashboard() {
             />
           )}
 
-          {/* Sidebar Navigation */}
           <aside 
             id="mobile-sidebar"
             className={`
@@ -259,18 +244,18 @@ export default function ClientDashboard() {
             `}
           >
             <div className="p-4 lg:p-6 h-full flex flex-col">
-              {/* Header del sidebar con botón cerrar en móviles */}
               <div className="flex items-center justify-between mb-6">
                 <div>
                   <h2 className="text-lg font-semibold text-gray-900">
-                    Hola, {profile?.nombre_completo?.split(' ')[0] || 'Usuario'}
+                    {t('clientDashboard.greeting', { 
+                      name: profile?.nombre_completo?.split(' ')[0] || t('clientDashboard.defaultUser')
+                    })}
                   </h2>
                   <p className="text-sm text-gray-500">
-                    Panel de cliente
+                    {t('clientDashboard.clientPanel')}
                   </p>
                 </div>
                 
-                {/* Botón cerrar sidebar en móviles */}
                 <button
                   onClick={() => setSidebarOpen(false)}
                   className="lg:hidden p-2 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100"
@@ -281,7 +266,6 @@ export default function ClientDashboard() {
                 </button>
               </div>
 
-              {/* BOTÓN PWA - Con data-install-button para iOS */}
               {shouldShowInstallButton() && (
                 <div className="mb-6">
                   <button
@@ -299,7 +283,7 @@ export default function ClientDashboard() {
                         <svg className="w-5 h-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
-                        <span>App Instalada</span>
+                        <span>{t('clientDashboard.pwa.installed')}</span>
                       </>
                     ) : (
                       <>
@@ -310,18 +294,16 @@ export default function ClientDashboard() {
                           {getInstallButtonText()}
                         </span>
                         <span className="sm:hidden">
-                          Instalar App
+                          {t('clientDashboard.pwa.installShort')}
                         </span>
                       </>
                     )}
                   </button>
                   
-                  {/* Separador visual */}
                   <div className="mt-4 border-t border-gray-200"></div>
                 </div>
               )}
               
-              {/* Navegación */}
               <nav className="space-y-1 flex-1">
                 {navigationItems.map((item) => (
                   <button
@@ -336,27 +318,25 @@ export default function ClientDashboard() {
                   </button>
                 ))}
               </nav>
-              {/* VERSIÓN DE LA APLICACIÓN AL FINAL DEL MENÚ */}
+
               <div className="mt-8 pt-4 border-t border-gray-200">
                 <div className="text-center space-y-1">
                   <p className="text-xs text-gray-500 font-medium">
-                    Fisioterapia Gossos
+                    {t('clientDashboard.version.appName')}
                   </p>
                   <p className="text-xs text-gray-400">
-                    Versión {__APP_VERSION__ || '1.0.0'}
+                    {t('clientDashboard.version.version')} {__APP_VERSION__ || '1.0.0'}
                   </p>
                   <p className="text-xs text-gray-300">
-                    Última actualización: {new Date(__BUILD_TIME__ || Date.now()).toLocaleDateString('es-ES')}
+                    {t('clientDashboard.version.lastUpdate')} {new Date(__BUILD_TIME__ || Date.now()).toLocaleDateString(i18n.language === 'ca' ? 'ca-ES' : 'es-ES')}
                   </p>
                 </div>
               </div>
             </div>
           </aside>
 
-          {/* Main Content */}
           <main className="flex-1 w-full lg:w-auto overflow-x-hidden">
             <div className="p-4 sm:p-6 lg:p-8 max-w-full">
-              {/* Pasar la función de navegación a BookingSection */}
               {activeSection === 'booking' && (
                 <BookingSection onNavigateToSection={handleNavigateToSection} />
               )}
@@ -367,8 +347,7 @@ export default function ClientDashboard() {
           </main>
         </div>
 
-        {/* Modal de instrucciones PWA */}
-          <Footer />
+        <Footer />
         
       </div>
       <InstallModal />

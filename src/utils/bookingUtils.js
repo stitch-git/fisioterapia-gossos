@@ -1,6 +1,6 @@
 // utils/bookingUtils.js - Versión con Debugging Avanzado
 import { supabase } from '../lib/supabase'
-import { format } from 'date-fns'
+import { format, addDays } from 'date-fns'
 
 // Cache mejorado para la configuración de horarios disponibles
 let availableTimeSlotsCache = {}
@@ -8,7 +8,7 @@ let cacheTimestamp = {}
 const CACHE_DURATION = 10 * 1000 // REDUCIDO A 10 SEGUNDOS para debugging
 
 // 🚨 NUEVA: Variable para tracking de debugging
-let debugMode = false
+let debugMode = true
 const debugLog = (message, data = null) => {
   if (debugMode) {
     console.log(`🔍 [BOOKING-DEBUG] ${message}`, data || '')
@@ -46,8 +46,9 @@ export const minutesToTime = (minutes) => {
 export const getRestTimeByServiceType = (serviceType) => {
   switch (serviceType) {
     case 'hidroterapia':
-    case 'hidroterapia_rehabilitacion':
       return 15 // 15 min descanso para secar el perro
+    case 'hidroterapia_rehabilitacion':
+      return 0
     case 'rehabilitacion':
     case 'rehabilitacion_domicilio':
     default:
@@ -130,6 +131,7 @@ export const getBlockedTimeRange = (startTime, durationMinutes, serviceType = nu
 /**
  * 🚨 MEJORADA: Función isTimeSlotBlocked con debugging detallado
  */
+
 export const isTimeSlotBlocked = (timeSlot, existingBookings, homeVisits, serviceDuration, selectedServiceType) => {
   const [hours, minutes] = timeSlot.split(':').map(Number)
   const slotMinutes = hours * 60 + minutes
@@ -148,6 +150,12 @@ export const isTimeSlotBlocked = (timeSlot, existingBookings, homeVisits, servic
       visit.services?.tipo
     )
     
+    // ✅ Permitir inicio exacto cuando termina la visita
+    if (slotMinutes === visitEndMinutes) {
+      debugLog(`✅ Servicio ${selectedServiceType} puede empezar EXACTAMENTE cuando termina visita ${visitTime}`)
+      return false // No está bloqueado
+    }
+    
     const isBlocked = (slotMinutes < visitEndMinutes && slotEndMinutes > visitStartMinutes)
     
     if (isBlocked) {
@@ -164,51 +172,40 @@ export const isTimeSlotBlocked = (timeSlot, existingBookings, homeVisits, servic
     const bookingTime = booking.fecha_hora.substring(11, 16)
     const existingServiceType = booking.services?.tipo
     
-    // Aplicar tiempo de descanso SOLO para servicios con agua
-    const restTime = (existingServiceType === 'hidroterapia' || existingServiceType === 'hidroterapia_rehabilitacion') ? 15 : 0
+    // Aplicar tiempo de descanso según tipo de servicio existente
+    const restTime = getRestTimeByServiceType(existingServiceType)
     
+
     const bookingStartMinutes = timeToMinutes(bookingTime)
     const bookingEndMinutes = bookingStartMinutes + booking.duracion_minutos + restTime
     
-    // Verificar si hay solapamiento (incluyendo tiempo de descanso)
+    // ✅ REGLA: Permitir si el nuevo servicio termina EXACTAMENTE cuando empieza el existente
+    if (slotEndMinutes === bookingStartMinutes) {
+      debugLog(`✅ Nuevo servicio termina exactamente cuando empieza ${existingServiceType} (${bookingTime})`)
+      continue // No hay conflicto - permitir
+    }
+    
+    // ✅ REGLA: Permitir si el nuevo servicio empieza EXACTAMENTE cuando termina el existente
+    if (slotMinutes === bookingEndMinutes) {
+      debugLog(`✅ Servicio ${selectedServiceType} puede empezar EXACTAMENTE cuando termina ${existingServiceType} (${bookingTime} + ${booking.duracion_minutos}min + ${restTime}min descanso)`)
+      continue // No hay conflicto - permitir
+    }
+    
+    // Verificar solapamiento REAL (excluyendo bordes exactos)
     const hasOverlap = (slotMinutes < bookingEndMinutes && slotEndMinutes > bookingStartMinutes)
     
     if (!hasOverlap) {
       debugLog(`✅ Sin solapamiento con ${bookingTime}-${minutesToTime(bookingEndMinutes)} (${existingServiceType})`)
-      continue // No hay solapamiento, continuar con siguiente reserva
+      continue
     }
     
-    debugLog(`⚠️  SOLAPAMIENTO DETECTADO:`)
+    // ❌ HAY SOLAPAMIENTO - Todos los servicios requieren exclusividad
+    debugLog(`❌ SOLAPAMIENTO DETECTADO:`)
     debugLog(`   Nuevo slot: ${timeSlot}-${minutesToTime(slotEndMinutes)} (${selectedServiceType})`)
     debugLog(`   Reserva existente: ${bookingTime}-${minutesToTime(bookingEndMinutes)} (${existingServiceType} + ${restTime}min descanso)`)
-    debugLog(`   Booking ID: ${booking.id} - Creada: ${booking.created_at}`)
+    debugLog(`❌ Todos los servicios requieren exclusividad - slot bloqueado`)
     
-    // LÓGICA SIMPLIFICADA - SIN EXCEPCIONES PROBLEMÁTICAS
-    
-    // CASO 1: Rehabilitación a domicilio - NO es compatible con NADA del centro
-    if (selectedServiceType === 'rehabilitacion_domicilio') {
-      debugLog(`❌ Rehabilitación domicilio no puede coexistir con ${existingServiceType}`)
-      return true
-    }
-    
-    // CASO 2: Si hay rehabilitación a domicilio existente - NADA del centro puede coexistir
-    if (existingServiceType === 'rehabilitacion_domicilio') {
-      debugLog(`❌ Servicio ${selectedServiceType} bloqueado por rehabilitación domicilio`)
-      return true
-    }
-    
-    // CASO 3: Servicios que requieren exclusividad total (hidroterapia)
-    if (existingServiceType === 'hidroterapia_rehabilitacion' || 
-        existingServiceType === 'hidroterapia' ||
-        selectedServiceType === 'hidroterapia_rehabilitacion' || 
-        selectedServiceType === 'hidroterapia') {
-      debugLog(`❌ Servicio bloqueado por hidroterapia (requiere exclusividad)`)
-      return true
-    }
-    
-    // CASO 4: Cualquier otro solapamiento entre servicios del centro está prohibido
-    debugLog(`❌ Solapamiento no permitido entre servicios del centro`)
-    return true
+    return true // Bloquear por solapamiento
   }
 
   debugLog(`✅ Slot ${timeSlot} disponible`)
@@ -218,39 +215,47 @@ export const isTimeSlotBlocked = (timeSlot, existingBookings, homeVisits, servic
 /**
  * Obtiene la configuración de horarios disponibles para una fecha específica
  */
-export const getAvailableTimeSlotsForDate = async (dateString) => {
+export const getAvailableTimeSlotsForDate = async (dateString, includeAdminOnly = true) => {
   try {
-    // 🚨 CACHE MÁS AGRESIVO - Verificar cada consulta
+    // 🗂️ CACHE MÁS AGRESIVO - Verificar cada consulta
     const now = Date.now()
+    const cacheKey = `${dateString}-${includeAdminOnly ? 'admin' : 'client'}`
+    
     if (
-      availableTimeSlotsCache[dateString] && 
-      cacheTimestamp[dateString] && 
-      (now - cacheTimestamp[dateString]) < CACHE_DURATION
+      availableTimeSlotsCache[cacheKey] && 
+      cacheTimestamp[cacheKey] && 
+      (now - cacheTimestamp[cacheKey]) < CACHE_DURATION
     ) {
-      debugLog(`🗂️ Usando cache para slots admin de ${dateString}`)
-      return availableTimeSlotsCache[dateString]
+      debugLog(`🗂️ Usando cache para slots de ${dateString} (${includeAdminOnly ? 'admin' : 'client'})`)
+      return availableTimeSlotsCache[cacheKey]
     }
 
-    debugLog(`🔄 Recargando slots admin para ${dateString}`)
+    debugLog(`🔄 Recargando slots para ${dateString} (${includeAdminOnly ? 'admin' : 'client'})`)
 
     // Consultar configuración desde BD para la fecha específica
-    const { data, error } = await supabase
+    let query = supabase
       .from('available_time_slots')
       .select('*')
       .eq('date', dateString)
       .eq('is_active', true)
-      .order('start_time')
+    
+    // 🚨 NUEVO: Si no es admin, excluir slots admin_only
+    if (!includeAdminOnly) {
+      query = query.eq('admin_only', false)
+    }
+    
+    const { data, error } = await query.order('start_time')
 
     if (error) {
       debugLog(`❌ Error cargando slots admin: ${error.message}`)
       return null
     }
-
-    debugLog(`📋 Slots admin configurados: ${data?.length || 0}`)
-
     // Actualizar cache por fecha
-    availableTimeSlotsCache[dateString] = data || []
-    cacheTimestamp[dateString] = now
+    debugLog(`📋 Slots configurados: ${data?.length || 0}`)
+
+    // Actualizar cache por fecha Y contexto
+    availableTimeSlotsCache[cacheKey] = data || []
+    cacheTimestamp[cacheKey] = now
 
     return data || []
   } catch (error) {
@@ -264,9 +269,17 @@ export const getAvailableTimeSlotsForDate = async (dateString) => {
  */
 export const clearAvailableTimeSlotsCache = (dateString = null) => {
   if (dateString) {
+    // Limpiar ambas versiones del cache (admin y client)
+    delete availableTimeSlotsCache[`${dateString}-admin`]
+    delete availableTimeSlotsCache[`${dateString}-client`]
+    delete cacheTimestamp[`${dateString}-admin`]
+    delete cacheTimestamp[`${dateString}-client`]
+    
+    // Limpiar también la versión legacy (sin sufijo)
     delete availableTimeSlotsCache[dateString]
     delete cacheTimestamp[dateString]
-    debugLog(`🗑️ Cache eliminado para fecha: ${dateString}`)
+    
+    debugLog(`🗑️ Cache eliminado para fecha: ${dateString} (admin + client)`)
   } else {
     availableTimeSlotsCache = {}
     cacheTimestamp = {}
@@ -283,7 +296,7 @@ export const filterTodaySlots = (slots, selectedDateStr) => {
   
   const now = new Date()
   const currentMinutes = now.getHours() * 60 + now.getMinutes()
-  const minRequiredMinutes = currentMinutes + 90 // + 1.5 horas
+  const minRequiredMinutes = currentMinutes + 120 // + 2 horas
   
   const filteredSlots = slots.filter(slot => {
     const [hours, minutes] = slot.split(':').map(Number)
@@ -292,6 +305,44 @@ export const filterTodaySlots = (slots, selectedDateStr) => {
   })
   
   debugLog(`⏰ Filtro día actual: ${slots.length} -> ${filteredSlots.length} slots`)
+  return filteredSlots
+}
+
+/**
+ * Filtrar slots del día siguiente si se reserva tarde en la noche
+ * Si son después de las 18:00, bloquear las primeras 2 horas del día siguiente
+ */
+export const filterNextDaySlots = (slots, selectedDateStr) => {
+  const now = new Date()
+  const today = format(now, 'yyyy-MM-dd')
+  const tomorrow = format(addDays(now, 1), 'yyyy-MM-dd')
+  
+  // Solo aplicar si la fecha seleccionada es mañana o posterior
+  if (selectedDateStr !== tomorrow) {
+    return slots // No aplicar filtro para hoy o pasado
+  }
+  
+  const currentHour = now.getHours()
+  
+  // Solo aplicar si es después de las 18:00 (6 PM)
+  if (currentHour < 18) {
+    return slots // Antes de las 6 PM, sin restricción
+  }
+  
+  debugLog(`🌙 Reserva nocturna detectada (${currentHour}:00) - Bloqueando primeras 2h del día siguiente`)
+  
+  // Si hay slots disponibles, encontrar el primero y bloquear 2h desde ahí
+  if (slots.length === 0) return slots
+  
+  const firstSlotMinutes = timeToMinutes(slots[0])
+  const minimumAllowedMinutes = firstSlotMinutes + 120 // +2 horas desde el primer slot
+  
+  const filteredSlots = slots.filter(slot => {
+    const slotMinutes = timeToMinutes(slot)
+    return slotMinutes >= minimumAllowedMinutes
+  })
+  
+  debugLog(`⏰ Filtro nocturno: ${slots.length} -> ${filteredSlots.length} slots (bloqueadas primeras 2h)`)
   return filteredSlots
 }
 
@@ -377,7 +428,7 @@ export const mergeConsecutiveSlots = (slots) => {
 /**
  * 🚨 FUNCIÓN PRINCIPAL MEJORADA: Genera horarios disponibles con debugging completo
  */
-export const generateFilteredTimeSlots = async (service, dateString, existingBookings = [], homeVisits = []) => {
+export const generateFilteredTimeSlots = async (service, dateString, existingBookings = [], homeVisits = [], isAdminContext = false) => {
   debugLog(`=== INICIANDO generateFilteredTimeSlots ===`)
   debugLog(`Servicio: ${service.nombre} (${service.tipo})`)
   debugLog(`Fecha: ${dateString}`)
@@ -390,8 +441,10 @@ export const generateFilteredTimeSlots = async (service, dateString, existingBoo
     // 🚨 FORZAR RECARGA DE CACHE DE ADMIN SLOTS
     clearAvailableTimeSlotsCache(dateString)
     
-    // Obtener configuración de admin para TODOS los servicios
-    const availableSlots = await getAvailableTimeSlotsForDate(dateString)
+    // Obtener configuración de admin según contexto
+    const availableSlots = await getAvailableTimeSlotsForDate(dateString, isAdminContext)
+    
+    debugLog(`📋 Contexto: ${isAdminContext ? 'ADMIN' : 'CLIENTE'} - Slots obtenidos: ${availableSlots?.length || 0}`)
     
     // Si no hay configuración, no hay horarios disponibles
     if (!availableSlots || availableSlots.length === 0) {
@@ -425,25 +478,28 @@ export const generateFilteredTimeSlots = async (service, dateString, existingBoo
       debugLog(`🏗️ Procesando admin slot: ${adminSlot.start_time}-${adminSlot.end_time}`)
       
       // DIFERENTE INTERVALO SEGÚN TIPO DE SERVICIO
-      let interval = 5 // Por defecto cada 5 minutos
+      let interval = 15 // Por defecto cada 5 minutos
       if (selectedServiceType === 'rehabilitacion_domicilio') {
         interval = 15 // Para rehabilitación a domicilio cada 15 minutos
       }
       
       // Generar slots donde el servicio completo quepa
-      for (let minutes = slotStartMinutes; minutes <= slotEndMinutes - serviceDurationMinutes; minutes += interval) {
-        const proposedEndMinutes = minutes + serviceDurationMinutes
+      // Generar slots
+      const endLimit = selectedServiceType === 'rehabilitacion_domicilio' 
+        ? slotEndMinutes  // Visitas a domicilio: todos los inicios hasta el final del slot
+        : slotEndMinutes - serviceDurationMinutes  // Otros: solo donde quepa completo
+
+      for (let minutes = slotStartMinutes; minutes <= endLimit; minutes += interval) {
+        const timeString = minutesToTime(minutes)
         
-        // Verificar que el servicio cabe en el slot configurado
-        if (proposedEndMinutes <= slotEndMinutes) {
-          const timeString = minutesToTime(minutes)
-          
-          // Verificar que no se solapa con reservas existentes (incluyendo descanso)
+        // Para visitas a domicilio, validar sin verificar duración completa
+        // (la duración es variable, se define al seleccionar hora fin)
+        if (selectedServiceType === 'rehabilitacion_domicilio') {
           const isBlocked = isTimeSlotBlocked(
             timeString, 
             finalExistingBookings, 
             finalHomeVisits, 
-            serviceDurationMinutes, 
+            30, // Duración mínima (30 min) para verificar solapamientos
             selectedServiceType
           )
           
@@ -453,20 +509,44 @@ export const generateFilteredTimeSlots = async (service, dateString, existingBoo
           } else {
             debugLog(`❌ Slot ${timeString} bloqueado`)
           }
+        } else {
+          // Para otros servicios, verificar que la duración completa cabe en el slot
+          const proposedEndMinutes = minutes + serviceDurationMinutes
+          
+          if (proposedEndMinutes <= slotEndMinutes) {
+            const isBlocked = isTimeSlotBlocked(
+              timeString, 
+              finalExistingBookings, 
+              finalHomeVisits, 
+              serviceDurationMinutes, 
+              selectedServiceType
+            )
+            
+            if (!isBlocked) {
+              possibleSlots.push(timeString)
+              debugLog(`✅ Slot ${timeString} agregado como disponible`)
+            } else {
+              debugLog(`❌ Slot ${timeString} bloqueado`)
+            }
+          }
         }
       }
     })
 
     // Eliminar duplicados y ordenar
     const uniqueSlots = [...new Set(possibleSlots)].sort()
-    
+
     // Aplicar filtro del día actual antes de devolver
-    const finalSlots = filterTodaySlots(uniqueSlots, dateString)
-    
+    const slotsAfterTodayFilter = filterTodaySlots(uniqueSlots, dateString)
+
+    // 🚨 NUEVO: Aplicar filtro de reserva nocturna para día siguiente
+    const finalSlots = filterNextDaySlots(slotsAfterTodayFilter, dateString)
+
     debugLog(`📊 RESULTADO FINAL: ${finalSlots.length} slots disponibles`)
     debugLog(`=== FIN generateFilteredTimeSlots ===`)
-    
+
     return finalSlots
+    
   } catch (error) {
     debugLog(`❌ ERROR CRÍTICO: ${error.message}`)
     console.error('Error generating filtered time slots:', error)

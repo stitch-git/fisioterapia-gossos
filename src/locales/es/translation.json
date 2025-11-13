@@ -1,0 +1,1371 @@
+{
+  "common": {
+    "welcome": "Bienvenido",
+    "loading": "Cargando...",
+    "save": "Guardar",
+    "saving": "Guardando...",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "confirm": "Confirmar",
+    "close": "Cerrar",
+    "search": "Buscar",
+    "filter": "Filtrar",
+    "logout": "Cerrar sesión",
+    "language": "Idioma",
+    "spanish": "Español",
+    "catalan": "Catalán"
+  },
+  "profile": {
+    "myProfile": "Mi perfil",
+    "personalInfo": "Información personal",
+    "preferences": "Preferencias",
+    "preferredLanguage": "Idioma preferido",
+    "changeLanguage": "Cambiar idioma",
+    "updateProfile": "Actualizar perfil",
+    "profileUpdated": "Perfil actualizado correctamente",
+    "name": "Nombre",
+    "languageDescription": "Selecciona el idioma de la aplicación",
+    "languageUpdated": "Idioma actualizado correctamente",
+    "languageUpdateError": "Error al actualizar el idioma",
+    "loadError": "Error al cargar el perfil"
+  },
+  "admin": {
+    "header": {
+      "openMenu": "Abrir menú",
+      "logoAlt": "Fisioterapia Gossos Logo",
+      "title": "Fisioterapia Gossos",
+      "subtitle": "Sistema de Reservas",
+      "administrator": "Administrador",
+      "admin": "admin",
+      "logout": "Cerrar Sesión",
+      "logoutConfirmTitle": "Cerrar Sesión",
+      "logoutConfirmMessage": "¿Estás seguro que quieres cerrar sesión? Tendrás que volver a iniciar sesión para acceder a tu cuenta.",
+      "cancel": "Cancelar"
+    }
+  },
+  "bookingsManagement": {
+    "title": "Gestión de Citas",
+    "subtitle": "Administra todas las citas del sistema",
+    "newBooking": "Nueva Cita",
+    "loadingBookings": "Cargando citas...",
+    "bookingsList": "Citas",
+    "noBookingsFound": "No se encontraron citas",
+    "adjustFilters": "Ajusta los filtros o crea una nueva cita",
+    "listView": "Lista",
+    "client": "Cliente",
+    "dog": "Perro",
+    "homeVisit": "Visita a domicilio",
+    "bookingsUpdated": "Reservas actualizadas",
+    "centerBookings": "Reservas del centro",
+    "homeVisits": "Visitas",
+    "schedulesUpdated": "Horarios actualizados",
+    "loadingSchedulesFor": "Cargando horarios para",
+    "refreshingSchedules": "refrescando horarios",
+    "receivedBookingUpdate": "recibió actualización de reserva",
+    "finalVerification": "Verificación final de disponibilidad...",
+    "notifiedNewBooking": "notificó nueva reserva a todos los usuarios",
+    "cancellationByCenterReason": "Cancelación por parte del centro",
+    "analyzingAvailability": "Analizando disponibilidad...",
+    "weekDaysShort": ["L", "M", "X", "J", "V", "S", "D"],
+    "filters": {
+      "status": "Estado",
+      "allStatuses": "Todos los estados",
+      "period": "Período",
+      "search": "Buscar",
+      "searchPlaceholder": "Cliente, perro, servicio o email..."
+    },
+    "status": {
+      "pending": "Pendiente",
+      "completed": "Completada",
+      "cancelled": "Cancelada"
+    },
+    "stats": {
+      "pending": "Pendientes",
+      "completed": "Completadas",
+      "cancelled": "Canceladas"
+    },
+    "table": {
+      "dateTime": "Fecha/Hora",
+      "client": "Cliente",
+      "dog": "Perro",
+      "service": "Servicio",
+      "status": "Estado",
+      "actions": "Acciones"
+    },
+    "actions": {
+      "cancel": "Cancelar",
+      "viewDetails": "Ver detalles"
+    },
+    "modal": {
+      "newBooking": "Nueva Cita",
+      "client": "Cliente",
+      "selectClient": "Selecciona un cliente",
+      "dog": "Perro",
+      "selectDog": "Selecciona un perro",
+      "service": "Servicio",
+      "selectService": "Selecciona un servicio",
+      "perHour": "hora",
+      "date": "Fecha",
+      "selectDate": "Selecciona una fecha",
+      "startTime": "Hora de Inicio",
+      "endTime": "Hora de Fin",
+      "selectTime": "Selecciona hora",
+      "loading": "Cargando...",
+      "selectDateServiceFirst": "Selecciona fecha y servicio primero",
+      "selectEndTime": "Selecciona hora fin",
+      "duration": "Duración",
+      "price": "Precio",
+      "homeAddress": "Dirección del Domicilio",
+      "addressPlaceholder": "Calle, número, piso, código postal, ciudad...",
+      "time": "Hora",
+      "loadingAvailableSchedules": "Cargando horarios disponibles...",
+      "observations": "Observaciones",
+      "observationsPlaceholder": "Información adicional...",
+      "cancel": "Cancelar",
+      "creating": "Creando...",
+      "createBooking": "Crear Cita"
+    },
+    "calendar": {
+      "available": "Disponible",
+      "notAvailable": "No Disponible",
+      "outOfMonth": "Fuera del mes",
+      "pastDay": "Día pasado",
+      "fullyBooked": "Día completamente ocupado",
+      "noSchedulesConfigured": "Sin horarios configurados"
+    },
+    "dateRangePicker": {
+      "selectStartDate": "📅 Selecciona fecha de inicio",
+      "selectEndDate": "📅 Selecciona fecha de fin",
+      "today": "Hoy",
+      "close": "Cerrar"
+    },
+    "noSlots": {
+      "noSchedulesConfigured": "Sin horarios configurados",
+      "noWorkHoursFor": "No hay horarios de trabajo para el {{date}}",
+      "configureSchedulesSuggestion": "Configura horarios en \"Configuración de Horarios\" o selecciona otra fecha.",
+      "serviceTooLong": "Servicio demasiado largo",
+      "serviceTooLongMessage": "\"{{serviceName}}\" dura {{serviceDuration}} min, pero el horario más amplio es de {{maxDuration}} min ({{startTime}} - {{endTime}})",
+      "serviceTooLongSuggestion": "Necesitas un horario más amplio. Configura uno en \"Configuración de Horarios\" o selecciona otro servicio/fecha.",
+      "schedulesOccupied": "Horarios ocupados",
+      "schedulesOccupiedMessage": "Todos los espacios disponibles están reservados o bloqueados por otras citas.",
+      "schedulesOccupiedSuggestion": "Selecciona otra fecha o revisa el \"Calendario de Citas\" para ver la ocupación."
+    },
+    "detailsModal": {
+      "title": "Detalles de la Cita",
+      "client": "Cliente",
+      "dog": "Perro",
+      "service": "Servicio",
+      "dateTime": "Fecha y Hora",
+      "status": "Estado",
+      "observations": "Observaciones",
+      "created": "Creada",
+      "updated": "Actualizada",
+      "minutes": "minutos"
+    },
+    "deleteModal": {
+      "title": "Eliminar Cita",
+      "message": "¿Estás seguro que quieres eliminar esta cita? Esta acción no se puede deshacer.",
+      "confirm": "Eliminar",
+      "cancel": "Cancelar"
+    },
+    "spaces": {
+      "clientHome": "Domicilio del Cliente",
+      "rehabCabinPool": "Caseta de Rehabilitación + Piscina (Hidroterapia)",
+      "rehabCabin": "Caseta de Rehabilitación",
+      "pool": "Piscina (Hidroterapia)",
+      "generalSpace": "Espacio General"
+    },
+    "toasts": {
+      "bookingCancelled": "Cita cancelada",
+      "bookingUpdated": "Cita actualizada",
+      "bookingDeleted": "Cita eliminada correctamente",
+      "bookingCreated": "Cita creada correctamente"
+    },
+    "errors": {
+      "loadingBookings": "Error cargando citas",
+      "loadingAvailableSchedules": "Error cargando horarios disponibles",
+      "updatingBooking": "Error actualizando cita",
+      "deletingBooking": "Error eliminando cita",
+      "completeRequiredFields": "Completa todos los campos obligatorios",
+      "completeHomeVisitFields": "Completa todos los campos obligatorios para visita a domicilio",
+      "minimumDuration30": "La duración mínima es de 30 minutos",
+      "selectTime": "Selecciona una hora",
+      "endTimeMustBeAfterStart": "La hora de fin debe ser posterior a la de inicio",
+      "verifyingAvailability": "Error verificando disponibilidad",
+      "conflictDetected": "Conflicto detectado: Este horario ya no está disponible",
+      "technicalError": "Error técnico al crear la cita",
+      "creatingBooking": "Error al crear la cita",
+      "unexpectedError": "Error inesperado al crear la cita"
+    }
+  },
+
+  "clientsManagement": {
+    "title": "Gestión de Clientes",
+    "subtitle": "Administra los clientes registrados y sus perros",
+    "registrationNote": "Los clientes deben registrarse directamente en el sistema usando el formulario de registro.",
+    "loadingClients": "Cargando clientes...",
+    "searchPlaceholder": "Buscar por nombre, email o teléfono...",
+    "listView": "Lista",
+    "clients": "Clientes",
+    "noClientsFound": "No se encontraron clientes",
+    "adjustSearch": "Ajusta la búsqueda",
+    "registered": "Registrado",
+    "selectClient": "Selecciona un cliente",
+    "selectClientMessage": "Haz clic en un cliente de la lista para ver sus detalles",
+    "clientInfo": {
+      "title": "Información del Cliente",
+      "name": "Nombre",
+      "email": "Email",
+      "phone": "Teléfono",
+      "notSpecified": "No especificado",
+      "notifications": "Notificaciones",
+      "yes": "Sí",
+      "no": "No"
+    },
+    "dogs": {
+      "title": "Perros",
+      "add": "Añadir",
+      "addDog": "Añadir Perro",
+      "noDogs": "No hay perros registrados",
+      "inactive": "Inactivo",
+      "breed": "Raza",
+      "age": "Edad",
+      "years": "años",
+      "weight": "Peso",
+      "kg": "kg"
+    },
+    "bookingHistory": {
+      "title": "Historial de Citas",
+      "noBookings": "No hay citas registradas",
+      "dog": "Perro",
+      "minutes": "min"
+    },
+    "editModal": {
+      "title": "Editar Cliente",
+      "fullName": "Nombre completo",
+      "email": "Email",
+      "country": "País",
+      "phone": "Teléfono",
+      "notificationPreferences": "Preferencias de notificación",
+      "emailNotifications": "Notificaciones por email",
+      "cancel": "Cancelar",
+      "updating": "Actualizando...",
+      "update": "Actualizar"
+    },
+    "addDogModal": {
+      "title": "Añadir Perro a {{name}}",
+      "dogName": "Nombre del perro",
+      "breed": "Raza",
+      "breedPlaceholder": "Ej: Labrador, Pastor Alemán...",
+      "age": "Edad (años)",
+      "weight": "Peso (kg)",
+      "observations": "Observaciones",
+      "observationsPlaceholder": "Alergias, problemas de salud, comportamiento...",
+      "cancel": "Cancelar",
+      "adding": "Añadiendo...",
+      "addDog": "Añadir Perro"
+    },
+    "toasts": {
+      "errorLoadingClients": "Error cargando clientes",
+      "errorLoadingBookings": "Error cargando historial de citas",
+      "errorLoadingDogs": "Error cargando perros del cliente",
+      "nameEmailRequired": "Nombre completo y email son obligatorios",
+      "clientCreated": "Cliente creado correctamente. El cliente deberá registrarse en el sistema para activar su cuenta.",
+      "emailExists": "Ya existe un cliente con este email",
+      "errorCreatingClient": "Error creando cliente",
+      "clientUpdated": "Cliente actualizado correctamente",
+      "errorUpdatingClient": "Error actualizando cliente",
+      "dogNameRequired": "El nombre del perro es obligatorio",
+      "dogAdded": "Perro añadido correctamente",
+      "errorAddingDog": "Error añadiendo perro"
+    }
+  },
+
+  "configurationPanel": {
+    "title": "Configuración de Horarios",
+    "subtitle": "Define horarios disponibles por fecha específica",
+    "loadingConfig": "Cargando configuración...",
+    "previous": "Anterior",
+    "next": "Siguiente",
+    "weekOf": "Semana del",
+    "to": "al",
+    "goToCurrentWeek": "Ir a semana actual",
+    "stats": {
+      "totalSchedules": "Total horarios configurados",
+      "daysWithSchedules": "Días con horarios"
+    },
+    "filters": {
+      "title": "Filtrar Horarios",
+      "all": "Todos los Horarios",
+      "normal": "Solo Normales (Clientes)",
+      "adminOnly": "🔒 Solo Admin"
+    },
+    "form": {
+      "addNew": "Añadir Nuevo Horario",
+      "edit": "✏️ Editar Horario",
+      "cancelEdit": "❌ Cancelar edición",
+      "startHour": "Hora inicio",
+      "startMinute": "Minuto de inicio",
+      "endHour": "Hora fin",
+      "endMinute": "Minuto fin",
+      "enter": "Introducir",
+      "onlyIntervals": "Solo intervalos de 15 min",
+      "adminOnlyLabel": "🔒 Solo para Admin",
+      "adminOnlyDesc": "Este horario NO estará disponible para clientes",
+      "updating": "Actualizando...",
+      "adding": "Añadiendo...",
+      "update": "💾 Actualizar",
+      "add": "Añadir",
+      "quickSuggestions": "Sugerencias rápidas:",
+      "morning": "Mañana (08:00-12:00)",
+      "afternoon": "Tarde (14:00-18:00)",
+      "fullDay": "Jornada completa (08:00-18:00)",
+      "thirtyMin": "30 min (09:00-09:30)",
+      "oneHour": "1 hora (10:00-11:00)"
+    },
+    "selection": {
+      "title": "Selección de Días",
+      "instruction": "Selecciona los días donde quieres añadir el horario",
+      "selected": "{{count}} día seleccionado",
+      "selected_plural": "{{count}} días seleccionados",
+      "selectAll": "Seleccionar todos",
+      "clearSelection": "Limpiar selección",
+      "clearSchedules": "Limpiar horarios días seleccionados",
+      "howToUse": "Cómo usar:",
+      "howToUseText": "Marca los días con los checkboxes azules, configura el horario y haz clic en \"Añadir\" para aplicarlo a todos los días seleccionados.",
+      "editMode": "✏️ Modo Edición:",
+      "editModeText": "Estás editando un horario existente. El día ya está seleccionado automáticamente."
+    },
+    "dayCard": {
+      "schedules": "horario",
+      "schedules_plural": "horarios",
+      "clear": "Limpiar",
+      "noSchedules": "Sin horarios configurados",
+      "past": "pasado",
+      "edit": "Editar horario",
+      "delete": "Eliminar horario"
+    },
+    "mobile": {
+      "selectedDays": "Días seleccionados",
+      "noDaysSelected": "Ningún día seleccionado",
+      "selectDay": "Seleccionar día...",
+      "selected": "seleccionado",
+      "past": "pasado"
+    },
+    "viewToggle": {
+      "byDay": "Vista por Día",
+      "complete": "Vista Completa"
+    },
+    "deleteModal": {
+      "title": "Eliminar Horario",
+      "message": "¿Estás seguro que quieres eliminar el horario {{slot}} del {{date}}?",
+      "confirm": "Eliminar",
+      "cancel": "Cancelar"
+    },
+    "toasts": {
+      "errorLoading": "Error cargando configuración de horarios",
+      "cannotSelectPast": "No puedes seleccionar un día anterior a hoy",
+      "selectAtLeastOneDay": "❌ Debes seleccionar al menos un día para añadir horarios",
+      "completeAllFields": "❌ Debes completar todos los campos de horario (hora y minutos de inicio y fin)",
+      "endAfterStart": "❌ La hora de fin debe ser posterior a la hora de inicio",
+      "minimumDuration": "❌ El horario debe tener una duración mínima de 30 minutos",
+      "scheduleAdded": "✅ Horario agregado correctamente a {{count}} día",
+      "scheduleAdded_plural": "✅ Horario agregado correctamente a {{count}} días",
+      "scheduleAddedPartial": "⚠️ Horario agregado a {{success}} de {{total}} días. {{errors}} error",
+      "scheduleAddedPartial_plural": "⚠️ Horario agregado a {{success}} de {{total}} días. {{errors}} errors",
+      "couldNotAdd": "❌ No se pudo añadir el horario en ninguna fecha",
+      "alreadyExists": "El horario {{time}} ya existe en este día",
+      "overlap": "El horario {{newTime}} se solapa con el horario existente {{existingTime}}",
+      "editingSchedule": "📝 Editando horario: {{time}}",
+      "scheduleUpdated": "✅ Horario actualizado correctamente",
+      "errorUpdating": "❌ Error actualizando horario: {{error}}",
+      "scheduleDeleted": "Horario eliminado correctamente",
+      "errorDeleting": "Error eliminando horario",
+      "noDaySchedules": "No hay horarios para eliminar en este día",
+      "daySchedulesCleared": "Todos los horarios del {{date}} han sido eliminados",
+      "errorClearingDay": "Error eliminando horarios del día",
+      "noSelectedDays": "No hay días seleccionados para limpiar",
+      "noDaysWithSchedules": "No hay horarios para eliminar en los días seleccionados",
+      "selectedDaysCleared": "{{slotCount}} horario eliminado de {{dayCount}} día",
+      "selectedDaysCleared_plural": "{{slotCount}} horarios eliminados de {{dayCount}} días",
+      "errorClearingSelected": "Error eliminando horarios de los días seleccionados"
+    }
+  },
+
+  "homeVisitBooking": {
+    "title": "Rehabilitación a Domicilio",
+    "subtitle": "Gestiona las visitas a domicilio programadas",
+    "newHomeVisit": "Nueva Visita a Domicilio",
+    "importantBlocking": "Importante sobre el bloqueo de horarios",
+    "blockingMessage": "Las citas a domicilio bloquean automáticamente los horarios en el centro para todos los servicios.",
+    "rate": "Tarifa:",
+    "perHour": "€80 por hora. Duración mínima: 30 minutos.",
+    "upcomingVisits": "Próximas Visitas a Domicilio",
+    "noVisitsScheduled": "No hay visitas programadas",
+    "scheduleFirstVisit": "Programa tu primera visita a domicilio",
+    "dog": "Perro",
+    "dateAndTime": "Fecha y Horario",
+    "contact": "Contacto",
+    "price": "Precio",
+    "address": "Dirección",
+    "observations": "Observaciones",
+    "deleteVisit": "Eliminar visita",
+    "modal": {
+      "title": "Nueva Visita a Domicilio",
+      "client": "Cliente",
+      "selectClient": "Selecciona un cliente",
+      "dog": "Perro",
+      "selectDog": "Selecciona un perro",
+      "date": "Fecha",
+      "startTime": "Hora de Inicio",
+      "endTime": "Hora de Fin",
+      "selectTime": "Selecciona hora",
+      "selectEndTime": "Selecciona hora fin",
+      "duration": "Duración: {{hours}}h ({{minutes}} min)",
+      "totalPrice": "Precio total: €{{price}} (€80/hora)",
+      "homeAddress": "Dirección del Domicilio",
+      "addressPlaceholder": "Calle, número, piso, código postal, ciudad...",
+      "observations": "Observaciones",
+      "observationsPlaceholder": "Información adicional sobre la visita...",
+      "blockingWarning": "⚠️ Esta visita bloqueará automáticamente los horarios en el centro para todos los servicios.",
+      "cancel": "Cancelar",
+      "scheduling": "Programando...",
+      "scheduleVisit": "Programar Visita"
+    },
+    "deleteModal": {
+      "title": "Eliminar Visita a Domicilio",
+      "message": "¿Estás seguro que quieres eliminar esta visita a domicilio? Esta acción no se puede deshacer.",
+      "confirm": "Eliminar",
+      "cancel": "Cancelar"
+    },
+    "toasts": {
+      "errorLoadingClients": "Error cargando clientes",
+      "errorLoadingVisits": "Error cargando visitas a domicilio",
+      "completeRequiredFields": "Completa todos los campos obligatorios",
+      "endAfterStart": "La hora de fin debe ser posterior a la de inicio",
+      "minimumDuration": "La duración mínima es de 30 minutos",
+      "visitScheduled": "Visita a domicilio programada correctamente",
+      "errorScheduling": "Error programando visita a domicilio",
+      "visitDeleted": "Visita a domicilio eliminada",
+      "errorDeleting": "Error eliminando visita"
+    }
+  },
+
+  "occupancyReport": {
+    "title": "Ocupación de Espacios",
+    "subtitle": "Vista semanal de citas y disponibilidad",
+    "allSpaces": "Todos los Espacios",
+    "rehabCabin": "Caseta de Rehabilitación",
+    "pool": "Piscina (Hidroterapia)",
+    "listView": "Lista",
+    "stats": {
+      "bookingsThisWeek": "Citas esta semana",
+      "estimatedRevenue": "Ingresos estimados",
+      "occupiedTime": "Tiempo ocupado"
+    },
+    "navigation": {
+      "previous": "Anterior",
+      "next": "Siguiente",
+      "weekFrom": "Semana del",
+      "to": "al",
+      "goToCurrentWeek": "Ir a semana actual"
+    },
+    "legend": {
+      "title": "Leyenda de Servicios",
+      "rehabilitation": "Rehabilitación",
+      "hydrotherapy": "Hidroterapia",
+      "rehabHydro": "Rehabilitación + Hidroterapia",
+      "homeRehab": "Rehabilitación a Domicilio"
+    },
+    "available": {
+      "adminOnly": "SOLO ADMIN",
+      "available": "DISPONIBLE",
+      "schedule": "Horario Disponible",
+      "duration": "Duración: {{duration}} minutos"
+    },
+    "mobile": {
+      "appointment": "cita",
+      "appointment_plural": "citas",
+      "available": "disponible",
+      "available_plural": "disponibles",
+      "noAppointmentsOrSchedules": "No hay citas ni horarios disponibles"
+    },
+    "detailsModal": {
+      "title": "Detalles de la Cita",
+      "client": "Cliente",
+      "dog": "Perro",
+      "service": "Servicio",
+      "date": "Fecha",
+      "schedule": "Horario",
+      "duration": "Duración",
+      "status": "Estado",
+      "price": "Precio",
+      "observations": "Observaciones",
+      "homeVisit": "Visita a domicilio",
+      "minutes": "minutos"
+    },
+    "cancelModal": {
+      "title": "Cancelar Cita",
+      "message": "¿Estás seguro que quieres cancelar la cita de {{clientName}}? Se enviará un email de notificación al cliente.",
+      "confirm": "Sí, Cancelar Cita",
+      "cancel": "No, Mantener Cita"
+    },
+    "buttons": {
+      "cancelAppointment": "Cancelar Cita",
+      "cancelling": "Cancelando..."
+    },
+    "toasts": {
+      "loadingCalendar": "Cargando calendario...",
+      "errorLoadingWeek": "Error cargando datos de la semana",
+      "appointmentCancelled": "Cita cancelada correctamente",
+      "errorCancelling": "Error cancelando la cita"
+    },
+    "price": {
+      "from": "A partir de 80 €"
+    }
+  },
+
+  "forgotPassword": {
+    "title": "¿Olvidaste tu contraseña?",
+    "subtitle": "No te preocupes, te enviamos las instrucciones para restablecerla",
+    "emailLabel": "Email registrado",
+    "emailPlaceholder": "tu@email.com",
+    "emailHint": "Te enviaremos un enlace para restablecer tu contraseña",
+    "sendButton": "Enviar instrucciones",
+    "sending": "Enviando...",
+    "rememberPassword": "¿Recordaste tu contraseña?",
+    "backToLogin": "Volver al inicio de sesión",
+    "success": {
+      "title": "Email Enviado",
+      "message": "Hemos enviado las instrucciones para restablecer tu contraseña a:",
+      "checkInbox": "Revisa tu bandeja de entrada",
+      "spamWarning": "Si no encuentras el email, revisa también la carpeta de spam o correo no deseado.",
+      "linkExpires": "El enlace expirará en 60 minutos por seguridad.",
+      "retryMessage": "Si no recibes el email en unos minutos, puedes intentar de nuevo.",
+      "tryAnother": "Intentar con otro email"
+    },
+    "errors": {
+      "enterEmail": "Por favor ingresa tu email",
+      "invalidEmail": "Por favor ingresa un email válido"
+    }
+  },
+
+  "login": {
+    "title": "Fisioterapia Gossos",
+    "subtitle": "Inicia sesión para acceder a tu cuenta",
+    "logoAlt": "Fisioterapia Gossos Logo",
+    "emailLabel": "Email",
+    "emailPlaceholder": "tu@email.com",
+    "passwordLabel": "Contraseña",
+    "passwordPlaceholder": "••••••••",
+    "rememberMe": "Recordarme",
+    "forgotPassword": "¿Olvidaste tu contraseña?",
+    "loginButton": "Iniciar Sesión",
+    "loggingIn": "Iniciando sesión...",
+    "noAccount": "¿No tienes cuenta?",
+    "registerHere": "Regístrate aquí",
+    "errors": {
+      "completeFields": "Por favor completa todos los campos"
+    }
+  },
+
+  "register": {
+    "title": "Crear Cuenta",
+    "subtitle": "Únete a Fisioterapia Gossos",
+    "fullName": "Nombre Completo",
+    "fullNamePlaceholder": "Juan Pérez García",
+    "phone": "Teléfono",
+    "phonePlaceholder": "600 123 456",
+    "email": "Email",
+    "emailPlaceholder": "tu@email.com",
+    "preferredLanguage": "Idioma preferido",
+    "languageHint": "Puedes cambiar el idioma en cualquier momento desde tu perfil",
+    "password": "Contraseña",
+    "passwordPlaceholder": "••••••••",
+    "confirmPassword": "Confirmar Contraseña",
+    "acceptTerms": "Acepto los",
+    "termsAndConditions": "términos y condiciones",
+    "createButton": "Crear Cuenta",
+    "creating": "Creando cuenta...",
+    "alreadyHaveAccount": "¿Ya tienes cuenta?",
+    "loginHere": "Inicia sesión aquí",
+    "required": "*",
+    "countries": {
+      "ES": "España",
+      "FR": "Francia",
+      "IT": "Italia",
+      "DE": "Alemania",
+      "GB": "Reino Unido",
+      "US": "Estados Unidos",
+      "AR": "Argentina",
+      "MX": "México",
+      "CO": "Colombia"
+    },
+    "languages": {
+      "spanish": "Español",
+      "catalan": "Català"
+    },
+    "passwordRequirements": {
+      "title": "Requisitos de contraseña:",
+      "minLength": "Mínimo 8 caracteres",
+      "lowercase": "Al menos una minúscula (a-z)",
+      "uppercase": "Al menos una mayúscula (A-Z)",
+      "number": "Al menos un número (0-9)",
+      "symbol": "Al menos un símbolo (!@#$%^&*)"
+    },
+    "validation": {
+      "validPhone": "Teléfono válido",
+      "validPhoneDigits": "Teléfono válido ({{digits}} dígitos)",
+      "validEmail": "Email válido",
+      "fixErrors": "Corrige los errores"
+    },
+    "errors": {
+      "emailRequired": "El email es obligatorio",
+      "prohibitedChars": "Caracteres no permitidos: {{chars}}",
+      "noSpaces": "Los emails no pueden contener espacios",
+      "needsAt": "El email debe contener @",
+      "oneAt": "El email solo puede contener una @",
+      "noDoubleDots": "No se permiten puntos consecutivos",
+      "invalidFormat": "Formato de email inválido",
+      "phoneRequired": "El teléfono es obligatorio",
+      "onlyNumbers": "Solo se permiten números, espacios, guiones y paréntesis",
+      "minDigits": "El teléfono debe tener al menos 9 dígitos",
+      "maxDigits": "El teléfono no puede tener más de 9 dígitos",
+      "spanishStart": "Los números españoles deben empezar por 6 o 7",
+      "noLettersInPhone": "Solo se permiten números en el teléfono",
+      "fullNameRequired": "El nombre completo es requerido",
+      "passwordRequired": "La contraseña es requerida",
+      "passwordRequirements": "La contraseña no cumple todos los requisitos de seguridad",
+      "passwordMismatch": "Las contraseñas no coinciden"
+    }
+  },
+
+  "resetPassword": {
+    "title": "Nueva Contraseña",
+    "subtitle": "Crea una contraseña segura para tu cuenta",
+    "newPassword": "Nueva Contraseña",
+    "passwordPlaceholder": "••••••••",
+    "confirmPassword": "Confirmar Contraseña",
+    "updateButton": "Actualizar Contraseña",
+    "updating": "Actualizando...",
+    "rememberPassword": "¿Recordaste tu contraseña?",
+    "backToLogin": "Volver al inicio de sesión",
+    "required": "*",
+    "passwordRequirements": {
+      "title": "Requisitos de contraseña:",
+      "minLength": "Mínimo 8 caracteres",
+      "lowercase": "Al menos una minúscula (a-z)",
+      "uppercase": "Al menos una mayúscula (A-Z)",
+      "number": "Al menos un número (0-9)",
+      "symbol": "Al menos un símbolo (!@#$%^&*)"
+    },
+    "verifying": {
+      "title": "Verificando enlace..."
+    },
+    "invalidLink": {
+      "title": "Enlace Inválido",
+      "subtitle": "Este enlace de recuperación ha expirado o no es válido",
+      "possibleCauses": "Posibles causas",
+      "expiredLink": "El enlace ha expirado (válido por 60 minutos)",
+      "usedLink": "El enlace ya fue utilizado",
+      "brokenLink": "El enlace está incompleto o dañado",
+      "requestNew": "Solicitar nuevo enlace",
+      "backToLogin": "Volver al inicio de sesión"
+    },
+    "errors": {
+      "completeFields": "Por favor completa todos los campos",
+      "passwordRequirements": "La contraseña no cumple todos los requisitos de seguridad",
+      "passwordMismatch": "Las contraseñas no coinciden",
+      "checkEmail": "Por favor, verifica tu email y usa el enlace más reciente que recibiste"
+    },
+    "success": {
+      "updated": "Contraseña actualizada correctamente"
+    }
+  },
+
+  "bookingSection": {
+    "tip": {
+      "icon": "⚡",
+      "title": "Tip:",
+      "message": "Los horarios se reservan por orden de llegada. Completa tu reserva rápidamente una vez seleccionada la hora."
+    },
+    "title": "Reservar Cita",
+    "subtitle": "Selecciona el servicio y horario para tu perro",
+    "homeVisitInfo": {
+      "title": "¿Necesitas una sesión a domicilio?",
+      "message": "Las sesiones de rehabilitación a domicilio están disponibles bajo consulta.",
+      "contact": "Contacta con nosotros al",
+      "schedule": "para programar tu visita personalizada."
+    },
+    "steps": {
+      "selectService": "1. Selecciona el Servicio",
+      "selectDog": "2. Selecciona tu Perro",
+      "selectDate": "3. Selecciona la Fecha",
+      "selectTime": "4. Selecciona la Hora",
+      "observations": "5. Observaciones (opcional)"
+    },
+    "service": {
+      "duration": "Duración: {{minutes}} min",
+      "price": "Precio: {{price}} € IVA incluido"
+    },
+    "dog": {
+      "selectPlaceholder": "Selecciona un perro...",
+      "noDogs": "No tienes perros registrados.",
+      "addDog": "Añadir perro"
+    },
+    "date": {
+      "selectPlaceholder": "Selecciona una fecha"
+    },
+    "time": {
+      "loadingSlots": "Cargando horarios disponibles...",
+      "noSlots": {
+        "title": "No hay horarios disponibles para esta fecha.",
+        "reason": "Esto puede deberse a citas programadas o visitas a domicilio.",
+        "suggestion": "Prueba con otra fecha."
+      }
+    },
+    "observations": {
+      "placeholder": "Información adicional sobre tu perro o la cita..."
+    },
+    "submit": {
+      "processing": "Procesando...",
+      "button": "Solicitar Cita"
+    },
+    "calendar": {
+      "weekDays": ["L", "M", "X", "J", "V", "S", "D"],
+      "loading": "Cargando disponibilidad...",
+      "tooltips": {
+        "outOfMonth": "Fuera del mes",
+        "pastDay": "Día pasado",
+        "noSlots": "Sin disponibilidad horaria",
+        "partial": "Disponibilidad limitada",
+        "available": "Disponible"
+      },
+      "legend": {
+        "available": "Disponible",
+        "noSlots": "Sin horarios"
+      }
+    },
+    "spaces": {
+      "rehabCabinPool": "Caseta de Rehabilitación + Piscina (Hidroterapia/Aqua Agility)",
+      "rehabCabin": "Caseta de Rehabilitación",
+      "pool": "Piscina (Hidroterapia/Aqua Agility)",
+      "general": "Espacio General"
+    },
+    "toasts": {
+      "loadingServices": "Error cargando servicios",
+      "loadingDogs": "Error cargando perros",
+      "loadingSlots": "Error cargando horarios",
+      "completeFields": "Por favor completa todos los campos obligatorios",
+      "slotTaken": "Este horario ya fue reservado por otro usuario. Selecciona otro horario.",
+      "technicalError": "Error técnico al crear la reserva",
+      "slotConflict": "Este horario ya no está disponible. Selecciona otro horario.",
+      "unexpectedError": "Error inesperado. Inténtalo nuevamente.",
+      "bookingSuccess": "¡Cita reservada correctamente!",
+      "navigateToDogs": "Navegar a \"Mis Perros\" para añadir un nuevo perro",
+      "cannotNavigate": "No se puede navegar a la sección de perros"
+    }
+  },
+
+  "clientHeader": {
+    "openMenu": "Abrir menú",
+    "logoAlt": "Fisioterapia Gossos Logo",
+    "title": "Fisioterapia Gossos",
+    "subtitle": "Sistema de Reservas",
+    "client": "Cliente",
+    "logout": "Cerrar Sesión",
+    "logoutModal": {
+      "title": "Cerrar Sesión",
+      "message": "¿Estás seguro que quieres cerrar sesión? Tendrás que volver a iniciar sesión para acceder a tu cuenta.",
+      "confirm": "Cerrar Sesión",
+      "cancel": "Cancelar"
+    }
+  },
+
+  "myBookings": {
+    "loading": "Cargando tus citas...",
+    "title": "Mis Citas",
+    "subtitle": "Gestiona tus reservas y revisa el historial",
+    "tabs": {
+      "pending": "Pendientes",
+      "completed": "Completadas",
+      "cancelled": "Canceladas",
+      "all": "Todas"
+    },
+    "sort": {
+      "title": "Ordenar por:",
+      "appointment": "cita",
+      "appointment_plural": "citas",
+      "date": "Fecha",
+      "service": "Servicio",
+      "dog": "Perro"
+    },
+    "status": {
+      "pending": "Pendiente",
+      "completed": "Completada",
+      "cancelled": "Cancelada"
+    },
+    "noBookings": {
+      "title": "No hay citas",
+      "all": "No tienes citas registradas.",
+      "filtered": "No tienes citas {{status}}."
+    },
+    "booking": {
+      "cancelled": "CITA CANCELADA",
+      "completed": "CITA COMPLETADA",
+      "chargeApplied": "Recargo correspondiente aplicado",
+      "lateCancellation": "Cancelación tardía",
+      "chargeWarning": "Se aplicará el recargo correspondiente",
+      "cancelling": "Cancelando...",
+      "cancelButton": "Cancelar Cita",
+      "dateTime": "Fecha y Hora",
+      "createdOn": "Creada el",
+      "observations": "Observaciones",
+      "chargeReason": "Motivo del recargo",
+      "cancelledOn": "Cancelada el",
+      "minutes": "min"
+    },
+    "spaces": {
+      "rehabCabinPool": "Caseta de Rehabilitación + Piscina (Hidroterapia/Aqua Agility)",
+      "rehabCabin": "Caseta de Rehabilitación",
+      "pool": "Piscina (Hidroterapia/Aqua Agility)",
+      "general": "Espacio General"
+    },
+    "cancelModal": {
+      "title": "Cancelar Cita",
+      "titleWithCharge": "Cancelar Cita - Recargo por Cancelación Tardía",
+      "message": "¿Estás seguro que quieres cancelar esta cita? No se aplicarán cargos adicionales.",
+      "messageWithCharge": "¿Estás seguro que quieres cancelar esta cita? Se aplicará el recargo correspondiente por cancelación con menos de 24 horas de anticipación.",
+      "confirm": "Cancelar Cita",
+      "cancel": "Mantener Cita"
+    },
+    "toasts": {
+      "loadError": "Error cargando citas",
+      "autoCompleted": "{{count}} cita marcada como completada",
+      "autoCompleted_plural": "{{count}} citas marcadas como completadas",
+      "cancelError": "Error cancelando la cita"
+    }
+  },
+
+  "myDogs": {
+    "loading": "Cargando tus perros...",
+    "title": "Mis Perros 🐶",
+    "subtitle": "Gestiona la información de tus perros",
+    "addButton": "Añadir Perro",
+    "addButtonMobile": "Añadir Nuevo Perro",
+    "form": {
+      "titleAdd": "Añadir Nuevo Perro",
+      "titleEdit": "Editar {{name}}",
+      "profilePhoto": "Foto de Perfil",
+      "fileTypes": "PNG, JPG, GIF hasta 5MB",
+      "removeImage": "Quitar imagen",
+      "name": "Nombre",
+      "namePlaceholder": "Nombre del perro",
+      "breed": "Raza",
+      "breedPlaceholder": "Ej: Golden Retriever",
+      "age": "Edad (años)",
+      "agePlaceholder": "0",
+      "weight": "Peso (kg)",
+      "weightPlaceholder": "0.0",
+      "pathologies": "Patologías",
+      "pathologiesPlaceholder": "Displasia de cadera, artritis, problemas cardíacos, etc.",
+      "pathologiesHint": "Especifica enfermedades o condiciones médicas diagnosticadas, en caso contrario, indica \"No tiene\"",
+      "observations": "Observaciones Generales",
+      "observationsPlaceholder": "Comportamiento, alergias, medicamentos, cuidados especiales, etc.",
+      "observationsHint": "Información adicional relevante para el tratamiento",
+      "cancel": "Cancelar",
+      "save": "Guardar Perro",
+      "update": "Actualizar Perro",
+      "uploading": "Subiendo...",
+      "saving": "Guardando...",
+      "required": "*"
+    },
+    "dogCard": {
+      "breed": "Raza:",
+      "age": "Edad:",
+      "years": "años",
+      "weight": "Peso:",
+      "kg": "kg",
+      "pathologies": "Patologías:",
+      "observations": "Observaciones generales:",
+      "edit": "Editar",
+      "delete": "Eliminar",
+      "editTitle": "Editar perro",
+      "deleteTitle": "Eliminar perro"
+    },
+    "emptyState": {
+      "title": "No hay perros registrados",
+      "message": "Añade información sobre tus mascotas para poder hacer reservas.",
+      "button": "Añadir Primer Perro"
+    },
+    "deleteModal": {
+      "title": "Eliminar Perro",
+      "message": "¿Estás seguro que quieres eliminar a {{name}}? Esta acción no se puede deshacer y se eliminarán todos los datos asociados.",
+      "confirm": "Eliminar",
+      "cancel": "Cancelar"
+    },
+    "toasts": {
+      "loadError": "Error cargando perros",
+      "nameRequired": "El nombre es obligatorio",
+      "invalidImage": "Por favor selecciona una imagen válida",
+      "imageTooLarge": "La imagen debe ser menor a 5MB",
+      "dogUpdated": "Perro actualizado correctamente",
+      "dogCreated": "Perro registrado correctamente",
+      "saveError": "Error guardando perro",
+      "dogDeleted": "{{name}} eliminado correctamente",
+      "deleteError": "Error eliminando perro"
+    }
+  },
+
+  "myProfile": {
+    "loading": "Cargando...",
+    "title": "Mi Perfil",
+    "subtitle": "Gestiona tu información personal y preferencias",
+    "personalInfo": {
+      "title": "Información Personal",
+      "fullName": "Nombre Completo",
+      "fullNamePlaceholder": "Tu nombre completo",
+      "countryAndPhone": "País y Teléfono",
+      "phonePlaceholder": "Número de teléfono",
+      "format": "Formato:",
+      "email": "Email",
+      "emailCannotChange": "El email no se puede cambiar"
+    },
+    "accountSummary": {
+      "title": "Resumen de Cuenta",
+      "registeredClient": "Cliente registrado",
+      "contactInfo": "Información de Contacto",
+      "country": "País:",
+      "phone": "Teléfono:",
+      "notSpecified": "No especificado",
+      "notAvailable": "No disponible",
+      "notificationPreferences": "Preferencias de Notificación",
+      "active": "Activo",
+      "inactive": "Inactivo",
+      "languagePreferences": "Preferencias de Idioma"
+    },
+    "form": {
+      "unsavedChanges": "Tienes cambios sin guardar",
+      "cancel": "Cancelar",
+      "saving": "Guardando...",
+      "saveChanges": "Guardar Cambios",
+      "required": "*"
+    },
+    "validation": {
+      "fullNameRequired": "El nombre completo es obligatorio",
+      "phoneRequired": "El teléfono es obligatorio",
+      "spanishPhoneStart": "Los números españoles deben empezar por 6 o 7"
+    }
+  },
+
+  "confirmModal": {
+    "defaultTitle": "Confirmar acción",
+    "defaultMessage": "¿Estás seguro que quieres continuar?",
+    "defaultConfirm": "Confirmar",
+    "defaultCancel": "Cancelar"
+  },
+
+  "cookieBanner": {
+    "message": "Utilizamos cookies propias y de terceros para mejorar nuestros servicios y mostrarle publicidad relacionada con sus preferencias. Si continúa navegando, consideramos que acepta su uso. Puede consultar nuestra",
+    "privacyPolicy": "Política de Privacidad",
+    "reject": "Rechazar",
+    "accept": "Aceptar"
+  },
+
+  "countries": {
+    "ES": "España",
+    "FR": "Francia",
+    "IT": "Italia",
+    "PT": "Portugal",
+    "DE": "Alemania",
+    "GB": "Reino Unido",
+    "US": "Estados Unidos",
+    "phoneDescriptions": {
+      "ES": "9 dígitos, empezando por 6 o 7",
+      "FR": "9 dígitos",
+      "IT": "9-10 dígitos, empezando por 3",
+      "PT": "9 dígitos, empezando por 91, 92, 93 o 96",
+      "DE": "10-11 dígitos, empezando por 15, 16 o 17",
+      "GB": "10 dígitos, empezando por 7",
+      "US": "10 dígitos"
+    }
+  },
+  "phoneValidation": {
+    "unsupportedCountry": "País no soportado",
+    "invalidLength": "El teléfono debe tener {{lengths}} dígitos",
+    "invalidFormat": "Formato incorrecto: {{description}}",
+    "valid": "Válido"
+  },
+
+  "footer": {
+    "termsAndConditions": "Términos y condiciones"
+  },
+
+  "iosInstallBanner": {
+    "title": "¡Instala FisioGossos en tu {{device}}!",
+    "subtitle": "Accede más rápido y disfruta de una mejor experiencia",
+    "later": "Más tarde",
+    "showHowToInstall": "Ver cómo instalar",
+    "tap": "Toca",
+    "addToHome": "Añadir a Inicio",
+    "devices": {
+      "iPad": "iPad",
+      "iPhone": "iPhone"
+    }
+  },
+
+  "languageSelector": {
+    "spanish": "Español",
+    "catalan": "Catalán"
+  },
+
+  "loadingSpinner": {
+    "defaultMessage": "Cargando..."
+  },
+
+  "notificationPreferences": {
+    "title": "Preferencias de Notificación",
+    "emailLabel": "Recibir mensajes por correo electrónico",
+    "emailBadge": "Email",
+    "required": "*",
+    "validation": {
+      "emailRequired": "Las notificaciones por email son obligatorias"
+    }
+  },
+
+  "termsModal": {
+    "title": "Términos y Condiciones",
+    "close": "Cerrar",
+    "understood": "Entendido",
+    "header": {
+      "mainTitle": "TÉRMINOS Y CONDICIONES DE USO",
+      "subtitle": "SISTEMA DE RESERVAS DE FISIOTERAPIA GOSSOS"
+    },
+    "section1": {
+      "title": "1. ACEPTACIÓN DE TÉRMINOS",
+      "content": "Al acceder y utilizar el sistema de reservas en línea de Fisioterapia Gossos (en adelante, <strong>\"el Servicio\"</strong>), usted (el/la usuario/a) acepta cumplir estos Términos y Condiciones. Si no está de acuerdo con algún punto, por favor, no utilice el Servicio."
+    },
+    "section2": {
+      "title": "2. USO DEL SERVICIO",
+      "intro": "El Servicio permite reservar sesiones de fisioterapia y/o hidroterapia para perros.",
+      "items": [
+        "El usuario se compromete a proporcionar datos verídicos y actualizados.",
+        "Las reservas son personales y no pueden ser transferidas a terceros sin autorización.",
+        "El Servicio no puede ser utilizado con fines fraudulentos o ilegales."
+      ]
+    },
+    "section3": {
+      "title": "3. POLÍTICA DE RESERVAS Y CANCELACIONES",
+      "items": [
+        "Las reservas se consideran confirmadas una vez reciba el correo o mensaje de confirmación.",
+        "<strong class=\"text-red-600\">Las cancelaciones deben realizarse con un mínimo de 24 horas de antelación. Cancelaciones fuera de este plazo pueden conllevar el cobro parcial o total de la sesión.</strong>",
+        "En caso de retraso, se podrá reducir el tiempo de la sesión sin ajuste del precio."
+      ]
+    },
+    "section4": {
+      "title": "4. RESPONSABILIDADES",
+      "items": [
+        "Fisioterapia Gossos se compromete a prestar el servicio con profesionalidad y a garantizar la seguridad del animal dentro de las instalaciones.",
+        "El usuario es responsable del estado de salud del perro y debe informar previamente de cualquier condición médica relevante.",
+        "El centro no se hace responsable de lesiones o incidentes derivados de datos incorrectos u omisiones en la información facilitada por el usuario."
+      ]
+    },
+    "section5": {
+      "title": "5. PROTECCIÓN DE DATOS",
+      "items": [
+        "Los datos personales recogidos (nombre, teléfono, email, datos del animal) se tratarán de acuerdo con el <strong>Reglamento (UE) 2016/679 (RGPD)</strong> y la <strong>LOPDGDD</strong>.",
+        "El usuario puede ejercer sus derechos de acceso, rectificación, supresión, oposición y portabilidad enviando una solicitud a <a href=\"mailto:info@fisioterapiagossos.com\" class=\"text-blue-600 hover:text-blue-800 underline font-medium\">info@fisioterapiagossos.com</a>."
+      ]
+    },
+    "section6": {
+      "title": "6. MODIFICACIONES",
+      "content": "Fisioterapia Gossos se reserva el derecho de modificar estos Términos y Condiciones en cualquier momento. Las modificaciones entrarán en vigor en el momento de su publicación en el sitio web o plataforma de reservas."
+    },
+    "section7": {
+      "title": "7. CONTACTO",
+      "intro": "Para cualquier duda o reclamación sobre estos Términos y Condiciones, puede contactarnos en:",
+      "email": "Correo electrónico:",
+      "phone": "Teléfono:"
+    }
+  },
+
+  "notifications": {
+    "welcomeEmailSent": "Email de bienvenida enviado",
+    "welcomeEmailError": "Error enviando email de bienvenida",
+    "processingWelcomeError": "Error procesando email de bienvenida",
+    "confirmationSent": "Confirmación enviada por email",
+    "confirmationError": "Error enviando confirmación por email",
+    "cancellationSent": "Notificación de cancelación enviada por email",
+    "cancellationError": "Error enviando notificación de cancelación",
+    "reminderSent": "Recordatorio enviado por email",
+    "reminderError": "Error enviando recordatorio",
+    "adminNotificationError": "Error notificando al admin"
+  },
+
+  "updateNotification": {
+    "title": "Nueva versión disponible",
+    "message": "Actualiza para obtener las últimas mejoras y funcionalidades.",
+    "updated": "Actualizada:",
+    "updating": "Actualizando...",
+    "update": "Actualizar",
+    "later": "Más tarde"
+  },
+
+  "auth": {
+    "user": "Usuario",
+    "client": "Cliente",
+    "signUp": {
+      "success": "Cuenta creada exitosamente. Revisa tu email para confirmar tu cuenta.",
+      "errorCreatingUser": "No se pudo crear el usuario"
+    },
+    "signIn": {
+      "success": "Sesión iniciada correctamente",
+      "error": "Error en el inicio de sesión",
+      "persistentSession": "Sesión persistente activada (60 días)",
+      "temporarySession": "Sesión temporal activada (se cerrará al cerrar navegador)"
+    },
+    "signOut": {
+      "success": "Sesión cerrada correctamente",
+      "error": "Error cerrando sesión"
+    },
+    "profile": {
+      "updateSuccess": "Perfil actualizado correctamente",
+      "updateError": "Error actualizando perfil",
+      "noAuthenticatedUser": "No hay usuario autenticado"
+    },
+    "passwordReset": {
+      "success": "Email de recuperación enviado",
+      "noAccountFound": "No encontramos una cuenta registrada con ese email",
+      "errorSendingEmail": "Error enviando email de recuperación"
+    },
+    "notifications": {
+      "atLeastOne": "Debe mantener al menos una preferencia de notificación activada"
+    }
+  },
+
+  "emailNotifications": {
+    "fallbacks": {
+      "user": "Usuario",
+      "defaultCancellationReason": "Cancelación de cita"
+    },
+    "subjects": {
+      "welcome": "¡Bienvenido a Fisioterapia Gossos!",
+      "bookingConfirmation": "📅 Confirmación de cita - Fisioterapia Gossos",
+      "cancellation": "❌ Cita cancelada - Fisioterapia Gossos",
+      "reminder": "🔔 Recordatorio de cita - Fisioterapia Gossos",
+      "passwordReset": "🔑 Restablece tu contraseña - Fisioterapia Gossos",
+      "passwordChanged": "✅ Contraseña actualizada - Fisioterapia Gossos",
+      "adminNewBooking": "🔔 Nueva reserva registrada - Fisioterapia Gossos",
+      "adminCancellation": "❌ Cita cancelada - Fisioterapia Gossos"
+    },
+    "test": {
+      "onlyInDevelopment": "⚠️ Test de emails solo disponible en desarrollo",
+      "startingTest": "🧪 Iniciando test del sistema de emails...",
+      "testingType": "🔬 Testeando email tipo:",
+      "results": "📋 Resultados del test:",
+      "testData": {
+        "clientName": "Juan Pérez",
+        "dogName": "Max",
+        "service": "Hidroterapia",
+        "observations": "Test de observaciones",
+        "cancellationReason": "Motivos personales",
+        "adminCancellationReason": "Cancelación por parte del cliente"
+      }
+    }
+  },
+
+  "pwaInstall": {
+    "buttons": {
+      "addToHome": "Añadir a Inicio",
+      "installApp": "Instalar App"
+    },
+    "platforms": {
+      "safariIOS": "Safari iOS ({{device}})",
+      "chromeIOS": "Chrome iOS",
+      "chromeDesktop": "Chrome Desktop",
+      "chromeAndroid": "Chrome Android"
+    },
+    "instructions": {
+      "safariIOS": {
+        "steps": [
+          "En la parte inferior de Safari, toca el botón de \"compartir\" (cuadrado con flecha hacia arriba)",
+          "En el menú que aparece, desplázate hacia abajo hasta encontrar \"Añadir a pantalla de inicio\"",
+          "Toca \"Añadir a pantalla de inicio\"",
+          "Confirma tocando \"Añadir\" en la parte superior derecha",
+          "La app aparecerá en tu pantalla de inicio como cualquier otra aplicación"
+        ],
+        "benefits": [
+          "Acceso rápido desde tu pantalla de inicio",
+          "Experiencia de aplicación nativa",
+          "Funciona sin conexión para ciertas funciones",
+          "Sin barra de direcciones del navegador"
+        ],
+        "troubleshooting": [
+          "Si no ves el botón de compartir, asegúrate de estar usando Safari (no Chrome)",
+          "Si \"Añadir a pantalla de inicio\" no aparece, actualiza Safari a la última versión",
+          "Algunos bloqueadores de contenido pueden interferir - desactívalos temporalmente"
+        ]
+      },
+      "chromeIOS": {
+        "steps": [
+          "Toca los tres puntos (⋯) en la esquina superior derecha de Chrome",
+          "Busca y selecciona \"Añadir a pantalla de inicio\"",
+          "Confirma tocando \"Añadir\""
+        ],
+        "note": "Chrome en iOS tiene limitaciones para PWAs. Para la mejor experiencia, recomendamos usar Safari.",
+        "benefits": [
+          "Acceso rápido desde tu pantalla de inicio",
+          "Marcador mejorado (no es una PWA completa en Chrome iOS)"
+        ]
+      },
+      "chromeDesktop": {
+        "steps": [
+          "Toca los tres puntos (⋮) en la esquina superior derecha",
+          "Busca la opción \"Enviar, guardar y compartir\"",
+          "Haz clic en \"Instalar página como aplicación\"",
+          "La aplicación se abrirá en una ventana independiente"
+        ],
+        "benefits": [
+          "Ventana de aplicación independiente",
+          "Acceso rápido desde el escritorio",
+          "Notificaciones del sistema",
+          "Funciona offline para ciertas funciones"
+        ]
+      },
+      "chromeAndroid": {
+        "steps": [
+          "Toca los tres puntos (⋮) en la esquina superior derecha",
+          "Selecciona \"Añadir a pantalla de inicio\" o \"Instalar aplicación\"",
+          "Confirma tocando \"Añadir\" o \"Instalar\"",
+          "La app aparecerá en tu cajón de aplicaciones y pantalla de inicio"
+        ],
+        "benefits": [
+          "Aplicación nativa completa",
+          "Notificaciones push",
+          "Funciona offline",
+          "Acceso desde el cajón de aplicaciones"
+        ]
+      }
+    }
+  },
+
+  "errors": {
+    "supabase": {
+      "missingEnvVars": "Faltan variables de entorno de Supabase. Comprueba tu archivo .env.",
+      "unknownError": "Ha ocurrido un error desconocido"
+    },
+    "auth": {
+      "invalidCredentials": "Email o contraseña incorrectos",
+      "userAlreadyRegistered": "Este email ya está registrado",
+      "emailNotConfirmed": "Por favor confirma tu email antes de iniciar sesión",
+      "passwordTooShort": "La contraseña debe tener al menos 6 caracteres"
+    },
+    "database": {
+      "duplicateEntry": "Ya existe un registro con estos datos",
+      "referenceError": "Error de referencia en la base de datos",
+      "permissionDenied": "No tienes permisos para realizar esta acción",
+      "genericError": "Error de base de datos: {{message}}",
+      "connectionError": "Error de conexión con la base de datos"
+    }
+  },
+
+  "adminDashboard": {
+    "title": "Panel de Admin",
+    "defaultAdmin": "Administrador",
+    "navigation": {
+      "occupancy": "Calendario de Citas",
+      "bookings": "Gestión de Citas",
+      "clients": "Historial de Clientes",
+      "configuration": "🕑 Configuración de Horarios",
+      "systemLogs": "Logs del Sistema"
+
+    },
+    "pwa": {
+      "installed": "App Instalada",
+      "install": "Instalar App",
+      "installShort": "Instalar App",
+      "toastMessage": "Para instalar la aplicación, busca la opción \"Instalar\" en el menú de tu navegador."
+    },
+    "installModal": {
+      "title": "Instalar en {{platform}}",
+      "intro": "Sigue estos pasos para instalar la aplicación:",
+      "benefits": "Beneficios de instalar:",
+      "recommendation": "Recomendación:",
+      "chromeIOSNote": "Para una mejor experiencia en iOS, considera usar Safari en lugar de Chrome.",
+      "confirm": "Entendido",
+      "cancel": "Cancelar"
+    },
+    "version": {
+      "appName": "Fisioterapia Gossos",
+      "version": "Versión",
+      "lastUpdate": "Última actualización:"
+    }
+  },
+
+  "clientDashboard": {
+    "greeting": "Hola, {{name}}",
+    "defaultUser": "Usuario",
+    "clientPanel": "Panel de cliente",
+    "navigation": {
+      "booking": "Reservar Cita",
+      "myBookings": "Mis Citas",
+      "myDogs": "Mis Perros",
+      "profile": "Mi Perfil"
+    },
+    "pwa": {
+      "installed": "App Instalada",
+      "install": "Instalar App",
+      "installShort": "Instalar App",
+      "toastMessage": "Para instalar la aplicación, busca la opción \"Instalar\" en el menú de tu navegador."
+    },
+    "installModal": {
+      "title": "Instalar en {{platform}}",
+      "intro": "Sigue estos pasos para instalar la aplicación:",
+      "benefits": "Beneficios de instalar:",
+      "recommendation": "Recomendación:",
+      "chromeIOSNote": "Para una mejor experiencia en iOS, considera usar Safari en lugar de Chrome.",
+      "confirm": "Entendido",
+      "cancel": "Cancelar"
+    },
+    "version": {
+      "appName": "Fisioterapia Gossos",
+      "version": "Versión",
+      "lastUpdate": "Última actualización:"
+    }
+  },
+  
+  "emailService": {
+    "defaultUser": "Usuario"
+  },
+
+  "app": {
+    "accessDenied": {
+      "title": "Acceso Denegado",
+      "message": "No tienes permisos para acceder a esta sección.",
+      "back": "Volver"
+    },
+    "notFound": {
+      "title": "Página no encontrada",
+      "message": "La página que buscas no existe.",
+      "backToHome": "Volver al inicio"
+    }
+  },
+
+  "errorBoundary": {
+    "title": "Error en la aplicación",
+    "message": "Ha ocurrido un error inesperado. Por favor, recarga la página.",
+    "detailsLabel": "Detalles del error (solo desarrollo)",
+    "reloadButton": "Recargar página"
+  },
+
+  "meta": {
+    "title": "Fisioterapia Gossos - Sistema de Reservas",
+    "description": "Sistema de reservas profesional para fisioterapia canina",
+    "keywords": "fisioterapia, perros, mascotas, reservas, citas, veterinaria",
+    "ogTitle": "Fisioterapia Gossos - Sistema de Reservas",
+    "ogDescription": "Sistema de reservas profesional para fisioterapia canina",
+    "twitterTitle": "Fisioterapia Gossos - Sistema de Reservas",
+    "twitterDescription": "Sistema de reservas profesional para fisioterapia canina"
+  }
+}

@@ -1,8 +1,9 @@
-// components/common/Footer.jsx
 import React, { useState } from 'react'
 import TermsModal from './TermsModal'
+import { useTranslation } from 'react-i18next'
 
 export default function Footer() {
+  const { t } = useTranslation()
   const [showTermsModal, setShowTermsModal] = useState(false)
 
   return (
@@ -17,13 +18,12 @@ export default function Footer() {
               onClick={() => setShowTermsModal(true)}
               className="text-white text-sm hover:text-blue-100 transition-colors duration-200 underline underline-offset-2 hover:underline-offset-4"
             >
-              Términos y condiciones
+              {t('footer.termsAndConditions')}
             </button>
           </div>
         </div>
       </footer>
 
-      {/* Modal de Términos y Condiciones */}
       <TermsModal 
         isOpen={showTermsModal}
         onClose={() => setShowTermsModal(false)}

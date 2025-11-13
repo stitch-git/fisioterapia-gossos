@@ -2,17 +2,24 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
-
 export default defineConfig({
   plugins: [
     react(),
+    {
+      name: 'html-transform',
+      transformIndexHtml(html) {
+        return html.replace(
+          '</head>',
+          `  <meta name="build-time" content="${new Date().getTime()}">\n  </head>`
+        )
+      }
+    },
     VitePWA({
       registerType: 'skipWaiting',
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
         skipWaiting: true,       
         clientsClaim: true,
-        // Configuración mejorada para cache busting
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
@@ -27,11 +34,10 @@ export default defineConfig({
           },
           {
             urlPattern: /\/version\.json/,
-            handler: 'NetworkOnly' // Siempre verificar versión desde red
+            handler: 'NetworkOnly'
           }
         ]
       },
-      // Service worker personalizado
       swDest: 'dist/sw.js',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
       manifest: {
@@ -137,34 +143,25 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
-    // 🚀 CONFIGURACIÓN MEJORADA PARA CACHE BUSTING
     rollupOptions: {
       output: {
-        // Nombres con hash para JS y CSS
         entryFileNames: 'assets/[name]-[hash].js',
         chunkFileNames: 'assets/[name]-[hash].js',
         assetFileNames: (assetInfo) => {
           const extType = assetInfo.name.split('.').at(-1)
-          // CSS con hash
           if (extType === 'css') {
             return 'assets/[name]-[hash].[ext]'
           }
-          // Imágenes y otros assets con hash
           return 'assets/[name]-[hash].[ext]'
         }
       }
     },
-    // Generar manifest con hash
     cssCodeSplit: true,
-    sourcemap: false // Para producción
+    sourcemap: false
   },
-  // Configuración de cache mejorada
   define: {
-      // Versión del package.json (leída dinámicamente)
-      __APP_VERSION__: JSON.stringify(process.env.npm_package_version || '1.0.0'),
-      // Timestamp del build
-      __BUILD_TIME__: JSON.stringify(new Date().toISOString()),
-      // Hash único del build
-      __BUILD_VERSION__: JSON.stringify(Date.now().toString())
-    }
-   })
+    __APP_VERSION__: JSON.stringify(process.env.npm_package_version || '1.0.0'),
+    __BUILD_TIME__: JSON.stringify(new Date().toISOString()),
+    __BUILD_VERSION__: JSON.stringify(Date.now().toString())
+  }
+})

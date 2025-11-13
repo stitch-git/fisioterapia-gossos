@@ -1,22 +1,10 @@
 import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '../../contexts/AuthContext'
 import NotificationPreferences from '../common/NotificationPreferences'
 import TermsModal from '../common/TermsModal'
-
-// Lista de países con códigos y banderas - VERSIÓN SIMPLIFICADA
-const COUNTRIES = [
-  { code: '+34', country: 'ES', name: 'España', flag: '🇪🇸' },
-  { code: '+33', country: 'FR', name: 'Francia', flag: '🇫🇷' },
-  { code: '+39', country: 'IT', name: 'Italia', flag: '🇮🇹' },
-  { code: '+49', country: 'DE', name: 'Alemania', flag: '🇩🇪' },
-  { code: '+44', country: 'GB', name: 'Reino Unido', flag: '🇬🇧' },
-  { code: '+1', country: 'US', name: 'Estados Unidos', flag: '🇺🇸' },
-  { code: '+54', country: 'AR', name: 'Argentina', flag: '🇦🇷' },
-  { code: '+52', country: 'MX', name: 'México', flag: '🇲🇽' },
-  { code: '+57', country: 'CO', name: 'Colombia', flag: '🇨🇴' },
-]
 
 // Caracteres prohibidos en emails
 const PROHIBITED_CHARS_EMAIL = [' ', '\t', '\n', '\r', '<', '>', '(', ')', '[', ']', ',', ':', ';', '"', "'", '\\', '/', '?', '=', '&', '#', '!', '$', '%', '^', '*', '|', '`', '~', '{', '}']
@@ -30,118 +18,36 @@ const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
 // Regex para teléfono válido (solo números, espacios, guiones y paréntesis)
 const PHONE_REGEX = /^[\d\s\-()]+$/
 
-// Función de validación de email
-const validateEmail = (email) => {
-  const errors = []
-  
-  if (!email || email.trim() === '') {
-    errors.push('El email es obligatorio')
-    return { isValid: false, errors }
-  }
-  
-  // Verificar caracteres prohibidos
-  const prohibitedFound = PROHIBITED_CHARS_EMAIL.filter(char => email.includes(char))
-  if (prohibitedFound.length > 0) {
-    errors.push(`Caracteres no permitidos: ${prohibitedFound.join(', ')}`)
-  }
-  
-  // Verificar espacios específicamente
-  if (email.includes(' ')) {
-    errors.push('Los emails no pueden contener espacios')
-  }
-  
-  // Verificar múltiples @
-  const atCount = (email.match(/@/g) || []).length
-  if (atCount === 0) {
-    errors.push('El email debe contener @')
-  } else if (atCount > 1) {
-    errors.push('El email solo puede contener una @')
-  }
-  
-  // Verificar puntos consecutivos
-  if (email.includes('..')) {
-    errors.push('No se permiten puntos consecutivos')
-  }
-  
-  // Validación final con regex
-  if (errors.length === 0 && !EMAIL_REGEX.test(email)) {
-    errors.push('Formato de email inválido')
-  }
-  
-  return {
-    isValid: errors.length === 0,
-    errors
-  }
-}
-
-// Función de validación de teléfono
-const validatePhone = (phone, countryCode) => {
-  const errors = []
-  
-  if (!phone || phone.trim() === '') {
-    errors.push('El teléfono es obligatorio')
-    return { isValid: false, errors }
-  }
-  
-  // Verificar que solo contenga caracteres permitidos
-  if (!PHONE_REGEX.test(phone)) {
-    errors.push('Solo se permiten números, espacios, guiones y paréntesis')
-  }
-  
-  // Contar solo los dígitos
-  const digitsOnly = phone.replace(/\D/g, '')
-  
-  if (digitsOnly.length < 9) {
-    errors.push('El teléfono debe tener al menos 9 dígitos')
-  }
-  
-  if (digitsOnly.length > 9) {
-    errors.push('El teléfono no puede tener más de 9 dígitos')
-  }
-  
-  // Validación específica para España (+34)
-  if (countryCode === '+34' && digitsOnly.length >= 9) {
-    if (!digitsOnly.startsWith('6') && !digitsOnly.startsWith('7')) {
-      errors.push('Los números españoles deben empezar por 6 o 7')
-    }
-  }
-  
-  return {
-    isValid: errors.length === 0,
-    errors,
-    digitsCount: digitsOnly.length
-  }
-}
-
-// Función de validación de contraseña
-const validatePassword = (password) => {
-  const requirements = {
-    length: password.length >= 8,
-    lowercase: /[a-z]/.test(password),
-    uppercase: /[A-Z]/.test(password),
-    number: /\d/.test(password),
-    symbol: /[!@#$%^&*(),.?":{}|<>]/.test(password)
-  }
-  
-  const isValid = Object.values(requirements).every(req => req)
-  return { requirements, isValid }
-}
-
 // Componente indicadores de requisitos
 const PasswordRequirements = ({ password }) => {
+  const { t } = useTranslation()
+  
+  const validatePassword = (password) => {
+    const requirements = {
+      length: password.length >= 8,
+      lowercase: /[a-z]/.test(password),
+      uppercase: /[A-Z]/.test(password),
+      number: /\d/.test(password),
+      symbol: /[!@#$%^&*(),.?":{}|<>]/.test(password)
+    }
+    
+    const isValid = Object.values(requirements).every(req => req)
+    return { requirements, isValid }
+  }
+  
   const validation = validatePassword(password)
   
   const requirementsList = [
-    { key: 'length', label: 'Mínimo 8 caracteres', met: validation.requirements.length },
-    { key: 'lowercase', label: 'Al menos una minúscula (a-z)', met: validation.requirements.lowercase },
-    { key: 'uppercase', label: 'Al menos una mayúscula (A-Z)', met: validation.requirements.uppercase },
-    { key: 'number', label: 'Al menos un número (0-9)', met: validation.requirements.number },
-    { key: 'symbol', label: 'Al menos un símbolo (!@#$%^&*)', met: validation.requirements.symbol }
+    { key: 'length', label: t('register.passwordRequirements.minLength'), met: validation.requirements.length },
+    { key: 'lowercase', label: t('register.passwordRequirements.lowercase'), met: validation.requirements.lowercase },
+    { key: 'uppercase', label: t('register.passwordRequirements.uppercase'), met: validation.requirements.uppercase },
+    { key: 'number', label: t('register.passwordRequirements.number'), met: validation.requirements.number },
+    { key: 'symbol', label: t('register.passwordRequirements.symbol'), met: validation.requirements.symbol }
   ]
   
   return (
     <div className="mt-2 space-y-2">
-      <p className="text-xs font-medium text-gray-700">Requisitos de contraseña:</p>
+      <p className="text-xs font-medium text-gray-700">{t('register.passwordRequirements.title')}</p>
       <div className="grid grid-cols-1 gap-1">
         {requirementsList.map((req) => (
           <div key={req.key} className="flex items-center text-xs">
@@ -167,6 +73,118 @@ const PasswordRequirements = ({ password }) => {
 }
 
 export default function RegisterPage() {
+  const { t, i18n } = useTranslation()
+  
+  // Lista de países con códigos y banderas - VERSIÓN SIMPLIFICADA
+  const COUNTRIES = [
+    { code: '+34', country: 'ES', name: t('register.countries.ES'), flag: '🇪🇸' },
+    { code: '+33', country: 'FR', name: t('register.countries.FR'), flag: '🇫🇷' },
+    { code: '+39', country: 'IT', name: t('register.countries.IT'), flag: '🇮🇹' },
+    { code: '+49', country: 'DE', name: t('register.countries.DE'), flag: '🇩🇪' },
+    { code: '+44', country: 'GB', name: t('register.countries.GB'), flag: '🇬🇧' },
+    { code: '+1', country: 'US', name: t('register.countries.US'), flag: '🇺🇸' },
+    { code: '+54', country: 'AR', name: t('register.countries.AR'), flag: '🇦🇷' },
+    { code: '+52', country: 'MX', name: t('register.countries.MX'), flag: '🇲🇽' },
+    { code: '+57', country: 'CO', name: t('register.countries.CO'), flag: '🇨🇴' },
+  ]
+
+  // Función de validación de email
+  const validateEmail = (email) => {
+    const errors = []
+    
+    if (!email || email.trim() === '') {
+      errors.push(t('register.errors.emailRequired'))
+      return { isValid: false, errors }
+    }
+    
+    // Verificar caracteres prohibidos
+    const prohibitedFound = PROHIBITED_CHARS_EMAIL.filter(char => email.includes(char))
+    if (prohibitedFound.length > 0) {
+      errors.push(t('register.errors.prohibitedChars', { chars: prohibitedFound.join(', ') }))
+    }
+    
+    // Verificar espacios específicamente
+    if (email.includes(' ')) {
+      errors.push(t('register.errors.noSpaces'))
+    }
+    
+    // Verificar múltiples @
+    const atCount = (email.match(/@/g) || []).length
+    if (atCount === 0) {
+      errors.push(t('register.errors.needsAt'))
+    } else if (atCount > 1) {
+      errors.push(t('register.errors.oneAt'))
+    }
+    
+    // Verificar puntos consecutivos
+    if (email.includes('..')) {
+      errors.push(t('register.errors.noDoubleDots'))
+    }
+    
+    // Validación final con regex
+    if (errors.length === 0 && !EMAIL_REGEX.test(email)) {
+      errors.push(t('register.errors.invalidFormat'))
+    }
+    
+    return {
+      isValid: errors.length === 0,
+      errors
+    }
+  }
+
+  // Función de validación de teléfono
+  const validatePhone = (phone, countryCode) => {
+    const errors = []
+    
+    if (!phone || phone.trim() === '') {
+      errors.push(t('register.errors.phoneRequired'))
+      return { isValid: false, errors }
+    }
+    
+    // Verificar que solo contenga caracteres permitidos
+    if (!PHONE_REGEX.test(phone)) {
+      errors.push(t('register.errors.onlyNumbers'))
+    }
+    
+    // Contar solo los dígitos
+    const digitsOnly = phone.replace(/\D/g, '')
+    
+    if (digitsOnly.length < 9) {
+      errors.push(t('register.errors.minDigits'))
+    }
+    
+    if (digitsOnly.length > 9) {
+      errors.push(t('register.errors.maxDigits'))
+    }
+    
+    // Validación específica para España (+34)
+    if (countryCode === '+34' && digitsOnly.length >= 9) {
+      if (!digitsOnly.startsWith('6') && !digitsOnly.startsWith('7')) {
+        errors.push(t('register.errors.spanishStart'))
+      }
+    }
+    
+    return {
+      isValid: errors.length === 0,
+      errors,
+      digitsCount: digitsOnly.length
+    }
+  }
+
+  // Función de validación de contraseña
+  const validatePassword = (password) => {
+    const requirements = {
+      length: password.length >= 8,
+      lowercase: /[a-z]/.test(password),
+      uppercase: /[A-Z]/.test(password),
+      number: /\d/.test(password),
+      symbol: /[!@#$%^&*(),.?":{}|<>]/.test(password)
+    }
+    
+    const isValid = Object.values(requirements).every(req => req)
+    return { requirements, isValid }
+  }
+  
   const [formData, setFormData] = useState({
     nombre_completo: '',
     telefono: '',
@@ -174,7 +192,8 @@ export default function RegisterPage() {
     password: '',
     confirmPassword: '',
     pais_codigo: '+34',
-    email_notifications: true
+    email_notifications: true,
+    preferred_language: i18n.language || 'ca' // NUEVO
   })
   
   const [showPassword, setShowPassword] = useState(false)
@@ -218,6 +237,15 @@ export default function RegisterPage() {
     }
   }
 
+  // NUEVO: Manejador para cambio de idioma
+  const handleLanguageChange = (lng) => {
+    setFormData(prev => ({
+      ...prev,
+      preferred_language: lng
+    }))
+    i18n.changeLanguage(lng)
+  }
+
   const handleEmailKeyPress = (e) => {
     const char = e.key
     
@@ -226,7 +254,7 @@ export default function RegisterPage() {
       e.preventDefault()
       
       if (char === ' ') {
-        setEmailError('Los emails no pueden contener espacios')
+        setEmailError(t('register.errors.noSpaces'))
         setShowEmailErrors(true)
         
         // Limpiar mensaje después de 3 segundos
@@ -262,7 +290,7 @@ export default function RegisterPage() {
       
       // Mostrar mensaje específico para letras
       if (/[a-zA-Z]/.test(char)) {
-        setPhoneError('Solo se permiten números en el teléfono')
+        setPhoneError(t('register.errors.noLettersInPhone'))
         setShowPhoneErrors(true)
         
         // Limpiar mensaje después de 3 segundos
@@ -289,7 +317,7 @@ export default function RegisterPage() {
     const { nombre_completo, telefono, email, password, confirmPassword } = formData
 
     if (!nombre_completo?.trim()) {
-      toast.error('El nombre completo es requerido')
+      toast.error(t('register.errors.fullNameRequired'))
       return false
     }
 
@@ -308,18 +336,18 @@ export default function RegisterPage() {
     }
 
     if (!password) {
-      toast.error('La contraseña es requerida')
+      toast.error(t('register.errors.passwordRequired'))
       return false
     }
 
     const passwordValidation = validatePassword(password)
     if (!passwordValidation.isValid) {
-      toast.error('La contraseña no cumple todos los requisitos de seguridad')
+      toast.error(t('register.errors.passwordRequirements'))
       return false
     }
 
     if (password !== confirmPassword) {
-      toast.error('Las contraseñas no coinciden')
+      toast.error(t('register.errors.passwordMismatch'))
       return false
     }
 
@@ -331,15 +359,16 @@ export default function RegisterPage() {
     
     if (!validateForm()) return
 
-    const { nombre_completo, telefono, email, password, pais_codigo, email_notifications } = formData
+    const { nombre_completo, telefono, email, password, pais_codigo, email_notifications, preferred_language } = formData
     const selectedCountry = COUNTRIES.find(c => c.code === pais_codigo)
 
     const { error } = await signUp(email, password, {
       nombre_completo: nombre_completo.trim(),
       telefono: telefono.replace(/\s/g, ''),
-      pais_codigo: selectedCountry.country, // "ES" en lugar de "+34"
-      pais_nombre: selectedCountry.name,    // AÑADIR esto
+      pais_codigo: selectedCountry.country,
+      pais_nombre: selectedCountry.name,
       email_notifications,
+      preferred_language, // NUEVO: Enviar idioma preferido
       role: 'cliente'
     })
 
@@ -349,11 +378,12 @@ export default function RegisterPage() {
         nombre_completo: nombre_completo.trim(),
         telefono: telefono.replace(/\s/g, ''),
         pais_codigo,
+        pais_nombre: selectedCountry.name,
         email_notifications,
+        preferred_language,
         role: 'cliente'
       }
     })
-
   }
 
   return (
@@ -366,10 +396,10 @@ export default function RegisterPage() {
             </svg>
           </div>
           <h2 className="mt-6 text-3xl font-bold text-gray-900">
-            Crear Cuenta
+            {t('register.title')}
           </h2>
           <p className="mt-2 text-sm text-gray-600">
-            Únete a Fisioterapia Gossos
+            {t('register.subtitle')}
           </p>
         </div>
       </div>
@@ -380,7 +410,7 @@ export default function RegisterPage() {
             {/* Nombre Completo */}
             <div>
               <label htmlFor="nombre_completo" className="block text-sm font-medium text-gray-700">
-                Nombre Completo <span className="text-red-500">*</span>
+                {t('register.fullName')} <span className="text-red-500">{t('register.required')}</span>
               </label>
               <div className="mt-1">
                 <input
@@ -390,7 +420,7 @@ export default function RegisterPage() {
                   autoComplete="name"
                   required
                   className="input"
-                  placeholder="Juan Pérez García"
+                  placeholder={t('register.fullNamePlaceholder')}
                   value={formData.nombre_completo}
                   onChange={handleChange}
                 />
@@ -400,7 +430,7 @@ export default function RegisterPage() {
             {/* Teléfono */}
             <div>
               <label htmlFor="telefono" className="block text-sm font-medium text-gray-700">
-                Teléfono <span className="text-red-500">*</span>
+                {t('register.phone')} <span className="text-red-500">{t('register.required')}</span>
               </label>
               <div className="mt-1 flex rounded-lg shadow-sm">
                 <select
@@ -430,7 +460,7 @@ export default function RegisterPage() {
                            focus:outline-none disabled:bg-gray-50 disabled:text-gray-500 ${
                              phoneError && showPhoneErrors ? 'border-red-500 bg-red-50' : ''
                            }`}
-                  placeholder="600 123 456"
+                  placeholder={t('register.phonePlaceholder')}
                   value={formData.telefono}
                   onChange={handleChange}
                   onKeyPress={handlePhoneKeyPress}
@@ -452,12 +482,12 @@ export default function RegisterPage() {
                   {!phoneError ? (
                     <span className="text-green-600 flex items-center">
                       <span className="inline-block w-4 h-4 mr-1">✅</span>
-                      Teléfono válido ({formData.telefono.replace(/\D/g, '').length} dígitos)
+                      {t('register.validation.validPhoneDigits', { digits: formData.telefono.replace(/\D/g, '').length })}
                     </span>
                   ) : (
                     <span className="text-red-600 flex items-center">
                       <span className="inline-block w-4 h-4 mr-1">❌</span>
-                      Corrige los errores
+                      {t('register.validation.fixErrors')}
                     </span>
                   )}
                 </div>
@@ -467,7 +497,7 @@ export default function RegisterPage() {
             {/* Email */}
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                Email <span className="text-red-500">*</span>
+                {t('register.email')} <span className="text-red-500">{t('register.required')}</span>
               </label>
               <div className="mt-1">
                 <input
@@ -477,7 +507,7 @@ export default function RegisterPage() {
                   autoComplete="email"
                   required
                   className={`input ${emailError && showEmailErrors ? 'border-red-500 bg-red-50' : ''}`}
-                  placeholder="tu@email.com"
+                  placeholder={t('register.emailPlaceholder')}
                   value={formData.email}
                   onChange={handleChange}
                   onKeyPress={handleEmailKeyPress}
@@ -498,12 +528,12 @@ export default function RegisterPage() {
                     {!emailError ? (
                       <span className="text-green-600 flex items-center">
                         <span className="inline-block w-4 h-4 mr-1">✅</span>
-                        Email válido
+                        {t('register.validation.validEmail')}
                       </span>
                     ) : (
                       <span className="text-red-600 flex items-center">
                         <span className="inline-block w-4 h-4 mr-1">❌</span>
-                        Corrige los errores
+                        {t('register.validation.fixErrors')}
                       </span>
                     )}
                   </div>
@@ -511,10 +541,38 @@ export default function RegisterPage() {
               </div>
             </div>
 
+            {/* Selector de idioma */}
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label htmlFor="preferred_language" className="block text-sm font-medium text-gray-700">
+                  {t('register.preferredLanguage')} <span className="text-red-500">{t('register.required')}</span>
+                </label>
+                <select
+                  id="preferred_language"
+                  name="preferred_language"
+                  value={formData.preferred_language}
+                  onChange={(e) => handleLanguageChange(e.target.value)}
+                  className="pl-3 pr-10 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent appearance-none bg-no-repeat bg-right"
+                  style={{
+                    backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
+                    backgroundPosition: 'right 0.5rem center',
+                    backgroundSize: '1.5em 1.5em',
+                    minWidth: '140px'
+                  }}
+                >
+                  <option value="es">{t('register.languages.spanish')}</option>
+                  <option value="ca">{t('register.languages.catalan')}</option>
+                </select>
+              </div>
+              <p className="text-xs text-gray-500">
+                {t('register.languageHint')}
+              </p>
+            </div>
+
             {/* Contraseña */}
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                Contraseña <span className="text-red-500">*</span>
+                {t('register.password')} <span className="text-red-500">{t('register.required')}</span>
               </label>
               <div className="mt-1 relative">
                 <input
@@ -524,7 +582,7 @@ export default function RegisterPage() {
                   autoComplete="new-password"
                   required
                   className="input pr-10"
-                  placeholder="••••••••"
+                  placeholder={t('register.passwordPlaceholder')}
                   value={formData.password}
                   onChange={handleChange}
                 />
@@ -551,7 +609,7 @@ export default function RegisterPage() {
             {/* Confirmar Contraseña */}
             <div>
               <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
-                Confirmar Contraseña <span className="text-red-500">*</span>
+                {t('register.confirmPassword')} <span className="text-red-500">{t('register.required')}</span>
               </label>
               <div className="mt-1 relative">
                 <input
@@ -561,7 +619,7 @@ export default function RegisterPage() {
                   autoComplete="new-password"
                   required
                   className="input pr-10"
-                  placeholder="••••••••"
+                  placeholder={t('register.passwordPlaceholder')}
                   value={formData.confirmPassword}
                   onChange={handleChange}
                 />
@@ -599,13 +657,13 @@ export default function RegisterPage() {
                 className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
               />
               <label htmlFor="accept-terms" className="ml-2 block text-sm text-gray-900">
-                Acepto los{' '}
+                {t('register.acceptTerms')}{' '}
                 <button 
                   type="button"
                   onClick={() => setShowTermsModal(true)}
                   className="text-primary-600 hover:text-primary-500 underline"
                 >
-                  términos y condiciones
+                  {t('register.termsAndConditions')}
                 </button>
               </label>
             </div>
@@ -620,14 +678,14 @@ export default function RegisterPage() {
                 {loading ? (
                   <>
                     <div className="loading-spinner mr-2"></div>
-                    Creando cuenta...
+                    {t('register.creating')}
                   </>
                 ) : (
                   <>
                     <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
                     </svg>
-                    Crear Cuenta
+                    {t('register.createButton')}
                   </>
                 )}
               </button>
@@ -640,7 +698,7 @@ export default function RegisterPage() {
                 <div className="w-full border-t border-gray-300" />
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">¿Ya tienes cuenta?</span>
+                <span className="px-2 bg-white text-gray-500">{t('register.alreadyHaveAccount')}</span>
               </div>
             </div>
 
@@ -649,7 +707,7 @@ export default function RegisterPage() {
                 to="/login" 
                 className="font-medium text-primary-600 hover:text-primary-500 transition-colors duration-200"
               >
-                Inicia sesión aquí
+                {t('register.loginHere')}
               </Link>
             </div>
           </div>

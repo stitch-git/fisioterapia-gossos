@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '../../contexts/AuthContext'
 import ConfirmModal from '../common/ConfirmModal'
 
 export default function AdminHeader({ setSidebarOpen, sidebarOpen }) {
+  const { t } = useTranslation()
   const { user, profile, signOut } = useAuth()
   const [showProfileDropdown, setShowProfileDropdown] = useState(false)
   const [showLogoutModal, setShowLogoutModal] = useState(false)
@@ -50,7 +52,7 @@ export default function AdminHeader({ setSidebarOpen, sidebarOpen }) {
                 id="admin-hamburger-button"
                 onClick={() => setSidebarOpen(!sidebarOpen)}
                 className="lg:hidden p-2 rounded-md text-white hover:bg-white hover:bg-opacity-20 transition-colors duration-200 mr-3"
-                aria-label="Abrir menú"
+                aria-label={t('admin.header.openMenu')}
               >
                 <svg 
                   className={`w-6 h-6 transition-transform duration-300 ${sidebarOpen ? 'rotate-90' : ''}`} 
@@ -71,22 +73,22 @@ export default function AdminHeader({ setSidebarOpen, sidebarOpen }) {
                 <div className="h-8 w-8 lg:h-10 lg:w-10 bg-white rounded-full flex items-center justify-center mr-2 lg:mr-3 overflow-hidden">
                   <img 
                     src="https://uymcuavjzygvsfnqdciy.supabase.co/storage/v1/object/public/app-assets/logos/dog-logo.jpg"
-                    alt="Fisioterapia Gossos Logo"
+                    alt={t('admin.header.logoAlt')}
                     className="h-5 w-5 lg:h-7 lg:w-7 object-contain"
                   />
                 </div>
                 <div className="hidden sm:block">
                   <h1 className="text-lg lg:text-xl font-bold text-white">
-                    Fisioterapia Gossos
+                    {t('admin.header.title')}
                   </h1>
                   <p className="text-xs lg:text-sm text-blue-100">
-                    Sistema de Reservas
+                    {t('admin.header.subtitle')}
                   </p>
                 </div>
                 {/* Logo solo en móviles muy pequeños */}
                 <div className="sm:hidden">
                   <h1 className="text-base font-bold text-white">
-                    Fisioterapia Gossos
+                    {t('admin.header.title')}
                   </h1>
                 </div>
               </div>
@@ -97,8 +99,8 @@ export default function AdminHeader({ setSidebarOpen, sidebarOpen }) {
               
               {/* Info usuario - oculta en móviles pequeños */}
               <div className="text-right hidden md:block">
-                <p className="text-sm font-medium">Administrador</p>
-                <p className="text-xs opacity-80">{profile?.nombre_completo || 'admin'}</p>
+                <p className="text-sm font-medium">{t('admin.header.administrator')}</p>
+                <p className="text-xs opacity-80">{profile?.nombre_completo || t('admin.header.admin')}</p>
               </div>
               
               {/* Dropdown perfil */}
@@ -112,7 +114,7 @@ export default function AdminHeader({ setSidebarOpen, sidebarOpen }) {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                   </svg>
                   
-                  <span className="hidden sm:inline">admin</span>
+                  <span className="hidden sm:inline">{t('admin.header.admin')}</span>
                   
                   <svg className="w-4 h-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -122,7 +124,7 @@ export default function AdminHeader({ setSidebarOpen, sidebarOpen }) {
                 {showProfileDropdown && (
                   <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50">
                     <div className="px-4 py-2 text-sm text-gray-700 border-b">
-                      <p className="font-medium truncate">{profile?.nombre_completo || 'Administrador'}</p>
+                      <p className="font-medium truncate">{profile?.nombre_completo || t('admin.header.administrator')}</p>
                       <p className="text-xs text-gray-500 truncate">{user?.email}</p>
                     </div>
                     
@@ -133,7 +135,7 @@ export default function AdminHeader({ setSidebarOpen, sidebarOpen }) {
                       <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                       </svg>
-                      Cerrar Sesión
+                      {t('admin.header.logout')}
                     </button>
                   </div>
                 )}
@@ -148,10 +150,10 @@ export default function AdminHeader({ setSidebarOpen, sidebarOpen }) {
         isOpen={showLogoutModal}
         onClose={() => setShowLogoutModal(false)}
         onConfirm={handleSignOut}
-        title="Cerrar Sesión"
-        message="¿Estás seguro que quieres cerrar sesión? Tendrás que volver a iniciar sesión para acceder a tu cuenta."
-        confirmText="Cerrar Sesión"
-        cancelText="Cancelar"
+        title={t('admin.header.logoutConfirmTitle')}
+        message={t('admin.header.logoutConfirmMessage')}
+        confirmText={t('admin.header.logout')}
+        cancelText={t('admin.header.cancel')}
         confirmButtonClass="bg-red-600 hover:bg-red-700"
         icon={
           <div className="flex items-center justify-center w-10 h-10 mx-auto bg-red-100 rounded-full">

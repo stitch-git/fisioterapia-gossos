@@ -3,9 +3,12 @@ import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../contexts/AuthContext'
 import toast from 'react-hot-toast'
 import ConfirmModal from '../common/ConfirmModal'
+import { useTranslation } from 'react-i18next'
+import logError from '../../utils/errorLogger' // 🚀 NUEVO
 
 export default function MyDogs() {
   const { user } = useAuth()
+  const { t } = useTranslation()
   const [dogs, setDogs] = useState([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
@@ -19,12 +22,10 @@ export default function MyDogs() {
     observaciones: ''
   })
 
-  // Estados para imagen
   const [selectedImage, setSelectedImage] = useState(null)
   const [imagePreview, setImagePreview] = useState(null)
   const [uploadingImage, setUploadingImage] = useState(false)
 
-  // Estados para el modal de confirmación de eliminación
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [dogToDelete, setDogToDelete] = useState(null)
 
@@ -46,7 +47,21 @@ export default function MyDogs() {
       setDogs(data)
     } catch (error) {
       console.error('Error loading dogs:', error)
-      toast.error('Error cargando perros')
+      
+      // 🚀 LOGGING
+      await logError({
+        errorType: 'DOG_LOAD_ERROR',
+        errorMessage: error.message || 'Error al cargar la lista de perros',
+        errorCode: error.code || 'LOAD_ERROR',
+        component: 'MyDogs - loadDogs',
+        stackTrace: error.stack,
+        additionalData: {
+          userId: user?.id,
+          userEmail: user?.email
+        }
+      })
+      
+      toast.error(t('myDogs.toasts.loadError'))
     } finally {
       setLoading(false)
     }
@@ -78,42 +93,99 @@ export default function MyDogs() {
     })
     setEditingDog(dog)
     setShowForm(true)
-    // Mostrar imagen actual si existe
     if (dog.imagen_url) {
       setImagePreview(dog.imagen_url)
     }
   }
 
-  // Función para manejar la selección de imagen
-  const handleImageSelect = (e) => {
+  const handleImageSelect = async (e) => {
     const file = e.target.files[0]
     if (!file) return
 
-    // Validar tipo de archivo
+    // 🚀 Validar tipo de archivo
     if (!file.type.startsWith('image/')) {
-      toast.error('Por favor selecciona una imagen válida')
+      const errorMsg = t('myDogs.toasts.invalidImage')
+      toast.error(errorMsg)
+      
+      // 🚀 LOGGING
+      await logError({
+        errorType: 'IMAGE_VALIDATION_ERROR',
+        errorMessage: 'Archivo no es una imagen válida',
+        errorCode: 'INVALID_FILE_TYPE',
+        component: 'MyDogs - handleImageSelect',
+        additionalData: {
+          fileName: file.name,
+          fileType: file.type,
+          fileSize: file.size,
+          userId: user?.id
+        }
+      })
+      
       return
     }
 
-    // Validar tamaño (máximo 5MB)
+    // 🚀 Validar tamaño (5MB)
     if (file.size > 5 * 1024 * 1024) {
-      toast.error('La imagen debe ser menor a 5MB')
+      const fileSizeMB = (file.size / 1024 / 1024).toFixed(2)
+      const errorMsg = t('myDogs.toasts.imageTooLarge')
+      toast.error(errorMsg)
+      
+      // 🚀 LOGGING
+      await logError({
+        errorType: 'IMAGE_VALIDATION_ERROR',
+        errorMessage: `Imagen demasiado grande: ${fileSizeMB}MB (máximo 5MB)`,
+        errorCode: 'IMAGE_TOO_LARGE',
+        component: 'MyDogs - handleImageSelect',
+        additionalData: {
+          fileName: file.name,
+          fileType: file.type,
+          fileSizeMB: fileSizeMB,
+          maxSizeMB: 5,
+          userId: user?.id
+        }
+      })
+      
       return
     }
 
+    // ✅ Imagen válida, continuar
     setSelectedImage(file)
     
-    // Crear preview
     const reader = new FileReader()
     reader.onload = (e) => {
       setImagePreview(e.target.result)
     }
+    reader.onerror = async (error) => {
+      console.error('Error leyendo archivo:', error)
+      toast.error('Error al cargar la vista previa de la imagen')
+      
+      // 🚀 LOGGING
+      await logError({
+        errorType: 'IMAGE_READ_ERROR',
+        errorMessage: 'Error al leer el archivo de imagen con FileReader',
+        errorCode: 'FILE_READER_ERROR',
+        component: 'MyDogs - handleImageSelect',
+        stackTrace: error?.toString(),
+        additionalData: {
+          fileName: file.name,
+          fileType: file.type,
+          fileSize: file.size,
+          userId: user?.id
+        }
+      })
+    }
     reader.readAsDataURL(file)
   }
 
-  // Función para subir imagen a Supabase Storage
   const uploadImage = async (file, dogId) => {
     try {
+      console.log('📸 Iniciando subida de imagen:', {
+        fileName: file.name,
+        fileSize: `${(file.size / 1024 / 1024).toFixed(2)}MB`,
+        fileType: file.type,
+        dogId: dogId
+      })
+
       const fileExt = file.name.split('.').pop()
       const fileName = `${user.id}/${dogId}/${Date.now()}.${fileExt}`
       const filePath = `dog-images/${fileName}`
@@ -122,16 +194,41 @@ export default function MyDogs() {
         .from('dog-images')
         .upload(filePath, file)
 
-      if (uploadError) throw uploadError
+      if (uploadError) {
+        console.error('❌ Error en storage upload:', uploadError)
+        throw uploadError
+      }
 
-      // Obtener URL pública
       const { data: { publicUrl } } = supabase.storage
         .from('dog-images')
         .getPublicUrl(filePath)
 
+      console.log('✅ Imagen subida correctamente:', publicUrl)
       return publicUrl
+      
     } catch (error) {
-      console.error('Error uploading image:', error)
+      console.error('❌ Error completo en uploadImage:', error)
+      
+      // 🚀 LOGGING
+      await logError({
+        errorType: 'IMAGE_UPLOAD_ERROR',
+        errorMessage: error.message || 'Error subiendo imagen al storage',
+        errorCode: error.code || 'STORAGE_ERROR',
+        component: 'MyDogs - uploadImage',
+        stackTrace: error.stack,
+        additionalData: {
+          fileName: file.name,
+          fileType: file.type,
+          fileSizeMB: (file.size / 1024 / 1024).toFixed(2),
+          dogId: dogId,
+          userId: user.id,
+          storageDetails: error.statusCode ? {
+            statusCode: error.statusCode,
+            statusText: error.statusText
+          } : null
+        }
+      })
+      
       throw error
     }
   }
@@ -139,8 +236,9 @@ export default function MyDogs() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     
+    // ✅ Validación básica
     if (!formData.nombre.trim()) {
-      toast.error('El nombre es obligatorio')
+      toast.error(t('myDogs.toasts.nameRequired'))
       return
     }
 
@@ -156,16 +254,16 @@ export default function MyDogs() {
         observaciones: formData.observaciones.trim() || null
       }
 
+      console.log('📝 Datos del perro a guardar:', dogData)
+
       let dogId
       let imageUrl = null
 
       if (editingDog) {
-        // Update existing dog
+        // ========== ACTUALIZAR PERRO EXISTENTE ==========
         dogId = editingDog.id
 
-        // Subir nueva imagen si se seleccionó una
         if (selectedImage) {
-          // Eliminar imagen anterior si existe
           if (editingDog.imagen_url) {
             const oldPath = editingDog.imagen_url.split('/').slice(-3).join('/')
             await supabase.storage
@@ -183,10 +281,22 @@ export default function MyDogs() {
           .eq('id', dogId)
           .eq('owner_id', user.id)
 
-        if (error) throw error
-        toast.success('Perro actualizado correctamente')
+        if (error) {
+          console.error('❌ Error en UPDATE:', error)
+          console.error('Código de error:', error.code)
+          console.error('Mensaje:', error.message)
+          console.error('Detalles:', error.details)
+          console.error('Hint:', error.hint)
+          throw error
+        }
+        
+        console.log('✅ Perro actualizado correctamente')
+        toast.success(t('myDogs.toasts.dogUpdated'))
+        
       } else {
-        // Create new dog first to get ID
+        // ========== CREAR NUEVO PERRO ==========
+        console.log('🐕 Insertando nuevo perro...')
+        
         const { data: newDog, error: insertError } = await supabase
           .from('dogs')
           .insert({
@@ -196,53 +306,143 @@ export default function MyDogs() {
           .select()
           .single()
 
-        if (insertError) throw insertError
+        if (insertError) {
+          console.error('❌ Error en INSERT:', insertError)
+          console.error('Código de error:', insertError.code)
+          console.error('Mensaje:', insertError.message)
+          console.error('Detalles:', insertError.details)
+          console.error('Hint:', insertError.hint)
+          throw insertError
+        }
         
+        console.log('✅ Perro insertado correctamente:', newDog)
         dogId = newDog.id
 
-        // Subir imagen si se seleccionó una
         if (selectedImage) {
+          console.log('📸 Subiendo imagen...')
           imageUrl = await uploadImage(selectedImage, dogId)
           
-          // Actualizar el registro con la URL de la imagen
           const { error: updateError } = await supabase
             .from('dogs')
             .update({ imagen_url: imageUrl })
             .eq('id', dogId)
 
-          if (updateError) throw updateError
+          if (updateError) {
+            console.error('❌ Error actualizando imagen:', updateError)
+            throw updateError
+          }
+          console.log('✅ Imagen actualizada correctamente')
         }
 
-        toast.success('Perro registrado correctamente')
+        toast.success(t('myDogs.toasts.dogCreated'))
       }
 
       resetForm()
       loadDogs()
+      
     } catch (error) {
-      console.error('Error saving dog:', error)
-      toast.error('Error guardando perro')
+      // 🚀 LOGGING DETALLADO DEL ERROR
+      console.error('❌ Error completo guardando perro:', error)
+      console.error('Código:', error.code)
+      console.error('Mensaje:', error.message)
+      console.error('Detalles:', error.details)
+      console.error('Stack:', error.stack)
+      
+      // 📊 Guardar en base de datos
+      await logError({
+        errorType: 'DOG_SAVE_ERROR',
+        errorMessage: error.message || 'Error al guardar el perro',
+        errorCode: error.code,
+        component: 'MyDogs - handleSubmit',
+        stackTrace: error.stack,
+        additionalData: {
+          dogData: {
+            nombre: formData.nombre,
+            raza: formData.raza,
+            edad: formData.edad,
+            peso: formData.peso,
+            hasPatologias: !!formData.patologias,
+            hasObservaciones: !!formData.observaciones
+          },
+          editingDog: editingDog?.id || null,
+          hasImage: !!selectedImage,
+          userId: user?.id,
+          errorDetails: error.details,
+          errorHint: error.hint
+        }
+      })
+
+      // 💬 MENSAJE ESPECÍFICO AL USUARIO
+      let userMessage = t('myDogs.toasts.saveError')
+      
+      if (error.code === '23505') {
+        userMessage = 'Ya existe un perro con ese nombre'
+      } else if (error.code === '23502') {
+        userMessage = 'Falta completar información obligatoria. Verifica todos los campos.'
+      } else if (error.code === '22001') {
+        userMessage = 'Uno de los campos es demasiado largo'
+      } else if (error.code === '23503') {
+        userMessage = 'Error de referencia en la base de datos. Contacta con soporte.'
+      } else if (error.code === 'PGRST116') {
+        userMessage = 'No se pudo crear el registro. Verifica los datos.'
+      } else if (error.message?.includes('permission')) {
+        userMessage = 'No tienes permisos para realizar esta acción'
+      } else if (error.message?.includes('storage')) {
+        userMessage = 'Error subiendo la imagen. Intenta con otra imagen.'
+      } else if (error.message?.includes('violates')) {
+        userMessage = 'Los datos no cumplen con las restricciones. Verifica la información.'
+      } else if (error.message) {
+        userMessage = `Error: ${error.message}`
+      }
+      
+      toast.error(userMessage, { 
+        duration: 6000,
+        style: {
+          maxWidth: '500px'
+        }
+      })
+      
     } finally {
       setUploadingImage(false)
     }
   }
 
-  // Función para abrir el modal de confirmación
   const openDeleteModal = (dog) => {
     setDogToDelete(dog)
     setShowDeleteModal(true)
   }
 
-  // Función para eliminar perro
   const handleDelete = async () => {
     if (!dogToDelete) return
 
     try {
-      // Eliminar imagen si existe
+      console.log('🗑️ Eliminando perro:', dogToDelete.nombre)
+      
       if (dogToDelete.imagen_url) {
+        console.log('📸 Eliminando imagen del storage...')
         const imagePath = dogToDelete.imagen_url.split('/').slice(-3).join('/')
-        await supabase.storage
+        const { error: storageError } = await supabase.storage
           .from('dog-images')
           .remove([imagePath])
+        
+        if (storageError) {
+          console.error('⚠️ Error eliminando imagen (continuando):', storageError)
+          
+          // 🚀 LOGGING
+          await logError({
+            errorType: 'IMAGE_DELETE_ERROR',
+            errorMessage: storageError.message || 'Error eliminando imagen del storage',
+            errorCode: storageError.code || 'STORAGE_DELETE_ERROR',
+            component: 'MyDogs - handleDelete',
+            stackTrace: storageError.stack,
+            additionalData: {
+              dogId: dogToDelete.id,
+              dogName: dogToDelete.nombre,
+              imagePath: imagePath,
+              userId: user?.id
+            }
+          })
+        }
       }
 
       const { error } = await supabase
@@ -251,13 +451,34 @@ export default function MyDogs() {
         .eq('id', dogToDelete.id)
         .eq('owner_id', user.id)
 
-      if (error) throw error
+      if (error) {
+        console.error('❌ Error marcando perro como inactivo:', error)
+        throw error
+      }
       
-      toast.success(`${dogToDelete.nombre} eliminado correctamente`)
+      console.log('✅ Perro eliminado correctamente')
+      toast.success(t('myDogs.toasts.dogDeleted', { name: dogToDelete.nombre }))
       loadDogs()
+      
     } catch (error) {
-      console.error('Error deleting dog:', error)
-      toast.error('Error eliminando perro')
+      console.error('❌ Error eliminando perro:', error)
+      
+      // 🚀 LOGGING
+      await logError({
+        errorType: 'DOG_DELETE_ERROR',
+        errorMessage: error.message || 'Error al eliminar el perro',
+        errorCode: error.code || 'DELETE_ERROR',
+        component: 'MyDogs - handleDelete',
+        stackTrace: error.stack,
+        additionalData: {
+          dogId: dogToDelete?.id,
+          dogName: dogToDelete?.nombre,
+          hasImage: !!dogToDelete?.imagen_url,
+          userId: user?.id
+        }
+      })
+      
+      toast.error(t('myDogs.toasts.deleteError'))
     }
   }
 
@@ -273,7 +494,7 @@ export default function MyDogs() {
     return (
       <div className="flex justify-center items-center py-12">
         <div className="loading-spinner mr-3"></div>
-        <span className="text-gray-600">Cargando tus perros...</span>
+        <span className="text-gray-600">{t('myDogs.loading')}</span>
       </div>
     )
   }
@@ -281,11 +502,10 @@ export default function MyDogs() {
   return (
     <>
       <div className="space-y-6">
-        {/* Header responsive */}
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center space-y-3 sm:space-y-0">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">Mis Perros 🐶</h2>
-            <p className="text-gray-600">Gestiona la información de tus perros</p>
+            <h2 className="text-2xl font-bold text-gray-900">{t('myDogs.title')}</h2>
+            <p className="text-gray-600">{t('myDogs.subtitle')}</p>
           </div>
           <button
             onClick={() => setShowForm(true)}
@@ -294,30 +514,26 @@ export default function MyDogs() {
             <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
             </svg>
-            <span className="sm:hidden">Añadir Nuevo Perro</span>
-            <span className="hidden sm:inline">Añadir Perro</span>
+            <span className="sm:hidden">{t('myDogs.addButtonMobile')}</span>
+            <span className="hidden sm:inline">{t('myDogs.addButton')}</span>
           </button>
         </div>
 
-        {/* Add/Edit Form - OPTIMIZADO RESPONSIVE */}
         {showForm && (
           <div className="card">
             <div className="card-header">
               <h3 className="text-lg font-semibold">
-                {editingDog ? `Editar ${editingDog.nombre}` : 'Añadir Nuevo Perro'}
+                {editingDog ? t('myDogs.form.titleEdit', { name: editingDog.nombre }) : t('myDogs.form.titleAdd')}
               </h3>
             </div>
             <div className="card-body p-4 sm:p-6">
               <form onSubmit={handleSubmit} className="space-y-6">
-                {/* Sección de imagen - OPTIMIZADA RESPONSIVE */}
                 <div className="border-b border-gray-200 pb-6">
                   <label className="block text-sm font-medium text-gray-700 mb-3">
-                    Foto de Perfil
+                    {t('myDogs.form.profilePhoto')}
                   </label>
                   
-                  {/* Layout responsive para imagen */}
                   <div className="flex flex-col sm:flex-row sm:items-center space-y-4 sm:space-y-0 sm:space-x-6">
-                    {/* Preview de imagen - centrado en móvil */}
                     <div className="mx-auto sm:mx-0 h-24 w-24 sm:h-20 sm:w-20 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center border-2 border-gray-200">
                       {imagePreview ? (
                         <img 
@@ -332,7 +548,6 @@ export default function MyDogs() {
                       )}
                     </div>
                     
-                    {/* Controles de imagen */}
                     <div className="flex-1 space-y-3">
                       <input
                         type="file"
@@ -341,10 +556,9 @@ export default function MyDogs() {
                         className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
                       />
                       <p className="text-xs text-gray-500">
-                        PNG, JPG, GIF hasta 5MB
+                        {t('myDogs.form.fileTypes')}
                       </p>
                       
-                      {/* Botón quitar imagen - full width en móvil */}
                       {imagePreview && (
                         <button
                           type="button"
@@ -354,18 +568,17 @@ export default function MyDogs() {
                           }}
                           className="w-full sm:w-auto text-center sm:text-left text-red-600 hover:text-red-800 text-sm font-medium"
                         >
-                          Quitar imagen
+                          {t('myDogs.form.removeImage')}
                         </button>
                       )}
                     </div>
                   </div>
                 </div>
 
-                {/* Campos básicos - GRID RESPONSIVE OPTIMIZADO */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Nombre *
+                      {t('myDogs.form.name')} {t('myDogs.form.required')}
                     </label>
                     <input
                       type="text"
@@ -373,13 +586,13 @@ export default function MyDogs() {
                       value={formData.nombre}
                       onChange={handleChange}
                       className="input"
-                      placeholder="Nombre del perro"
+                      placeholder={t('myDogs.form.namePlaceholder')}
                       required
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Raza *
+                      {t('myDogs.form.breed')} {t('myDogs.form.required')}
                     </label>
                     <input
                       type="text"
@@ -387,13 +600,13 @@ export default function MyDogs() {
                       value={formData.raza}
                       onChange={handleChange}
                       className="input"
-                      placeholder="Ej: Golden Retriever"
+                      placeholder={t('myDogs.form.breedPlaceholder')}
                       required
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Edad (años) *
+                      {t('myDogs.form.age')} {t('myDogs.form.required')}
                     </label>
                     <input
                       type="number"
@@ -403,13 +616,13 @@ export default function MyDogs() {
                       className="input"
                       min="0"
                       max="25"
-                      placeholder="0"
+                      placeholder={t('myDogs.form.agePlaceholder')}
                       required
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Peso (kg) *
+                      {t('myDogs.form.weight')} {t('myDogs.form.required')}
                     </label>
                     <input
                       type="number"
@@ -419,17 +632,16 @@ export default function MyDogs() {
                       className="input"
                       min="0"
                       step="0.1"
-                      placeholder="0.0"
+                      placeholder={t('myDogs.form.weightPlaceholder')}
                       required
                     />
                   </div>
                 </div>
                 
-                {/* Textareas - OPTIMIZADAS */}
                 <div className="space-y-6">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Patologías *
+                      {t('myDogs.form.pathologies')} {t('myDogs.form.required')}
                     </label>
                     <textarea
                       name="patologias"
@@ -437,17 +649,17 @@ export default function MyDogs() {
                       onChange={handleChange}
                       rows={3}
                       className="input resize-none"
-                      placeholder="Displasia de cadera, artritis, problemas cardíacos, etc."
+                      placeholder={t('myDogs.form.pathologiesPlaceholder')}
                       required
                     />
                     <p className="text-xs text-gray-500 mt-2">
-                      Especifica enfermedades o condiciones médicas diagnosticadas, en caso contrario, indica "No tiene"
+                      {t('myDogs.form.pathologiesHint')}
                     </p>
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Observaciones Generales
+                      {t('myDogs.form.observations')}
                     </label>
                     <textarea
                       name="observaciones"
@@ -455,22 +667,21 @@ export default function MyDogs() {
                       onChange={handleChange}
                       rows={3}
                       className="input resize-none"
-                      placeholder="Comportamiento, alergias, medicamentos, cuidados especiales, etc."
+                      placeholder={t('myDogs.form.observationsPlaceholder')}
                     />
                     <p className="text-xs text-gray-500 mt-2">
-                      Información adicional relevante para el tratamiento
+                      {t('myDogs.form.observationsHint')}
                     </p>
                   </div>
                 </div>
 
-                {/* Botones - RESPONSIVE */}
                 <div className="flex flex-col sm:flex-row justify-end space-y-3 sm:space-y-0 sm:space-x-3 pt-4">
                   <button
                     type="button"
                     onClick={resetForm}
                     className="w-full sm:w-auto btn btn-secondary order-2 sm:order-1"
                   >
-                    Cancelar
+                    {t('myDogs.form.cancel')}
                   </button>
                   <button
                     type="submit"
@@ -480,10 +691,10 @@ export default function MyDogs() {
                     {uploadingImage ? (
                       <>
                         <div className="loading-spinner mr-2"></div>
-                        {selectedImage ? 'Subiendo...' : 'Guardando...'}
+                        {selectedImage ? t('myDogs.form.uploading') : t('myDogs.form.saving')}
                       </>
                     ) : (
-                      `${editingDog ? 'Actualizar' : 'Guardar'} Perro`
+                      editingDog ? t('myDogs.form.update') : t('myDogs.form.save')
                     )}
                   </button>
                 </div>
@@ -492,7 +703,6 @@ export default function MyDogs() {
           </div>
         )}
 
-        {/* Dogs List - OPTIMIZADA */}
         {dogs.length === 0 ? (
           <div className="text-center py-12 px-4">
             <div className="mx-auto h-12 w-12 text-gray-400">
@@ -500,15 +710,15 @@ export default function MyDogs() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
               </svg>
             </div>
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No hay perros registrados</h3>
+            <h3 className="mt-2 text-sm font-medium text-gray-900">{t('myDogs.emptyState.title')}</h3>
             <p className="mt-1 text-sm text-gray-500">
-              Añade información sobre tus mascotas para poder hacer reservas.
+              {t('myDogs.emptyState.message')}
             </p>
             <button
               onClick={() => setShowForm(true)}
               className="mt-4 btn btn-primary"
             >
-              Añadir Primer Perro
+              {t('myDogs.emptyState.button')}
             </button>
           </div>
         ) : (
@@ -516,11 +726,8 @@ export default function MyDogs() {
             {dogs.map((dog) => (
               <div key={dog.id} className="card hover:shadow-lg transition-shadow duration-200">
                 <div className="card-body p-4 sm:p-6">
-                  {/* Layout responsive para cada perro */}
                   <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start space-y-4 sm:space-y-0">
-                    {/* Información principal */}
                     <div className="flex items-start space-x-4">
-                      {/* Imagen del perro */}
                       <div className="h-16 w-16 sm:h-16 sm:w-16 rounded-full overflow-hidden bg-primary-100 flex items-center justify-center flex-shrink-0">
                         {dog.imagen_url ? (
                           <img 
@@ -535,48 +742,44 @@ export default function MyDogs() {
                         )}
                       </div>
                       
-                      {/* Información del perro */}
                       <div className="flex-1 min-w-0">
                         <h3 className="text-lg font-semibold text-gray-900 mb-2 truncate">
                           {dog.nombre}
                         </h3>
                         
-                        {/* Grid responsive para datos básicos */}
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4 text-sm text-gray-600 mb-4">
                           {dog.raza && (
                             <div className="flex flex-col sm:flex-row sm:items-center">
-                              <span className="font-medium text-gray-700 mr-1">Raza:</span>
+                              <span className="font-medium text-gray-700 mr-1">{t('myDogs.dogCard.breed')}</span>
                               <span className="truncate">{dog.raza}</span>
                             </div>
                           )}
                           {dog.edad && (
                             <div className="flex flex-col sm:flex-row sm:items-center">
-                              <span className="font-medium text-gray-700 mr-1">Edad:</span>
-                              <span>{dog.edad} años</span>
+                              <span className="font-medium text-gray-700 mr-1">{t('myDogs.dogCard.age')}</span>
+                              <span>{dog.edad} {t('myDogs.dogCard.years')}</span>
                             </div>
                           )}
                           {dog.peso && (
                             <div className="flex flex-col sm:flex-row sm:items-center">
-                              <span className="font-medium text-gray-700 mr-1">Peso:</span>
-                              <span>{dog.peso} kg</span>
+                              <span className="font-medium text-gray-700 mr-1">{t('myDogs.dogCard.weight')}</span>
+                              <span>{dog.peso} {t('myDogs.dogCard.kg')}</span>
                             </div>
                           )}
                         </div>
                         
-                        {/* Patologías - responsive */}
                         {dog.patologias && (
                           <div className="mb-4">
-                            <p className="text-sm font-medium text-gray-700 mb-2">Patologías:</p>
+                            <p className="text-sm font-medium text-gray-700 mb-2">{t('myDogs.dogCard.pathologies')}</p>
                             <div className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">
                               {dog.patologias}
                             </div>
                           </div>
                         )}
                         
-                        {/* Observaciones - responsive */}
                         {dog.observaciones && (
                           <div className="mb-2">
-                            <p className="text-sm font-medium text-gray-700 mb-2">Observaciones generales:</p>
+                            <p className="text-sm font-medium text-gray-700 mb-2">{t('myDogs.dogCard.observations')}</p>
                             <div className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">
                               {dog.observaciones}
                             </div>
@@ -585,27 +788,26 @@ export default function MyDogs() {
                       </div>
                     </div>
                     
-                    {/* Botones de acción - RESPONSIVE */}
                     <div className="flex justify-center sm:justify-end space-x-2 sm:space-x-2 pt-2 sm:pt-0">
                       <button
                         onClick={() => handleEdit(dog)}
                         className="flex-1 sm:flex-none btn btn-secondary btn-sm px-3 sm:px-3"
-                        title="Editar perro"
+                        title={t('myDogs.dogCard.editTitle')}
                       >
                         <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                         </svg>
-                        <span className="ml-1 sm:hidden">Editar</span>
+                        <span className="ml-1 sm:hidden">{t('myDogs.dogCard.edit')}</span>
                       </button>
                       <button
                         onClick={() => openDeleteModal(dog)}
                         className="flex-1 sm:flex-none btn btn-danger btn-sm px-3 sm:px-3"
-                        title="Eliminar perro"
+                        title={t('myDogs.dogCard.deleteTitle')}
                       >
                         <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                         </svg>
-                        <span className="ml-1 sm:hidden">Eliminar</span>
+                        <span className="ml-1 sm:hidden">{t('myDogs.dogCard.delete')}</span>
                       </button>
                     </div>
                   </div>
@@ -616,7 +818,6 @@ export default function MyDogs() {
         )}
       </div>
 
-      {/* Modal de confirmación de eliminación */}
       <ConfirmModal
         isOpen={showDeleteModal}
         onClose={() => {
@@ -624,10 +825,10 @@ export default function MyDogs() {
           setDogToDelete(null)
         }}
         onConfirm={handleDelete}
-        title="Eliminar Perro"
-        message={`¿Estás seguro que quieres eliminar a ${dogToDelete?.nombre}? Esta acción no se puede deshacer y se eliminarán todos los datos asociados.`}
-        confirmText="Eliminar"
-        cancelText="Cancelar"
+        title={t('myDogs.deleteModal.title')}
+        message={t('myDogs.deleteModal.message', { name: dogToDelete?.nombre })}
+        confirmText={t('myDogs.deleteModal.confirm')}
+        cancelText={t('myDogs.deleteModal.cancel')}
         confirmButtonClass="bg-red-600 hover:bg-red-700"
         icon={
           <div className="flex items-center justify-center w-10 h-10 mx-auto bg-red-100 rounded-full">

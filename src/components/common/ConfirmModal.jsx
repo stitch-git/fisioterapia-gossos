@@ -1,20 +1,22 @@
 import React, { useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 
 export default function ConfirmModal(props) {
+  const { t } = useTranslation()
+  
   const {
     isOpen, 
     onClose, 
     onConfirm, 
-    title = "Confirmar acción",
-    message = "¿Estás seguro que quieres continuar?",
-    confirmText = "Confirmar",
-    cancelText = "Cancelar",
+    title = t('confirmModal.defaultTitle'),
+    message = t('confirmModal.defaultMessage'),
+    confirmText = t('confirmModal.defaultConfirm'),
+    cancelText = t('confirmModal.defaultCancel'),
     confirmButtonClass = "bg-red-600 hover:bg-red-700",
     cancelButtonClass = null,
     icon = null
   } = props
 
-  // Cerrar modal con ESC
   useEffect(() => {
     const handleEsc = (event) => {
       if (event.keyCode === 27) {
@@ -24,7 +26,6 @@ export default function ConfirmModal(props) {
     
     if (isOpen) {
       document.addEventListener('keydown', handleEsc, false)
-      // Prevenir scroll del body cuando el modal está abierto
       document.body.style.overflow = 'hidden'
     }
 
@@ -34,7 +35,6 @@ export default function ConfirmModal(props) {
     }
   }, [isOpen, onClose])
 
-  // No renderizar si no está abierto
   if (!isOpen) return null
 
   const handleBackdropClick = (e) => {
@@ -48,7 +48,6 @@ export default function ConfirmModal(props) {
     onClose()
   }
 
-  // Función para obtener las clases del botón cancelar
   const getCancelButtonClasses = () => {
     if (cancelButtonClass) {
       return `w-full sm:w-auto px-4 py-2.5 sm:py-2 text-sm font-medium text-white rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-200 ${cancelButtonClass}`
@@ -62,7 +61,6 @@ export default function ConfirmModal(props) {
       onClick={handleBackdropClick}
     >
       <div className="bg-white rounded-lg shadow-xl w-full max-w-sm sm:max-w-md mx-auto animate-fade-in">
-        {/* Header - OPTIMIZADO RESPONSIVE */}
         <div className="px-4 sm:px-6 py-4 border-b border-gray-200">
           <div className="flex items-start sm:items-center">
             {icon && (
@@ -76,16 +74,13 @@ export default function ConfirmModal(props) {
           </div>
         </div>
 
-        {/* Body - OPTIMIZADO RESPONSIVE */}
         <div className="px-4 sm:px-6 py-4 sm:py-6">
           <div className="text-sm sm:text-base text-gray-600 leading-relaxed">
             {message}
           </div>
         </div>
 
-        {/* Footer - OPTIMIZADO RESPONSIVE */}
         <div className="px-4 sm:px-6 py-4 bg-gray-50 border-t border-gray-200 rounded-b-lg">
-          {/* Layout responsivo para botones */}
           <div className="flex flex-col-reverse sm:flex-row sm:justify-end space-y-reverse space-y-3 sm:space-y-0 sm:space-x-3">
             {cancelText && (
               <button

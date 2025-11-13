@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
 import toast from 'react-hot-toast'
-import CountrySelector, { validatePhoneNumber, getCountryByCode } from '../common/CountrySelector'
+import CountrySelector, { validatePhoneNumber, getCountryByCode, COUNTRIES } from '../common/CountrySelector'
 import NotificationPreferences, { validateNotificationPreferences } from '../common/NotificationPreferences'
+import LanguageSettings from '../common/LanguageSettings'
+import { useTranslation } from 'react-i18next'
 
 export default function MyProfile() {
-  const { user, profile, updateProfile } = useAuth() // Añadido user para obtener el email
+  const { user, profile, updateProfile } = useAuth()
+  const { t } = useTranslation()
   const [formData, setFormData] = useState({
     nombre_completo: '',
     telefono: '',
@@ -22,7 +25,7 @@ export default function MyProfile() {
       setFormData({
         nombre_completo: profile.nombre_completo || '',
         telefono: profile.telefono || '',
-        pais_codigo: profile.pais_codigo || 'ES',
+        pais_codigo: COUNTRIES.find(c => c.codigo === profile.pais_codigo) ? profile.pais_codigo : 'ES',
         email_notifications: profile.email_notifications !== undefined ? profile.email_notifications : true
       })
     }
@@ -35,11 +38,9 @@ export default function MyProfile() {
       [name]: value
     }))
     
-    // Check if there are changes
     const hasChange = value !== (profile?.[name] || '')
     checkForChanges({ ...formData, [name]: value })
 
-    // Validate phone number when it changes
     if (name === 'telefono') {
       validatePhoneField(value, formData.pais_codigo)
     }
@@ -54,7 +55,6 @@ export default function MyProfile() {
     setFormData(newFormData)
     checkForChanges(newFormData)
     
-    // Revalidate phone number with new country
     if (formData.telefono) {
       validatePhoneField(formData.telefono, country.codigo)
     }
@@ -68,7 +68,6 @@ export default function MyProfile() {
     setFormData(newFormData)
     checkForChanges(newFormData)
 
-    // Validate notification preferences
     const email = type === 'email_notifications' ? value : formData.email_notifications
     
     const validation = validateNotificationPreferences(email)
@@ -81,15 +80,13 @@ export default function MyProfile() {
       return
     }
 
-    // Validación específica para España
     if (countryCode === 'ES' && phone.trim()) {
       const cleanPhone = phone.replace(/\s/g, '')
       if (!cleanPhone.startsWith('6') && !cleanPhone.startsWith('7')) {
-        setPhoneError('Los números españoles deben empezar por 6 o 7')
+        setPhoneError(t('myProfile.validation.spanishPhoneStart'))
         return
       }
     }
-
 
     const validation = validatePhoneNumber(phone, countryCode)
     setPhoneError(validation.valid ? '' : validation.message)
@@ -111,16 +108,15 @@ export default function MyProfile() {
     e.preventDefault()
     
     if (!formData.nombre_completo.trim()) {
-      toast.error('El nombre completo es obligatorio')
+      toast.error(t('myProfile.validation.fullNameRequired'))
       return
     }
 
     if (!formData.telefono.trim()) {
-      toast.error('El teléfono es obligatorio')
+      toast.error(t('myProfile.validation.phoneRequired'))
       return
     }
 
-    // Validate phone number
     const phoneValidation = validatePhoneNumber(formData.telefono, formData.pais_codigo)
     if (!phoneValidation.valid) {
       toast.error(phoneValidation.message)
@@ -128,7 +124,6 @@ export default function MyProfile() {
       return
     }
 
-    // Validate notification preferences
     const notificationValidation = validateNotificationPreferences(
       formData.email_notifications
     )
@@ -168,7 +163,7 @@ export default function MyProfile() {
       setFormData({
         nombre_completo: profile.nombre_completo || '',
         telefono: profile.telefono || '',
-        pais_codigo: profile.pais_codigo || 'ES',
+        pais_codigo: COUNTRIES.find(c => c.codigo === profile.pais_codigo) ? profile.pais_codigo : 'ES',
         email_notifications: profile.email_notifications !== undefined ? profile.email_notifications : true
       })
       setHasChanges(false)
@@ -182,21 +177,20 @@ export default function MyProfile() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Mi Perfil</h2>
-        <p className="text-gray-600">Gestiona tu información personal y preferencias</p>
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">{t('myProfile.title')}</h2>
+        <p className="text-gray-600">{t('myProfile.subtitle')}</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Profile Form */}
         <div className="card">
           <div className="card-header">
-            <h3 className="text-lg font-semibold">Información Personal</h3>
+            <h3 className="text-lg font-semibold">{t('myProfile.personalInfo.title')}</h3>
           </div>
           <div className="card-body">
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Nombre Completo *
+                  {t('myProfile.personalInfo.fullName')} {t('myProfile.form.required')}
                 </label>
                 <input
                   type="text"
@@ -204,21 +198,19 @@ export default function MyProfile() {
                   value={formData.nombre_completo}
                   onChange={handleChange}
                   className="input"
-                  placeholder="Tu nombre completo"
+                  placeholder={t('myProfile.personalInfo.fullNamePlaceholder')}
                   required
                 />
               </div>
 
-              {/* País y Teléfono compactos en una fila */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  País y Teléfono *
+                  {t('myProfile.personalInfo.countryAndPhone')} {t('myProfile.form.required')}
                 </label>
                 <div className="flex flex-col sm:flex-row gap-2">
                   
-                  {/* Phone Input - toma el resto del espacio */}
-                  <div className="flex-1 min-w-0"> {/* min-w-0 para que flex funcione bien */}
-                    <div className="flex h-[42px]"> {/* Altura fija igual al selector */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex h-[42px]">
                       <div className="flex items-center justify-center px-2 sm:px-3 bg-gray-50 border border-r-0 border-gray-300 rounded-l-md min-w-[3.5rem] text-xs sm:text-sm">
                         <span className="font-medium text-gray-900 whitespace-nowrap">
                           {selectedCountry?.telefono_codigo}
@@ -230,14 +222,13 @@ export default function MyProfile() {
                         value={formData.telefono}
                         onChange={handleChange}
                         className={`input rounded-l-none border-l-0 flex-1 h-[42px] text-sm sm:text-base ${phoneError ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : ''}`}
-                        placeholder={selectedCountry?.telefono_descripcion || 'Número de teléfono'}
+                        placeholder={selectedCountry?.telefono_descripcion || t('myProfile.personalInfo.phonePlaceholder')}
                         required
                       />
                     </div>
                   </div>
                 </div>
                 
-                {/* Errores y ayuda */}
                 {phoneError && (
                   <p className="mt-1 text-sm text-red-600 flex items-center">
                     <svg className="w-4 h-4 mr-1 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
@@ -251,27 +242,26 @@ export default function MyProfile() {
                     <svg className="w-3 h-3 mr-1 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    Formato: {selectedCountry.telefono_descripcion}
+                    {t('myProfile.personalInfo.format')} {selectedCountry.telefono_descripcion}
                   </p>
                 )}
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Email
+                  {t('myProfile.personalInfo.email')}
                 </label>
                 <input
                   type="email"
-                  value={user?.email || 'Cargando...'}
+                  value={user?.email || t('myProfile.loading')}
                   className="input bg-gray-50"
                   disabled
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  El email no se puede cambiar
+                  {t('myProfile.personalInfo.emailCannotChange')}
                 </p>
               </div>
 
-              {/* Notification Preferences */}
               <NotificationPreferences
                 emailEnabled={formData.email_notifications}
                 onEmailChange={(value) => handleNotificationChange('email_notifications', value)}
@@ -287,7 +277,7 @@ export default function MyProfile() {
                     </svg>
                     <div className="ml-3">
                       <p className="text-sm text-amber-800">
-                        Tienes cambios sin guardar
+                        {t('myProfile.form.unsavedChanges')}
                       </p>
                     </div>
                   </div>
@@ -302,7 +292,7 @@ export default function MyProfile() {
                     className="btn btn-secondary"
                     disabled={loading}
                   >
-                    Cancelar
+                    {t('myProfile.form.cancel')}
                   </button>
                 )}
                 <button
@@ -313,14 +303,14 @@ export default function MyProfile() {
                   {loading ? (
                     <>
                       <div className="loading-spinner mr-2"></div>
-                      Guardando...
+                      {t('myProfile.form.saving')}
                     </>
                   ) : (
                     <>
                       <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
-                      Guardar Cambios
+                      {t('myProfile.form.saveChanges')}
                     </>
                   )}
                 </button>
@@ -329,11 +319,10 @@ export default function MyProfile() {
           </div>
         </div>
 
-        {/* Profile Summary */}
         <div className="space-y-6">
           <div className="card">
             <div className="card-header">
-              <h3 className="text-lg font-semibold">Resumen de Cuenta</h3>
+              <h3 className="text-lg font-semibold">{t('myProfile.accountSummary.title')}</h3>
             </div>
             <div className="card-body">
               <div className="space-y-4">
@@ -346,35 +335,35 @@ export default function MyProfile() {
                     </div>
                     <div>
                       <p className="font-medium text-gray-900">
-                        {profile?.nombre_completo || 'Cargando...'}
+                        {profile?.nombre_completo || t('myProfile.loading')}
                       </p>
-                      <p className="text-sm text-gray-500">Cliente registrado</p>
+                      <p className="text-sm text-gray-500">{t('myProfile.accountSummary.registeredClient')}</p>
                     </div>
                   </div>
                 </div>
 
                 <div className="border-t pt-4">
-                  <h4 className="font-medium text-gray-900 mb-3">Información de Contacto</h4>
+                  <h4 className="font-medium text-gray-900 mb-3">{t('myProfile.accountSummary.contactInfo')}</h4>
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
                       <span className="text-gray-500">Email:</span>
                       <span className="text-gray-900 text-right">
-                        {user?.email || 'No disponible'}
+                        {user?.email || t('myProfile.accountSummary.notAvailable')}
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-500">País:</span>
+                      <span className="text-gray-500">{t('myProfile.accountSummary.country')}</span>
                       <span className="text-gray-900 flex items-center">
                         <span className="mr-1">{getCountryByCode(profile?.pais_codigo)?.bandera}</span>
-                        {profile?.pais_nombre || 'No especificado'}
+                        {profile?.pais_nombre || t('myProfile.accountSummary.notSpecified')}
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-500">Teléfono:</span>
+                      <span className="text-gray-500">{t('myProfile.accountSummary.phone')}</span>
                       <span className="text-gray-900">
                         {profile?.telefono ? 
                           `${getCountryByCode(profile?.pais_codigo)?.telefono_codigo} ${profile.telefono}` : 
-                          'No especificado'
+                          t('myProfile.accountSummary.notSpecified')
                         }
                       </span>
                     </div>
@@ -382,7 +371,7 @@ export default function MyProfile() {
                 </div>
 
                 <div className="border-t pt-4">
-                  <h4 className="font-medium text-gray-900 mb-3">Preferencias de Notificación</h4>
+                  <h4 className="font-medium text-gray-900 mb-3">{t('myProfile.accountSummary.notificationPreferences')}</h4>
                   <div className="space-y-2 text-sm">
                     <div className="flex items-center justify-between">
                     </div>
@@ -394,7 +383,7 @@ export default function MyProfile() {
                         Email
                       </span>
                       <span className={`text-sm ${profile?.email_notifications ? 'text-green-600' : 'text-gray-400'}`}>
-                        {profile?.email_notifications ? 'Activo' : 'Inactivo'}
+                        {profile?.email_notifications ? t('myProfile.accountSummary.active') : t('myProfile.accountSummary.inactive')}
                       </span>
                     </div>
                   </div>
@@ -402,8 +391,17 @@ export default function MyProfile() {
               </div>
             </div>
           </div>
+
+          <div className="card">
+            <div className="card-header">
+              <h3 className="text-lg font-semibold">{t('myProfile.accountSummary.languagePreferences')}</h3>
+            </div>
+            <div className="card-body">
+              <LanguageSettings userId={user?.id} />
+            </div>
+          </div>
         </div>
-      </div>
     </div>
+  </div>
   )
 }
