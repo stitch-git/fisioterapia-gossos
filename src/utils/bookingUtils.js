@@ -217,49 +217,92 @@ export const isTimeSlotBlocked = (timeSlot, existingBookings, homeVisits, servic
  */
 export const getAvailableTimeSlotsForDate = async (dateString, includeAdminOnly = true) => {
   try {
-    // 🗂️ CACHE MÁS AGRESIVO - Verificar cada consulta
     const now = Date.now()
     const cacheKey = `${dateString}-${includeAdminOnly ? 'admin' : 'client'}`
+    
+    // 🔍 LOG CRÍTICO: Ver qué contexto se está usando
+    console.log(`\n🔍 ========================================`)
+    console.log(`🔍 getAvailableTimeSlotsForDate LLAMADA`)
+    console.log(`🔍 Fecha: ${dateString}`)
+    console.log(`🔍 Contexto: ${includeAdminOnly ? '⚙️ ADMIN (debe ver TODOS)' : '👤 CLIENTE (solo normales)'}`)
+    console.log(`🔍 Cache Key: ${cacheKey}`)
+    console.log(`🔍 ========================================\n`)
     
     if (
       availableTimeSlotsCache[cacheKey] && 
       cacheTimestamp[cacheKey] && 
       (now - cacheTimestamp[cacheKey]) < CACHE_DURATION
     ) {
-      debugLog(`🗂️ Usando cache para slots de ${dateString} (${includeAdminOnly ? 'admin' : 'client'})`)
-      return availableTimeSlotsCache[cacheKey]
+      const cachedSlots = availableTimeSlotsCache[cacheKey]
+      console.log(`✅ Usando CACHE (${cachedSlots?.length || 0} slots)`)
+      
+      // Log detallado del cache
+      if (cachedSlots && cachedSlots.length > 0) {
+        const normalCount = cachedSlots.filter(s => !s.admin_only).length
+        const adminOnlyCount = cachedSlots.filter(s => s.admin_only).length
+        console.log(`   ├─ 👥 Normales: ${normalCount}`)
+        console.log(`   └─ 🔒 Solo Admin: ${adminOnlyCount}`)
+      }
+      
+      return cachedSlots
     }
 
-    debugLog(`🔄 Recargando slots para ${dateString} (${includeAdminOnly ? 'admin' : 'client'})`)
+    console.log(`🔄 Recargando desde BD (cache expirado o no existe)...`)
 
-    // Consultar configuración desde BD para la fecha específica
+    // Construir query
     let query = supabase
       .from('available_time_slots')
       .select('*')
       .eq('date', dateString)
       .eq('is_active', true)
     
-    // 🚨 NUEVO: Si no es admin, excluir slots admin_only
+    // 🚨 CRÍTICO: Si NO es admin, filtrar solo normales
     if (!includeAdminOnly) {
+      console.log(`   └─ 🔒 FILTRO ACTIVO: admin_only = false (solo normales)`)
       query = query.eq('admin_only', false)
+    } else {
+      console.log(`   └─ ✅ SIN FILTRO: Devolviendo TODOS los slots`)
     }
     
     const { data, error } = await query.order('start_time')
 
     if (error) {
-      debugLog(`❌ Error cargando slots admin: ${error.message}`)
+      console.error(`❌ Error en query BD: ${error.message}`)
       return null
     }
-    // Actualizar cache por fecha
-    debugLog(`📋 Slots configurados: ${data?.length || 0}`)
 
-    // Actualizar cache por fecha Y contexto
+    // 🔍 LOG CRÍTICO: Resultado de la BD
+    console.log(`\n📋 ========================================`)
+    console.log(`📋 RESULTADO DE LA BASE DE DATOS`)
+    console.log(`📋 Total slots obtenidos: ${data?.length || 0}`)
+    
+    if (data && data.length > 0) {
+      const normalSlots = data.filter(s => !s.admin_only)
+      const adminOnlySlots = data.filter(s => s.admin_only)
+      
+      console.log(`📋 Desglose:`)
+      console.log(`   ├─ 👥 Normales (admin_only=false): ${normalSlots.length}`)
+      console.log(`   └─ 🔒 Solo Admin (admin_only=true): ${adminOnlySlots.length}`)
+      
+      console.log(`\n📋 Detalle de slots:`)
+      data.forEach(slot => {
+        console.log(`   ${slot.admin_only ? '🔒' : '👥'} ${slot.start_time} - ${slot.end_time} (admin_only: ${slot.admin_only})`)
+      })
+    } else {
+      console.log(`📋 ⚠️ No se encontraron slots en la BD`)
+    }
+    console.log(`📋 ========================================\n`)
+
+    // Actualizar cache
     availableTimeSlotsCache[cacheKey] = data || []
     cacheTimestamp[cacheKey] = now
+    
+    console.log(`✅ Cache actualizado con ${data?.length || 0} slots`)
 
     return data || []
   } catch (error) {
-    debugLog(`❌ Error crítico obteniendo slots admin: ${error.message}`)
+    console.error(`❌ ERROR CRÍTICO: ${error.message}`)
+    console.error(error)
     return null
   }
 }
