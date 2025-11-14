@@ -111,7 +111,9 @@ export const NotificationProvider = ({ children }) => {
         price: bookingData.precio || bookingData.price || '0'
       }
 
-      const result = await sendBookingConfirmationEmail(emailData)
+      // Usar el idioma preferido del usuario si está disponible
+      const userLanguage = bookingData.preferredLanguage || profile?.preferred_language
+      const result = await sendBookingConfirmationEmail(emailData, userLanguage)
 
       if (result.success) {
         console.log('Email de confirmación enviado a:', targetEmail)
@@ -147,7 +149,9 @@ export const NotificationProvider = ({ children }) => {
         cancellationReason: cancelationData.motivo_cancelacion || 'Cancelación de cita'
       }
 
-      const result = await sendBookingCancellationEmail(emailData)
+      // Usar el idioma preferido del usuario si está disponible
+      const userLanguage = cancelationData.preferredLanguage || profile?.preferred_language
+      const result = await sendBookingCancellationEmail(emailData, userLanguage)
 
       if (result.success) {
         console.log('Email de cancelación enviado a:', emailDestino)

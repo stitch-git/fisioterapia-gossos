@@ -309,41 +309,73 @@ export const filterTodaySlots = (slots, selectedDateStr) => {
 }
 
 /**
- * Filtrar slots del día siguiente si se reserva tarde en la noche
- * Si son después de las 18:00, bloquear las primeras 2 horas del día siguiente
+ * 🚨 NUEVA FUNCIÓN: Determina si una reserva requiere confirmación del administrador
+ * Esto ocurre cuando se reserva después de las 18:00 para las primeras 2 horas del día siguiente
  */
-export const filterNextDaySlots = (slots, selectedDateStr) => {
+export const requiresAdminConfirmation = (selectedDateStr, selectedTimeStr) => {
   const now = new Date()
   const today = format(now, 'yyyy-MM-dd')
   const tomorrow = format(addDays(now, 1), 'yyyy-MM-dd')
-  
-  // Solo aplicar si la fecha seleccionada es mañana o posterior
+
+  // Solo aplicar si la fecha seleccionada es mañana
   if (selectedDateStr !== tomorrow) {
-    return slots // No aplicar filtro para hoy o pasado
+    return false // No requiere confirmación para hoy o días posteriores
   }
-  
+
   const currentHour = now.getHours()
-  
+
   // Solo aplicar si es después de las 18:00 (6 PM)
   if (currentHour < 18) {
-    return slots // Antes de las 6 PM, sin restricción
+    return false // Antes de las 6 PM, sin restricción
   }
-  
-  debugLog(`🌙 Reserva nocturna detectada (${currentHour}:00) - Bloqueando primeras 2h del día siguiente`)
-  
-  // Si hay slots disponibles, encontrar el primero y bloquear 2h desde ahí
-  if (slots.length === 0) return slots
-  
-  const firstSlotMinutes = timeToMinutes(slots[0])
-  const minimumAllowedMinutes = firstSlotMinutes + 120 // +2 horas desde el primer slot
-  
-  const filteredSlots = slots.filter(slot => {
-    const slotMinutes = timeToMinutes(slot)
-    return slotMinutes >= minimumAllowedMinutes
-  })
-  
-  debugLog(`⏰ Filtro nocturno: ${slots.length} -> ${filteredSlots.length} slots (bloqueadas primeras 2h)`)
-  return filteredSlots
+
+  // Determinar si el horario seleccionado está en las primeras 2 horas del día
+  // Necesitamos obtener el primer slot disponible del día
+  // Por simplicidad, asumimos que las "primeras 2 horas" son relativas al primer slot del día
+  // Esto se puede mejorar más adelante si es necesario
+
+  debugLog(`🌙 Reserva nocturna detectada (${currentHour}:00) para mañana ${selectedTimeStr}`)
+
+  return true // Por ahora, cualquier reserva nocturna para mañana requiere confirmación
+}
+
+/**
+ * 🚨 NUEVA FUNCIÓN: Determina si un slot específico requiere confirmación
+ * Basándose en la hora actual y el slot, determina si está en las "primeras 2 horas"
+ */
+export const slotRequiresConfirmation = (selectedDateStr, slotTime, firstSlotOfDay) => {
+  const now = new Date()
+  const tomorrow = format(addDays(now, 1), 'yyyy-MM-dd')
+
+  // Solo aplicar si la fecha es mañana y es después de las 18:00
+  if (selectedDateStr !== tomorrow || now.getHours() < 18) {
+    return false
+  }
+
+  // Si no hay primer slot, no podemos determinar
+  if (!firstSlotOfDay) return false
+
+  const slotMinutes = timeToMinutes(slotTime)
+  const firstSlotMinutes = timeToMinutes(firstSlotOfDay)
+  const twoHoursLater = firstSlotMinutes + 120
+
+  // El slot requiere confirmación si está en las primeras 2 horas
+  const requiresConfirmation = slotMinutes < twoHoursLater
+
+  if (requiresConfirmation) {
+    debugLog(`⚠️ Slot ${slotTime} requiere confirmación (primeras 2h del día)`)
+  }
+
+  return requiresConfirmation
+}
+
+/**
+ * FUNCIÓN LEGACY: Mantenida por compatibilidad, ahora no bloquea slots
+ * @deprecated Use requiresAdminConfirmation o slotRequiresConfirmation
+ */
+export const filterNextDaySlots = (slots, selectedDateStr) => {
+  // Ya no bloqueamos slots, solo los devolvemos todos
+  return slots
 }
 
 /**

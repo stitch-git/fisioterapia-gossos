@@ -333,7 +333,7 @@ export default function BookingsManagement() {
         `)
         .gte('fecha_hora', `${format(monthStart, 'yyyy-MM-dd')}T00:00:00`)
         .lt('fecha_hora', `${format(monthEnd, 'yyyy-MM-dd')}T23:59:59`)
-        .in('estado', ['pendiente'])
+        .in('estado', ['pendiente', 'pendiente_confirmacion'])
 
       if (bookingsError) throw bookingsError
 
@@ -577,7 +577,7 @@ export default function BookingsManagement() {
         `)
         .gte('fecha_hora', `${newBooking.fecha}T00:00:00`)
         .lt('fecha_hora', `${newBooking.fecha}T23:59:59`)
-        .in('estado', ['pendiente'])
+        .in('estado', ['pendiente', 'pendiente_confirmacion'])
         
       if (bookingsError) {
         console.error('Admin error obteniendo reservas:', bookingsError)
@@ -972,6 +972,96 @@ export default function BookingsManagement() {
     }
   }
 
+  // 🚨 NUEVA FUNCIÓN: Confirmar reserva pendiente de confirmación
+  const confirmPendingBooking = async (bookingId) => {
+    try {
+      setUpdating(prev => new Set(prev).add(bookingId))
+
+      const { error } = await supabase
+        .from('bookings')
+        .update({
+          estado: 'pendiente',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', bookingId)
+
+      if (error) throw error
+
+      // Enviar email de confirmación al cliente
+      try {
+        const confirmedBooking = bookings.find(b => b.id === bookingId)
+        // TODO: Implementar notifyBookingConfirmedByAdmin
+        console.log('📧 Email de confirmación pendiente:', confirmedBooking)
+      } catch (emailError) {
+        console.error('Error enviando email de confirmación:', emailError)
+      }
+
+      setBookings(prev =>
+        prev.map(booking =>
+          booking.id === bookingId
+            ? { ...booking, estado: 'pendiente', updated_at: new Date().toISOString() }
+            : booking
+        )
+      )
+
+      toast.success(t('bookingsManagement.toasts.bookingConfirmed'))
+    } catch (error) {
+      console.error('Error confirmando reserva:', error)
+      toast.error(t('bookingsManagement.errors.confirmingBooking'))
+    } finally {
+      setUpdating(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(bookingId)
+        return newSet
+      })
+    }
+  }
+
+  // 🚨 NUEVA FUNCIÓN: Rechazar reserva pendiente de confirmación
+  const rejectPendingBooking = async (bookingId) => {
+    try {
+      setUpdating(prev => new Set(prev).add(bookingId))
+
+      const { error } = await supabase
+        .from('bookings')
+        .update({
+          estado: 'cancelada',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', bookingId)
+
+      if (error) throw error
+
+      // Enviar email de rechazo al cliente
+      try {
+        const rejectedBooking = bookings.find(b => b.id === bookingId)
+        // TODO: Implementar notifyBookingRejectedByAdmin
+        console.log('📧 Email de rechazo pendiente:', rejectedBooking)
+      } catch (emailError) {
+        console.error('Error enviando email de rechazo:', emailError)
+      }
+
+      setBookings(prev =>
+        prev.map(booking =>
+          booking.id === bookingId
+            ? { ...booking, estado: 'cancelada', updated_at: new Date().toISOString() }
+            : booking
+        )
+      )
+
+      toast.success(t('bookingsManagement.toasts.bookingRejected'))
+    } catch (error) {
+      console.error('Error rechazando reserva:', error)
+      toast.error(t('bookingsManagement.errors.rejectingBooking'))
+    } finally {
+      setUpdating(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(bookingId)
+        return newSet
+      })
+    }
+  }
+
   const createBooking = async (e) => {
     e.preventDefault()
     
@@ -1028,7 +1118,7 @@ export default function BookingsManagement() {
         `)
         .gte('fecha_hora', `${newBooking.fecha}T${targetTime}:00`)
         .lte('fecha_hora', `${newBooking.fecha}T${targetTime}:59`)
-        .in('estado', ['pendiente'])
+        .in('estado', ['pendiente', 'pendiente_confirmacion'])
 
       if (adminUltimateError) {
         console.error('Admin error en verificación final:', adminUltimateError)
@@ -1277,12 +1367,14 @@ export default function BookingsManagement() {
   const getStatusBadge = (estado) => {
     const statusClasses = {
       pendiente: 'bg-yellow-100 text-yellow-800',
+      pendiente_confirmacion: 'bg-orange-100 text-orange-800',
       completada: 'bg-green-100 text-green-800',
       cancelada: 'bg-red-100 text-red-800'
     }
 
     const statusText = {
       pendiente: t('bookingsManagement.status.pending'),
+      pendiente_confirmacion: t('bookingsManagement.status.pendingConfirmation'),
       completada: t('bookingsManagement.status.completed'),
       cancelada: t('bookingsManagement.status.cancelled')
     }
@@ -1361,6 +1453,27 @@ export default function BookingsManagement() {
       </div>
       
       <div className="flex justify-end space-x-2">
+        {booking.estado === 'pendiente_confirmacion' && (
+          <>
+            <button
+              onClick={() => confirmPendingBooking(booking.id)}
+              disabled={updating.has(booking.id)}
+              className="px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              title={t('bookingsManagement.actions.confirm')}
+            >
+              ✓ {t('bookingsManagement.actions.confirm')}
+            </button>
+            <button
+              onClick={() => rejectPendingBooking(booking.id)}
+              disabled={updating.has(booking.id)}
+              className="px-3 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              title={t('bookingsManagement.actions.reject')}
+            >
+              ✗ {t('bookingsManagement.actions.reject')}
+            </button>
+          </>
+        )}
+
         {(booking.estado === 'pendiente') && (
           <button
             onClick={() => updateBookingStatus(booking.id, 'cancelada')}
@@ -1373,7 +1486,7 @@ export default function BookingsManagement() {
             </svg>
           </button>
         )}
-        
+
         <button
           onClick={() => setSelectedBooking(booking)}
           className="text-blue-600 hover:text-blue-900 p-1"
@@ -1622,6 +1735,27 @@ export default function BookingsManagement() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <div className="flex justify-end space-x-2">
+                          {booking.estado === 'pendiente_confirmacion' && (
+                            <>
+                              <button
+                                onClick={() => confirmPendingBooking(booking.id)}
+                                disabled={updating.has(booking.id)}
+                                className="px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                title={t('bookingsManagement.actions.confirm')}
+                              >
+                                ✓ {t('bookingsManagement.actions.confirm')}
+                              </button>
+                              <button
+                                onClick={() => rejectPendingBooking(booking.id)}
+                                disabled={updating.has(booking.id)}
+                                className="px-3 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                title={t('bookingsManagement.actions.reject')}
+                              >
+                                ✗ {t('bookingsManagement.actions.reject')}
+                              </button>
+                            </>
+                          )}
+
                           {(booking.estado === 'pendiente') && (
                             <button
                               onClick={() => updateBookingStatus(booking.id, 'cancelada')}
@@ -1634,7 +1768,7 @@ export default function BookingsManagement() {
                               </svg>
                             </button>
                           )}
-                          
+
                           <button
                             onClick={() => setSelectedBooking(booking)}
                             className="text-blue-600 hover:text-blue-900"

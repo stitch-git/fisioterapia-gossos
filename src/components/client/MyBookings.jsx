@@ -84,7 +84,7 @@ export default function MyBookings() {
     try {
       const now = new Date()
       const bookingsToUpdate = bookings.filter(booking => {
-        if (!['pendiente'].includes(booking.estado)) return false
+        if (!['pendiente', 'pendiente_confirmacion'].includes(booking.estado)) return false
         
         const bookingDateStr = booking.fecha_hora.substring(0, 10)
         const bookingTimeStr = booking.fecha_hora.substring(11, 16)
@@ -209,7 +209,8 @@ export default function MyBookings() {
           service_name: booking.services?.nombre,
           fecha: booking.fecha_hora.substring(0, 10),
           hora: booking.fecha_hora.substring(11, 16),
-          motivo_cancelacion: hoursUntilBooking < 24 ? 'Cancelación tardía por parte del cliente' : 'Cancelación por parte del cliente'
+          motivo_cancelacion: hoursUntilBooking < 24 ? 'Cancelación tardía por parte del cliente' : 'Cancelación por parte del cliente',
+          preferredLanguage: profile?.preferred_language // Idioma del usuario
         })
       } catch (emailError) {
         console.error('Error enviando email de cancelación:', emailError)
@@ -262,12 +263,14 @@ export default function MyBookings() {
   const getStatusBadge = (estado) => {
     const statusClasses = {
       pendiente: 'status-pending',
+      pendiente_confirmacion: 'status-pending-confirmation',
       completada: 'status-completed',
       cancelada: 'status-cancelled'
     }
 
     const statusText = {
       pendiente: t('myBookings.status.pending'),
+      pendiente_confirmacion: t('myBookings.status.pendingConfirmation'),
       completada: t('myBookings.status.completed'),
       cancelada: t('myBookings.status.cancelled')
     }
@@ -306,6 +309,10 @@ export default function MyBookings() {
   const filteredBookings = bookings
     .filter(booking => {
       if (filter === 'all') return true
+      // Si el filtro es 'pendiente', incluir también 'pendiente_confirmacion'
+      if (filter === 'pendiente') {
+        return ['pendiente', 'pendiente_confirmacion'].includes(booking.estado)
+      }
       return booking.estado === filter
     })
     .sort((a, b) => {
@@ -346,7 +353,7 @@ export default function MyBookings() {
     })
 
   const canCancelBooking = (booking) => {
-    return ['pendiente'].includes(booking.estado)
+    return ['pendiente', 'pendiente_confirmacion'].includes(booking.estado)
   }
 
   const renderBookingAction = (booking) => {
@@ -466,7 +473,7 @@ export default function MyBookings() {
   }
 
   const tabs = [
-    { key: 'pendiente', label: t('myBookings.tabs.pending'), count: bookings.filter(b => b.estado === 'pendiente').length },
+    { key: 'pendiente', label: t('myBookings.tabs.pending'), count: bookings.filter(b => ['pendiente', 'pendiente_confirmacion'].includes(b.estado)).length },
     { key: 'completada', label: t('myBookings.tabs.completed'), count: bookings.filter(b => b.estado === 'completada').length },
     { key: 'cancelada', label: t('myBookings.tabs.cancelled'), count: bookings.filter(b => b.estado === 'cancelada').length },
     { key: 'all', label: t('myBookings.tabs.all'), count: bookings.length }

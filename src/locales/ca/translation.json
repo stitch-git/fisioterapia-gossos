@@ -77,6 +77,7 @@
     },
     "status": {
       "pending": "Pendent",
+      "pendingConfirmation": "Pendent de confirmació",
       "completed": "Completada",
       "cancelled": "Cancel·lada"
     },
@@ -95,6 +96,8 @@
     },
     "actions": {
       "cancel": "Cancel·lar",
+      "confirm": "Confirmar",
+      "reject": "Rebutjar",
       "viewDetails": "Veure detalls"
     },
     "modal": {
@@ -178,6 +181,8 @@
     },
     "toasts": {
       "bookingCancelled": "Cita cancel·lada",
+      "bookingConfirmed": "Cita confirmada correctament",
+      "bookingRejected": "Cita rebutjada correctament",
       "bookingUpdated": "Cita actualitzada",
       "bookingDeleted": "Cita eliminada correctament",
       "bookingCreated": "Cita creada correctament"
@@ -186,6 +191,8 @@
       "loadingBookings": "Error carregant cites",
       "loadingAvailableSchedules": "Error carregant horaris disponibles",
       "updatingBooking": "Error actualitzant cita",
+      "confirmingBooking": "Error confirmant cita",
+      "rejectingBooking": "Error rebutjant cita",
       "deletingBooking": "Error eliminant cita",
       "completeRequiredFields": "Completa tots els camps obligatoris",
       "completeHomeVisitFields": "Completa tots els camps obligatoris per a visita a domicili",
@@ -764,6 +771,7 @@
       "slotConflict": "Aquest horari ja no està disponible. Selecciona un altre horari.",
       "unexpectedError": "Error inesperat. Torna-ho a provar.",
       "bookingSuccess": "Cita reservada correctament!",
+      "bookingPendingConfirmation": "Cita sol·licitada! Està pendent de confirmació per l'administrador. Rebràs un email quan sigui confirmada.",
       "navigateToDogs": "Navegar a \"Els meus Gossos\" per afegir un nou gos",
       "cannotNavigate": "No es pot navegar a la secció de gossos"
     }
@@ -804,6 +812,7 @@
     },
     "status": {
       "pending": "Pendent",
+      "pendingConfirmation": "Pendent de confirmació",
       "completed": "Completada",
       "cancelled": "Cancel·lada"
     },

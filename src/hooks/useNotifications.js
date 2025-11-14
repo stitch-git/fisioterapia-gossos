@@ -9,10 +9,14 @@ export const useNotifications = () => {
 
   const sendEmail = async (emailType, to, data, language = null) => {
     try {
-      console.log(`📧 Enviando email tipo: ${emailType} a: ${to}`)
-
       // Determinar el idioma a usar
-      const emailLanguage = language || i18n.language || 'es'
+      const emailLanguage = language || i18n.language || 'ca'
+
+      console.log(`📧 Enviando email tipo: ${emailType} a: ${to}`, {
+        idiomaSolicitado: language,
+        idiomaI18n: i18n.language,
+        idiomaFinal: emailLanguage
+      })
 
       const emailPayload = {
         emailType,
@@ -28,7 +32,7 @@ export const useNotifications = () => {
       })
 
       if (error) throw error
-      
+
       console.log(`✅ Email ${emailType} enviado correctamente (${emailLanguage}):`, response?.emailId)
       return { success: true, data: response }
       
@@ -60,21 +64,35 @@ export const useNotifications = () => {
 
   const getUserLanguage = async (userEmail) => {
     try {
-      const { data, error } = await supabase
+      // Implementar timeout de 5 segundos para la consulta
+      const queryPromise = supabase
         .from('profiles')
         .select('preferred_language')
         .eq('email', userEmail)
         .single()
 
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Timeout obteniendo idioma usuario')), 5000)
+      )
+
+      const { data, error } = await Promise.race([queryPromise, timeoutPromise])
+
       if (error || !data) {
-        console.log(`⚠️ No se pudo obtener idioma para ${userEmail}, usando idioma actual`)
-        return i18n.language || 'es'
+        console.warn(`⚠️ No se pudo obtener idioma para ${userEmail}, usando fallback`, {
+          error: error?.message,
+          fallback: i18n.language || 'ca'
+        })
+        return i18n.language || 'ca'
       }
 
-      return data.preferred_language || i18n.language || 'es'
+      const userLang = data.preferred_language || i18n.language || 'ca'
+      console.log(`🌍 Idioma obtenido para ${userEmail}: ${userLang}`)
+      return userLang
     } catch (error) {
-      console.error('Error obteniendo idioma del usuario:', error)
-      return i18n.language || 'es'
+      console.error('Error obteniendo idioma del usuario:', error.message, {
+        fallback: i18n.language || 'ca'
+      })
+      return i18n.language || 'ca'
     }
   }
 
@@ -87,9 +105,10 @@ export const useNotifications = () => {
     }, userLanguage)
   }
 
-  const sendBookingConfirmationEmail = async (bookingData) => {
-    const userLanguage = await getUserLanguage(bookingData.to)
-    
+  const sendBookingConfirmationEmail = async (bookingData, preferredLanguage = null) => {
+    // Si se proporciona un idioma preferido, usarlo; de lo contrario, consultar la BD
+    const userLanguage = preferredLanguage || await getUserLanguage(bookingData.to)
+
     return await sendEmail('confirmation', bookingData.to, {
       clientName: bookingData.clientName,
       dogName: bookingData.dogName,
@@ -102,9 +121,10 @@ export const useNotifications = () => {
     }, userLanguage)
   }
 
-  const sendBookingCancellationEmail = async (bookingData) => {
-    const userLanguage = await getUserLanguage(bookingData.to)
-    
+  const sendBookingCancellationEmail = async (bookingData, preferredLanguage = null) => {
+    // Si se proporciona un idioma preferido, usarlo; de lo contrario, consultar la BD
+    const userLanguage = preferredLanguage || await getUserLanguage(bookingData.to)
+
     return await sendEmail('cancellation', bookingData.to, {
       clientName: bookingData.clientName,
       dogName: bookingData.dogName,

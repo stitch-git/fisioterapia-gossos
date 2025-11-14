@@ -77,6 +77,7 @@
     },
     "status": {
       "pending": "Pendiente",
+      "pendingConfirmation": "Pendiente de confirmación",
       "completed": "Completada",
       "cancelled": "Cancelada"
     },
@@ -95,6 +96,8 @@
     },
     "actions": {
       "cancel": "Cancelar",
+      "confirm": "Confirmar",
+      "reject": "Rechazar",
       "viewDetails": "Ver detalles"
     },
     "modal": {
@@ -178,6 +181,8 @@
     },
     "toasts": {
       "bookingCancelled": "Cita cancelada",
+      "bookingConfirmed": "Cita confirmada correctamente",
+      "bookingRejected": "Cita rechazada correctamente",
       "bookingUpdated": "Cita actualizada",
       "bookingDeleted": "Cita eliminada correctamente",
       "bookingCreated": "Cita creada correctamente"
@@ -186,6 +191,8 @@
       "loadingBookings": "Error cargando citas",
       "loadingAvailableSchedules": "Error cargando horarios disponibles",
       "updatingBooking": "Error actualizando cita",
+      "confirmingBooking": "Error confirmando cita",
+      "rejectingBooking": "Error rechazando cita",
       "deletingBooking": "Error eliminando cita",
       "completeRequiredFields": "Completa todos los campos obligatorios",
       "completeHomeVisitFields": "Completa todos los campos obligatorios para visita a domicilio",
@@ -763,6 +770,7 @@
       "slotConflict": "Este horario ya no está disponible. Selecciona otro horario.",
       "unexpectedError": "Error inesperado. Inténtalo nuevamente.",
       "bookingSuccess": "¡Cita reservada correctamente!",
+      "bookingPendingConfirmation": "¡Cita solicitada! Está pendiente de confirmación por el administrador. Recibirás un email cuando sea confirmada.",
       "navigateToDogs": "Navegar a \"Mis Perros\" para añadir un nuevo perro",
       "cannotNavigate": "No se puede navegar a la sección de perros"
     }
@@ -803,6 +811,7 @@
     },
     "status": {
       "pending": "Pendiente",
+      "pendingConfirmation": "Pendiente de confirmación",
       "completed": "Completada",
       "cancelled": "Cancelada"
     },

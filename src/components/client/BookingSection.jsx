@@ -4,15 +4,17 @@ import { useAuth } from '../../contexts/AuthContext'
 import toast from 'react-hot-toast'
 import { format, addDays, startOfTomorrow, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, isToday, isBefore, startOfDay, startOfWeek, endOfWeek } from 'date-fns'
 import { es, ca } from 'date-fns/locale'
-import { 
-  generateFilteredTimeSlots, 
+import {
+  generateFilteredTimeSlots,
   timeToMinutes,
   minutesToTime,
-  getBlockedTimeRange,        
+  getBlockedTimeRange,
   getRestTimeByServiceType,
   clearAvailableTimeSlotsCache,
   isTimeSlotBlocked,
-  invalidateCacheAndNotify
+  invalidateCacheAndNotify,
+  requiresAdminConfirmation,
+  slotRequiresConfirmation
 } from '../../utils/bookingUtils'
 import { useBookingNotifications } from '../NotificationProvider'
 import { useNotifications } from '../../hooks/useNotifications'
@@ -543,7 +545,7 @@ export default function BookingSection({ onNavigateToSection }) {
           toast.error(t('bookingSection.toasts.slotConflict'), {
             duration: 4000,
           })
-          
+
           await loadAvailableSlots()
           setSelectedTime('')
           return
@@ -553,33 +555,86 @@ export default function BookingSection({ onNavigateToSection }) {
         }
       }
 
-      toast.success(t('bookingSection.toasts.bookingSuccess'))
+      // 🚨 NUEVA LÓGICA: Detectar si requiere confirmación del admin
+      const needsConfirmation = requiresAdminConfirmation(selectedDate, selectedTime)
+
+      if (needsConfirmation) {
+        // Actualizar el estado de la reserva a 'pendiente_confirmacion'
+        const { error: updateError } = await supabase
+          .from('bookings')
+          .update({ estado: 'pendiente_confirmacion' })
+          .eq('id', result.booking_id)
+
+        if (updateError) {
+          console.error('Error actualizando estado a pendiente_confirmacion:', updateError)
+          // Continuar de todos modos, la reserva se creó
+        }
+
+        console.log('⚠️ Reserva creada con estado pendiente_confirmacion (ID:', result.booking_id, ')')
+        toast.success(t('bookingSection.toasts.bookingPendingConfirmation'), {
+          duration: 6000,
+        })
+      } else {
+        toast.success(t('bookingSection.toasts.bookingSuccess'))
+      }
 
       invalidateCacheAndNotify(selectedDate)
       console.log('🚨 Notificación enviada a todos los usuarios sobre nueva reserva')
 
       try {
-        await notifyBookingConfirmed({
-          pet_name: dogData.nombre,
-          service_name: selectedService.nombre,
-          fecha: selectedDate,
-          hora: selectedTime,
-          duracion: selectedService.duracion_minutos.toString(),
-          precio: selectedService.precio.toString()
-        })
+        // Enviar emails diferentes según si requiere confirmación o no
+        if (needsConfirmation) {
+          // Email al cliente: Reserva pendiente de confirmación
+          await notifyBookingConfirmed({
+            pet_name: dogData.nombre,
+            service_name: selectedService.nombre,
+            fecha: selectedDate,
+            hora: selectedTime,
+            duracion: selectedService.duracion_minutos.toString(),
+            precio: selectedService.precio.toString(),
+            requiresConfirmation: true, // 🚨 Indicar que requiere confirmación
+            preferredLanguage: profile?.preferred_language // Idioma del usuario
+          })
 
-        await notifyAdminNewBooking({
-          clientName: profile.nombre_completo,
-          clientEmail: profile.email || user.email,
-          dogName: dogData.nombre,
-          service: selectedService.nombre,
-          date: selectedDate,
-          time: selectedTime,
-          duration: selectedService.duracion_minutos.toString(),
-          price: selectedService.precio.toString(),
-          spaces: spaceInfo.display,
-          observations: observaciones.trim() || null
-        })
+          // Email al admin: Nueva reserva pendiente de confirmación
+          await notifyAdminNewBooking({
+            clientName: profile.nombre_completo,
+            clientEmail: profile.email || user.email,
+            dogName: dogData.nombre,
+            service: selectedService.nombre,
+            date: selectedDate,
+            time: selectedTime,
+            duration: selectedService.duracion_minutos.toString(),
+            price: selectedService.precio.toString(),
+            spaces: spaceInfo.display,
+            observations: observaciones.trim() || null,
+            requiresConfirmation: true // 🚨 Indicar que requiere confirmación
+          })
+        } else {
+          // Emails normales (reserva confirmada directamente)
+          await notifyBookingConfirmed({
+            pet_name: dogData.nombre,
+            service_name: selectedService.nombre,
+            fecha: selectedDate,
+            hora: selectedTime,
+            duracion: selectedService.duracion_minutos.toString(),
+            precio: selectedService.precio.toString(),
+            preferredLanguage: profile?.preferred_language // Idioma del usuario
+          })
+
+          await notifyAdminNewBooking({
+            clientName: profile.nombre_completo,
+            clientEmail: profile.email || user.email,
+            dogName: dogData.nombre,
+            service: selectedService.nombre,
+            date: selectedDate,
+            time: selectedTime,
+            duration: selectedService.duracion_minutos.toString(),
+            price: selectedService.precio.toString(),
+            spaces: spaceInfo.display,
+            observations: observaciones.trim() || null
+          })
+        }
       } catch (emailError) {
         console.error('Error enviando notificaciones:', emailError)
       }
