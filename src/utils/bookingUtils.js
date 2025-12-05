@@ -383,36 +383,6 @@ export const requiresAdminConfirmation = (selectedDateStr, selectedTimeStr) => {
 }
 
 /**
- * 🚨 NUEVA FUNCIÓN: Determina si un slot específico requiere confirmación
- * Basándose en la hora actual y el slot, determina si está en las "primeras 2 horas"
- */
-export const slotRequiresConfirmation = (selectedDateStr, slotTime, firstSlotOfDay) => {
-  const now = new Date()
-  const tomorrow = format(addDays(now, 1), 'yyyy-MM-dd')
-
-  // Solo aplicar si la fecha es mañana y es después de las 18:00
-  if (selectedDateStr !== tomorrow || now.getHours() < 18) {
-    return false
-  }
-
-  // Si no hay primer slot, no podemos determinar
-  if (!firstSlotOfDay) return false
-
-  const slotMinutes = timeToMinutes(slotTime)
-  const firstSlotMinutes = timeToMinutes(firstSlotOfDay)
-  const twoHoursLater = firstSlotMinutes + 120
-
-  // El slot requiere confirmación si está en las primeras 2 horas
-  const requiresConfirmation = slotMinutes < twoHoursLater
-
-  if (requiresConfirmation) {
-    debugLog(`⚠️ Slot ${slotTime} requiere confirmación (primeras 2h del día)`)
-  }
-
-  return requiresConfirmation
-}
-
-/**
  * FUNCIÓN LEGACY: Mantenida por compatibilidad, ahora no bloquea slots
  * @deprecated Use requiresAdminConfirmation o slotRequiresConfirmation
  */

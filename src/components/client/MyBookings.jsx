@@ -42,7 +42,6 @@ export default function MyBookings() {
       case 'rehabilitacion':
         return t('myBookings.spaces.rehabCabin')
       case 'hidroterapia':
-      case 'aqua_agility':
         return t('myBookings.spaces.pool')
       default:
         return booking.spaces?.nombre || t('myBookings.spaces.general')
@@ -288,8 +287,6 @@ export default function MyBookings() {
         return '🏥'
       case 'hidroterapia':
         return '💧'
-      case 'aqua_agility':
-        return '🏊‍♂️'
       case 'hidroterapia_rehabilitacion':
         return '🏥💧'
       default:

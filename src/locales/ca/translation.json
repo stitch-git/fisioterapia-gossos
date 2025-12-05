@@ -756,9 +756,9 @@
       }
     },
     "spaces": {
-      "rehabCabinPool": "Caseta de Rehabilitació + Piscina (Hidroteràpia/Aqua Agility)",
+      "rehabCabinPool": "Caseta de Rehabilitació + Piscina (Hidroteràpia)",
       "rehabCabin": "Caseta de Rehabilitació",
-      "pool": "Piscina (Hidroteràpia/Aqua Agility)",
+      "pool": "Piscina (Hidroteràpia)",
       "general": "Espai General"
     },
     "toasts": {
@@ -837,9 +837,9 @@
       "minutes": "min"
     },
     "spaces": {
-      "rehabCabinPool": "Caseta de Rehabilitació + Piscina (Hidroteràpia/Aqua Agility)",
+      "rehabCabinPool": "Caseta de Rehabilitació + Piscina (Hidroteràpia)",
       "rehabCabin": "Caseta de Rehabilitació",
-      "pool": "Piscina (Hidroteràpia/Aqua Agility)",
+      "pool": "Piscina (Hidroteràpia)",
       "general": "Espai General"
     },
     "cancelModal": {

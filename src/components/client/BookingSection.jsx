@@ -13,8 +13,7 @@ import {
   clearAvailableTimeSlotsCache,
   isTimeSlotBlocked,
   invalidateCacheAndNotify,
-  requiresAdminConfirmation,
-  slotRequiresConfirmation
+  requiresAdminConfirmation
 } from '../../utils/bookingUtils'
 import { useBookingNotifications } from '../NotificationProvider'
 import { useNotifications } from '../../hooks/useNotifications'
@@ -126,7 +125,7 @@ export default function BookingSection({ onNavigateToSection }) {
     
     const now = new Date()
     const currentMinutes = now.getHours() * 60 + now.getMinutes()
-    const minRequiredMinutes = currentMinutes + 90
+    const minRequiredMinutes = currentMinutes + 120 // ✅ + 2 horas (unificado con bookingUtils.js)
     
     return slots.filter(slot => {
       const [hours, minutes] = slot.split(':').map(Number)
