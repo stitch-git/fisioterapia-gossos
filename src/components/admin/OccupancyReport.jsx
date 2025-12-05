@@ -338,12 +338,11 @@ export default function OccupancyReport() {
       const bookingDuration = booking.duracion_minutos || booking.services?.duracion_minutos || 30
       
       // CORREGIDO: Aplicar tiempo de descanso según el tipo de servicio
-      let restTime = 15 // Por defecto 15 min
-      if (booking.services?.tipo === 'rehabilitacion_domicilio') {
-        restTime = 0 // Las visitas a domicilio no necesitan tiempo de descanso en el centro
-      } else if (booking.services?.tipo === 'hidroterapia' || booking.services?.tipo === 'hidroterapia_rehabilitacion') {
-        restTime = 30 // 30 min para servicios de hidroterapia
+      let restTime = 0 // Por defecto sin descanso
+      if (booking.services?.tipo === 'hidroterapia') {
+        restTime = 15 // 15 min para hidroterapia (secar al perro)
       }
+      // hidroterapia_rehabilitacion y rehabilitacion_domicilio: 0 min
       
       const bookingEnd = bookingStart + bookingDuration + restTime
       
