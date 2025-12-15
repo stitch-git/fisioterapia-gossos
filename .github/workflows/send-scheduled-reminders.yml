@@ -1,0 +1,29 @@
+name: Send Scheduled Reminders
+
+on:
+  schedule:
+    # Ejecutar cada hora
+    - cron: '0 * * * *'
+  workflow_dispatch: # Permite ejecución manual desde GitHub
+
+jobs:
+  send-reminders:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Call Supabase Edge Function
+        run: |
+          response=$(curl -X POST \
+            "${{ secrets.SUPABASE_URL }}/functions/v1/send-scheduled-reminders" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
+            -H "Content-Type: application/json")
+          
+          echo "Response: $response"
+          
+          # Verificar si fue exitoso
+          if echo "$response" | grep -q '"success":true'; then
+            echo "✅ Recordatorios enviados exitosamente"
+          else
+            echo "❌ Error enviando recordatorios"
+            exit 1
+          fi
