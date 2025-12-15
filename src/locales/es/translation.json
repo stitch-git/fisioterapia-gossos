@@ -1287,8 +1287,9 @@
       "bookings": "Gestión de Citas",
       "clients": "Historial de Clientes",
       "configuration": "🕑 Configuración de Horarios",
-      "systemLogs": "Logs del Sistema"
-
+      "profile": "Mi Perfil",
+      "systemLogs": "Logs del Sistema",
+      "emailLogs": "Emails"
     },
     "pwa": {
       "installed": "App Instalada",
@@ -1306,10 +1307,49 @@
       "cancel": "Cancelar"
     },
     "version": {
-      "appName": "Fisioterapia Gossos",
+      "appName": "Fisioterapia Perros",
       "version": "Versión",
       "lastUpdate": "Última actualización:"
     }
+  },
+
+  "emailLogsPanel": {
+    "stats": {
+      "totalSent": "Total Enviados",
+      "failed": "Fallidos",
+      "pending": "Pendientes",
+      "successRate": "Tasa Éxito"
+    },
+    "filters": {
+      "status": "Estado",
+      "emailType": "Tipo Email",
+      "recipientEmail": "Email Destinatario",
+      "searchPlaceholder": "Buscar por email...",
+      "all": "Todos",
+      "sent": "Enviados",
+      "pending": "Pendientes"
+    },
+    "emailTypes": {
+      "welcome": "Bienvenida",
+      "confirmation": "Confirmación",
+      "cancellation": "Cancelación",
+      "reminder": "Recordatorio",
+      "passwordReset": "Restablecer Contraseña",
+      "passwordChanged": "Contraseña Cambiada",
+      "adminNewBooking": "Admin: Nueva Reserva",
+      "adminCancellation": "Admin: Cancelación"
+    },
+    "table": {
+      "date": "Fecha",
+      "type": "Tipo",
+      "recipient": "Destinatario",
+      "subject": "Asunto",
+      "status": "Estado",
+      "actions": "Acciones",
+      "retry": "Reintentar"
+    },
+    "loading": "Cargando logs...",
+    "noLogsFound": "No se encontraron logs de emails"
   },
 
   "clientDashboard": {

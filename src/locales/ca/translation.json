@@ -1289,8 +1289,8 @@
       "clients": "Historial de Clients",
       "configuration": "🕑 Configuració d'Horaris",
       "profile": "El meu Perfil",
-      "systemLogs": "Logs del Sistema"
-
+      "systemLogs": "Logs del Sistema",
+      "emailLogs": "Correus"
     },
     "pwa": {
       "installed": "App Instal·lada",
@@ -1312,6 +1312,45 @@
       "version": "Versió",
       "lastUpdate": "Última actualització:"
     }
+  },
+
+  "emailLogsPanel": {
+    "stats": {
+      "totalSent": "Total Enviats",
+      "failed": "Fallits",
+      "pending": "Pendents",
+      "successRate": "Taxa d'Èxit"
+    },
+    "filters": {
+      "status": "Estat",
+      "emailType": "Tipus d'Email",
+      "recipientEmail": "Email Destinatari",
+      "searchPlaceholder": "Cercar per email...",
+      "all": "Tots",
+      "sent": "Enviats",
+      "pending": "Pendents"
+    },
+    "emailTypes": {
+      "welcome": "Benvinguda",
+      "confirmation": "Confirmació",
+      "cancellation": "Cancel·lació",
+      "reminder": "Recordatori",
+      "passwordReset": "Restablir Contrasenya",
+      "passwordChanged": "Contrasenya Canviada",
+      "adminNewBooking": "Admin: Nova Reserva",
+      "adminCancellation": "Admin: Cancel·lació"
+    },
+    "table": {
+      "date": "Data",
+      "type": "Tipus",
+      "recipient": "Destinatari",
+      "subject": "Assumpte",
+      "status": "Estat",
+      "actions": "Accions",
+      "retry": "Reintentar"
+    },
+    "loading": "Carregant logs...",
+    "noLogsFound": "No s'han trobat logs d'emails"
   },
 
   "clientDashboard": {

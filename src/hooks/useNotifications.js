@@ -1,3 +1,4 @@
+// src/hooks/useNotifications.js
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabase'
@@ -7,15 +8,17 @@ export const useNotifications = () => {
   const { t, i18n } = useTranslation()
   const [loading, setLoading] = useState(false)
 
-  const sendEmail = async (emailType, to, data, language = null) => {
+  // 🚨 FUNCIÓN PRINCIPAL ACTUALIZADA CON bookingId y userId
+  const sendEmail = async (emailType, to, data, language = null, bookingId = null, userId = null) => {
     try {
-      // Determinar el idioma a usar
       const emailLanguage = language || i18n.language || 'ca'
 
       console.log(`📧 Enviando email tipo: ${emailType} a: ${to}`, {
         idiomaSolicitado: language,
         idiomaI18n: i18n.language,
-        idiomaFinal: emailLanguage
+        idiomaFinal: emailLanguage,
+        bookingId,
+        userId
       })
 
       const emailPayload = {
@@ -24,6 +27,8 @@ export const useNotifications = () => {
         clientName: data.clientName,
         subject: data.subject,
         language: emailLanguage,
+        bookingId, // 🚨 NUEVO
+        userId, // 🚨 NUEVO
         ...data
       }
 
@@ -33,7 +38,11 @@ export const useNotifications = () => {
 
       if (error) throw error
 
-      console.log(`✅ Email ${emailType} enviado correctamente (${emailLanguage}):`, response?.emailId)
+      console.log(`✅ Email ${emailType} enviado correctamente (${emailLanguage}):`, {
+        emailId: response?.emailId,
+        logId: response?.logId // 🚨 NUEVO: Log ID devuelto
+      })
+      
       return { success: true, data: response }
       
     } catch (error) {
@@ -96,17 +105,18 @@ export const useNotifications = () => {
     }
   }
 
-  const sendWelcomeEmail = async (to, clientName) => {
+  // 🚨 ACTUALIZADA: Acepta userId
+  const sendWelcomeEmail = async (to, clientName, userId = null) => {
     const userLanguage = await getUserLanguage(to)
     
     return await sendEmail('welcome', to, {
       clientName: clientName || to?.split('@')[0] || t('emailNotifications.fallbacks.user'),
       subject: t('emailNotifications.subjects.welcome')
-    }, userLanguage)
+    }, userLanguage, null, userId)
   }
 
-  const sendBookingConfirmationEmail = async (bookingData, preferredLanguage = null) => {
-    // Si se proporciona un idioma preferido, usarlo; de lo contrario, consultar la BD
+  // 🚨 ACTUALIZADA: Acepta bookingId y userId
+  const sendBookingConfirmationEmail = async (bookingData, preferredLanguage = null, bookingId = null, userId = null) => {
     const userLanguage = preferredLanguage || await getUserLanguage(bookingData.to)
 
     return await sendEmail('confirmation', bookingData.to, {
@@ -118,11 +128,11 @@ export const useNotifications = () => {
       duration: bookingData.duration,
       price: bookingData.price,
       subject: t('emailNotifications.subjects.bookingConfirmation')
-    }, userLanguage)
+    }, userLanguage, bookingId, userId)
   }
 
-  const sendBookingCancellationEmail = async (bookingData, preferredLanguage = null) => {
-    // Si se proporciona un idioma preferido, usarlo; de lo contrario, consultar la BD
+  // 🚨 ACTUALIZADA: Acepta bookingId y userId
+  const sendBookingCancellationEmail = async (bookingData, preferredLanguage = null, bookingId = null, userId = null) => {
     const userLanguage = preferredLanguage || await getUserLanguage(bookingData.to)
 
     return await sendEmail('cancellation', bookingData.to, {
@@ -133,10 +143,11 @@ export const useNotifications = () => {
       time: bookingData.time,
       cancellationReason: bookingData.cancellationReason,
       subject: t('emailNotifications.subjects.cancellation')
-    }, userLanguage)
+    }, userLanguage, bookingId, userId)
   }
 
-  const sendReminderEmail = async (bookingData) => {
+  // 🚨 ACTUALIZADA: Acepta bookingId y userId
+  const sendReminderEmail = async (bookingData, bookingId = null, userId = null) => {
     const userLanguage = await getUserLanguage(bookingData.to)
     
     return await sendEmail('reminder', bookingData.to, {
@@ -147,10 +158,11 @@ export const useNotifications = () => {
       time: bookingData.time,
       duration: bookingData.duration,
       subject: t('emailNotifications.subjects.reminder')
-    }, userLanguage)
+    }, userLanguage, bookingId, userId)
   }
 
-  const sendPasswordResetEmail = async (to, resetData) => {
+  // 🚨 ACTUALIZADA: Acepta userId
+  const sendPasswordResetEmail = async (to, resetData, userId = null) => {
     const userLanguage = await getUserLanguage(to)
     
     return await sendEmail('password_reset', to, {
@@ -158,10 +170,11 @@ export const useNotifications = () => {
       resetUrl: resetData.resetUrl,
       expirationTime: resetData.expirationTime || '60 minutos',
       subject: t('emailNotifications.subjects.passwordReset')
-    }, userLanguage)
+    }, userLanguage, null, userId)
   }
 
-  const sendPasswordChangedEmail = async (to, clientName) => {
+  // 🚨 ACTUALIZADA: Acepta userId
+  const sendPasswordChangedEmail = async (to, clientName, userId = null) => {
     const userLanguage = await getUserLanguage(to)
     const locale = userLanguage === 'ca' ? 'ca-ES' : 'es-ES'
     
@@ -176,10 +189,11 @@ export const useNotifications = () => {
         minute: '2-digit'
       }),
       subject: t('emailNotifications.subjects.passwordChanged')
-    }, userLanguage)
+    }, userLanguage, null, userId)
   }
 
-  const sendAdminNewBookingEmail = async (bookingData) => {
+  // 🚨 ACTUALIZADA: Acepta bookingId
+  const sendAdminNewBookingEmail = async (bookingData, bookingId = null) => {
     const adminEmail = await getAdminEmail()
     if (!adminEmail) {
       console.warn('No se pudo obtener el email del administrador')
@@ -200,10 +214,11 @@ export const useNotifications = () => {
       spaces: bookingData.spaces,
       observations: bookingData.observations,
       subject: t('emailNotifications.subjects.adminNewBooking')
-    }, adminLanguage)
+    }, adminLanguage, bookingId)
   }
 
-  const sendAdminCancellationEmail = async (cancellationData) => {
+  // 🚨 ACTUALIZADA: Acepta bookingId
+  const sendAdminCancellationEmail = async (cancellationData, bookingId = null) => {
     const adminEmail = await getAdminEmail()
     if (!adminEmail) {
       console.warn('No se pudo obtener el email del administrador')
@@ -223,7 +238,7 @@ export const useNotifications = () => {
       hasLateCharge: cancellationData.hasLateCharge || false,
       chargeAmount: cancellationData.chargeAmount || '0',
       subject: t('emailNotifications.subjects.adminCancellation')
-    }, adminLanguage)
+    }, adminLanguage, bookingId)
   }
 
   const showToast = (type, message) => {
@@ -318,8 +333,11 @@ export const useNotifications = () => {
     return await sendReminderEmail(emailData)
   }
 
+  // 🚨 ACTUALIZADA: Extrae y pasa bookingId
   const notifyAdminNewBooking = async (bookingData) => {
     try {
+      const bookingId = bookingData.booking_id || bookingData.id || null
+
       const adminEmailData = {
         clientName: bookingData.cliente_nombre || bookingData.clientName,
         clientEmail: bookingData.cliente_email || bookingData.clientEmail,
@@ -333,7 +351,7 @@ export const useNotifications = () => {
         observations: bookingData.observaciones || bookingData.observations || null
       }
 
-      const result = await sendAdminNewBookingEmail(adminEmailData)
+      const result = await sendAdminNewBookingEmail(adminEmailData, bookingId)
       if (result.success) {
         console.log('✅ Notificación al admin enviada correctamente')
       }
@@ -344,8 +362,11 @@ export const useNotifications = () => {
     }
   }
 
+  // 🚨 ACTUALIZADA: Extrae y pasa bookingId
   const notifyAdminCancellation = async (cancellationData) => {
     try {
+      const bookingId = cancellationData.booking_id || cancellationData.id || null
+
       const adminEmailData = {
         clientName: cancellationData.cliente_nombre || cancellationData.clientName,
         clientEmail: cancellationData.cliente_email || cancellationData.clientEmail,
@@ -358,7 +379,7 @@ export const useNotifications = () => {
         chargeAmount: cancellationData.recargo_cancelacion || '0'
       }
 
-      const result = await sendAdminCancellationEmail(adminEmailData)
+      const result = await sendAdminCancellationEmail(adminEmailData, bookingId)
       if (result.success) {
         console.log('✅ Notificación de cancelación al admin enviada correctamente')
       }

@@ -200,6 +200,47 @@ export default function BookingsManagement() {
     }
   }, [t])
 
+  // 🆕 FUNCIÓN DE AUTO-COMPLETADO (como en MyBookings)
+  const checkAndUpdateCompletedBookings = async () => {
+    try {
+      const now = new Date()
+      
+      const bookingsToUpdate = bookings.filter(booking => {
+        if (!['pendiente', 'pendiente_confirmacion'].includes(booking.estado)) return false
+        
+        const bookingDateStr = booking.fecha_hora.substring(0, 10)
+        const bookingTimeStr = booking.fecha_hora.substring(11, 16)
+        const [hours, minutes] = bookingTimeStr.split(':').map(Number)
+
+        const bookingDateTime = new Date()
+        const [year, month, day] = bookingDateStr.split('-').map(Number)
+        bookingDateTime.setFullYear(year, month - 1, day)
+        bookingDateTime.setHours(hours, minutes, 0, 0)
+
+        const bookingEndTime = new Date(bookingDateTime.getTime() + booking.duracion_minutos * 60000)
+        
+        return now >= bookingEndTime
+      })
+
+      if (bookingsToUpdate.length > 0) {
+        for (const booking of bookingsToUpdate) {
+          await supabase
+            .from('bookings')
+            .update({ 
+              estado: 'completada',
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', booking.id)
+        }
+        
+        loadBookings(true)
+        toast.success(t('myBookings.toasts.autoCompleted', { count: bookingsToUpdate.length }))
+      }
+    } catch (error) {
+      console.error('Error updating completed bookings:', error)
+    }
+  }
+
   useRealtimeBookingUpdates(newBooking.fecha, selectedService, () => {
     loadBookings(true)
     
@@ -215,13 +256,23 @@ export default function BookingsManagement() {
     loadClients()
     loadServices()
     
+    // 🆕 Verificar citas completadas al cargar
+    const timer = setTimeout(() => {
+      checkAndUpdateCompletedBookings()
+    }, 1000)
+        
     const handleResize = () => {
       setViewMode(window.innerWidth < 768 ? 'mobile' : 'desktop')
     }
     
     handleResize()
     window.addEventListener('resize', handleResize)
-    return () => window.removeEventListener('resize', handleResize)
+    
+    // ✅ Limpiar AMBAS cosas
+    return () => {
+      clearTimeout(timer)
+      window.removeEventListener('resize', handleResize)
+    }
   }, [loadBookings])
 
   useEffect(() => {

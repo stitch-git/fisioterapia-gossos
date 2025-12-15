@@ -12,6 +12,7 @@ import OccupancyReport from '../../components/admin/OccupancyReport'
 import BookingsManagement from '../../components/admin/BookingsManagement'
 import ClientsManagement from '../../components/admin/ClientsManagement'
 import ConfigurationPanel from '../../components/admin/ConfigurationPanel'
+import EmailLogsPanel from '../../components/admin/EmailLogsPanel'
 import Footer from '../../components/common/Footer'
 
 export default function AdminDashboard() {
@@ -144,7 +145,16 @@ export default function AdminDashboard() {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
         </svg>
       )
-    }
+    },
+    {
+    id: 'email-logs',
+    label: t('adminDashboard.navigation.emailLogs'),
+    icon: (
+      <svg className="w-5 h-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+      </svg>
+    )
+  }
   ]
 
   const InstallModal = () => {
@@ -348,6 +358,7 @@ export default function AdminDashboard() {
               {activeSection === 'clients' && <ClientsManagement />}
               {activeSection === 'profile' && <MyProfile />}
               {activeSection === 'configuration' && <ConfigurationPanel />}
+              {activeSection === 'email-logs' && <EmailLogsPanel />}
             </div>
           </main>
 
