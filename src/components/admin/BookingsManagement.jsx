@@ -1275,16 +1275,50 @@ export default function BookingsManagement() {
         }
         
         await notifyBookingConfirmed({
-          pet_name: selectedDog?.nombre,
-          service_name: selectedService?.nombre,
-          fecha: newBooking.fecha,
-          hora: timeDisplay,
-          duracion: duracionMinutos.toString(),
-          precio: precio.toString(),
-          client_email: selectedClient?.email,
-          client_name: selectedClient?.nombre_completo
-        })
+        pet_name: selectedDog?.nombre,
+        service_name: selectedService?.nombre,
+        fecha: newBooking.fecha,
+        hora: timeDisplay,
+        duracion: duracionMinutos.toString(),
+        precio: precio.toString(),
+        client_email: selectedClient?.email,
+        client_name: selectedClient?.nombre_completo
+      })
+
+      // 🔔 NUEVO: Programar recordatorio 24h antes
+      try {
+        // Buscar el booking recién creado para obtener su ID
+        const { data: createdBooking, error: fetchError } = await supabase
+          .from('bookings')
+          .select('id')
+          .eq('client_id', newBooking.client_id)
+          .eq('fecha_hora', datetime)
+          .eq('service_id', parseInt(newBooking.service_id))
+          .single()
         
+        if (fetchError) {
+          console.warn('⚠️ No se pudo obtener booking_id para recordatorio:', fetchError)
+        } else if (createdBooking?.id) {
+          const { scheduleEmailReminder } = await import('../../../utils/emailService')
+          await scheduleEmailReminder({
+            id: createdBooking.id,
+            user_id: newBooking.client_id,
+            fecha: newBooking.fecha,
+            hora: isHomeVisit ? newBooking.hora_inicio_domicilio : newBooking.hora,
+            profiles: {
+              nombre_completo: selectedClient?.nombre_completo,
+              email: selectedClient?.email
+            },
+            pet_name: selectedDog?.nombre,
+            service_name: selectedService?.nombre,
+            duracion_minutos: duracionMinutos
+          })
+          console.log('✅ Recordatorio programado para 24h antes de la cita')
+        }
+      } catch (reminderError) {
+        console.error('⚠️ Error programando recordatorio (no crítico):', reminderError)
+      }
+
       } catch (emailError) {
         console.error('Error enviando email de confirmación:', emailError)
       }
