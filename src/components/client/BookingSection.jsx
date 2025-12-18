@@ -595,6 +595,41 @@ export default function BookingSection({ onNavigateToSection }) {
             preferredLanguage: profile?.preferred_language // Idioma del usuario
           })
 
+          // 🔔 NUEVO: Programar recordatorio 24h antes (solo si no requiere confirmación)
+          try {
+            const { data: createdBooking, error: fetchError } = await supabase
+              .from('bookings')
+              .select('id')
+              .eq('client_id', user.id)
+              .eq('fecha_hora', datetime)
+              .eq('service_id', selectedService.id)
+              .single()
+            
+            if (fetchError) {
+              console.warn('⚠️ No se pudo obtener booking_id para recordatorio:', fetchError)
+            } else if (createdBooking?.id) {
+              const { scheduleEmailReminder } = await import('../../utils/emailService')
+              await scheduleEmailReminder({
+                id: createdBooking.id,
+                user_id: user.id,
+                fecha: selectedDate,
+                hora: selectedTime,
+                profiles: {
+                  nombre_completo: profile.nombre_completo,
+                  email: profile.email || user.email
+                },
+                pet_name: dogData.nombre,
+                service_name: selectedService.nombre,
+                duracion_minutos: selectedService.duracion_minutos
+              })
+              console.log('✅ Recordatorio programado para 24h antes de la cita')
+            }
+          } catch (reminderError) {
+            console.error('⚠️ Error programando recordatorio (no crítico):', reminderError)
+          }
+
+
+
           // Email al admin: Nueva reserva pendiente de confirmación
           await notifyAdminNewBooking({
             clientName: profile.nombre_completo,
