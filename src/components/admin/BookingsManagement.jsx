@@ -1299,7 +1299,7 @@ export default function BookingsManagement() {
         if (fetchError) {
           console.warn('⚠️ No se pudo obtener booking_id para recordatorio:', fetchError)
         } else if (createdBooking?.id) {
-          const { scheduleEmailReminder } = await import('../../../utils/emailService')
+          const { scheduleEmailReminder } = await import('../../utils/emailService')
           await scheduleEmailReminder({
             id: createdBooking.id,
             user_id: newBooking.client_id,
