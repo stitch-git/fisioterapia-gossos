@@ -2,28 +2,28 @@ import React from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
-import NotificationProvider from './components/NotificationProvider' // ← NUEVO IMPORT
+import NotificationProvider from './components/NotificationProvider'
 import CookieBanner from './components/common/CookieBanner'
-//import UpdateNotification from './components/UpdateNotification'
+import { useTranslation } from 'react-i18next'
 
-// Layout components
 import LoadingSpinner from './components/common/LoadingSpinner'
 
-// Auth components
 import LoginPage from './components/auth/LoginPage'
 import RegisterPage from './components/auth/RegisterPage'
 
-// Page components
 import ClientDashboard from './pages/client/ClientDashboard'
 import AdminDashboard from './pages/admin/AdminDashboard'
 
 import ForgotPasswordPage from './components/auth/ForgotPasswordPage'
 import ResetPasswordPage from './components/auth/ResetPasswordPage'
 
+import SuperDashboard from './pages/super/SuperDashboard'
+
+import ErrorTracker from './components/ErrorTracker' // ✅ NUEVO
 
 
-// Protected Route Component
 function ProtectedRoute({ children, roles = [] }) {
+  const { t } = useTranslation()
   const { user, profile, loading, initializing } = useAuth()
 
   if (initializing || loading) {
@@ -44,15 +44,17 @@ function ProtectedRoute({ children, roles = [] }) {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
-            <h3 className="mt-4 text-lg font-medium text-gray-900">Acceso Denegado</h3>
+            <h3 className="mt-4 text-lg font-medium text-gray-900">
+              {t('app.accessDenied.title')}
+            </h3>
             <p className="mt-2 text-sm text-gray-600">
-              No tienes permisos para acceder a esta sección.
+              {t('app.accessDenied.message')}
             </p>
             <button
               onClick={() => window.history.back()}
               className="mt-4 btn btn-primary"
             >
-              Volver
+              {t('app.accessDenied.back')}
             </button>
           </div>
         </div>
@@ -63,7 +65,6 @@ function ProtectedRoute({ children, roles = [] }) {
   return children
 }
 
-// Public Route Component (redirects authenticated users)
 function PublicRoute({ children }) {
   const { user, profile, loading, initializing } = useAuth()
 
@@ -72,13 +73,13 @@ function PublicRoute({ children }) {
   }
 
   if (user && profile) {
-    // Redirect based on user role
     switch (profile.role) {
       case 'cliente':
         return <Navigate to="/client" replace />
       case 'admin':
-      case 'super':
         return <Navigate to="/admin" replace />
+      case 'super':
+        return <Navigate to="/super" replace />
       default:
         return <Navigate to="/client" replace />
     }
@@ -87,8 +88,8 @@ function PublicRoute({ children }) {
   return children
 }
 
-// Main App Router
 function AppRouter() {
+  const { t } = useTranslation()
   const { initializing } = useAuth()
 
   if (initializing) {
@@ -98,7 +99,6 @@ function AppRouter() {
   return (
     <Router>
       <Routes>
-        {/* Public Routes */}
         <Route 
           path="/login" 
           element={
@@ -129,8 +129,6 @@ function AppRouter() {
           element={<ResetPasswordPage />}
         />
 
-
-        {/* Protected Routes - Client */}
         <Route 
           path="/client/*" 
           element={
@@ -140,20 +138,26 @@ function AppRouter() {
           } 
         />
 
-        {/* Protected Routes - Admin */}
         <Route 
           path="/admin/*" 
           element={
-            <ProtectedRoute roles={['admin', 'super']}>
+            <ProtectedRoute roles={['admin']}>
               <AdminDashboard />
             </ProtectedRoute>
           } 
         />
 
-        {/* Default redirects */}
+        <Route 
+          path="/super/*" 
+          element={
+            <ProtectedRoute roles={['super']}>
+              <SuperDashboard />
+            </ProtectedRoute>
+          } 
+        />
+
         <Route path="/" element={<Navigate to="/login" replace />} />
         
-        {/* 404 Page */}
         <Route 
           path="*" 
           element={
@@ -165,12 +169,14 @@ function AppRouter() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
                   </div>
-                  <h3 className="mt-4 text-lg font-medium text-gray-900">Página no encontrada</h3>
+                  <h3 className="mt-4 text-lg font-medium text-gray-900">
+                    {t('app.notFound.title')}
+                  </h3>
                   <p className="mt-2 text-sm text-gray-600">
-                    La página que buscas no existe.
+                    {t('app.notFound.message')}
                   </p>
                   <a href="/" className="mt-4 btn btn-primary">
-                    Volver al inicio
+                    {t('app.notFound.backToHome')}
                   </a>
                 </div>
               </div>
@@ -182,17 +188,17 @@ function AppRouter() {
   )
 }
 
-// Main App Component
 export default function App() {
+  const { i18n } = useTranslation()
+  
   return (
     <AuthProvider>
-      {/* ✅ NUEVO: NotificationProvider envuelve todo después de AuthProvider */}
+      <ErrorTracker /> {/* ✅ NUEVO: Captura errores globalmente */}
       <NotificationProvider>
         <AppRouter />
         
-        
-        {/* Toast notifications */}
         <Toaster 
+          key={i18n.language}
           position="top-right"
           toastOptions={{
             duration: 4000,
@@ -213,7 +219,7 @@ export default function App() {
             },
           }}
         />
-        {/* Cookie consent banner */}
+        
         <CookieBanner />
       </NotificationProvider>
     </AuthProvider>

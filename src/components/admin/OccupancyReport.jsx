@@ -1,22 +1,29 @@
 import React, { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { supabase } from '../../lib/supabase'
 import { format, startOfWeek, endOfWeek, eachDayOfInterval, addWeeks, subWeeks, parseISO } from 'date-fns'
-import { es } from 'date-fns/locale'
+import { es, ca } from 'date-fns/locale'
 import toast from 'react-hot-toast'
 import { mergeConsecutiveSlots } from '../../utils/bookingUtils'
-
-// Función helper para mostrar precio condicional
-const displayPrice = (servicio, precio) => {
-  if (servicio && (
-    servicio.toLowerCase().includes('rehabilitación a domicilio') ||
-    servicio.toLowerCase().includes('rehabilitacion a domicilio')
-  )) {
-    return 'A partir de 80 €';
-  }
-  return `€${precio}`;
-};
+import { useBookingNotifications } from "../NotificationProvider"
+import { useNotifications } from '../../hooks/useNotifications'
+import ConfirmModal from '../common/ConfirmModal'
 
 export default function OccupancyReport() {
+  const { t, i18n } = useTranslation()
+  const getDateLocale = () => i18n.language === 'ca' ? ca : es
+
+  // Función helper para mostrar precio condicional
+  const displayPrice = (servicio, precio) => {
+    if (servicio && (
+      servicio.toLowerCase().includes('rehabilitación a domicilio') ||
+      servicio.toLowerCase().includes('rehabilitacion a domicilio')
+    )) {
+      return t('occupancyReport.price.from');
+    }
+    return `€${precio}`;
+  };
+
   const [bookings, setBookings] = useState([])
   const [loading, setLoading] = useState(true)
   const [currentWeek, setCurrentWeek] = useState(new Date())
@@ -24,6 +31,10 @@ export default function OccupancyReport() {
   const [selectedBooking, setSelectedBooking] = useState(null)
   const [viewMode, setViewMode] = useState('desktop')
   const [availableSlots, setAvailableSlots] = useState([])
+  const { notifyBookingCanceled } = useBookingNotifications()
+  const { notifyAdminCancellation } = useNotifications()
+  const [cancellingBooking, setCancellingBooking] = useState(false)
+  const [showCancelModal, setShowCancelModal] = useState(false)
 
   // Generar horas del día (08:00 - 21:00, solo horas completas)
   const timeSlots = []
@@ -95,9 +106,66 @@ export default function OccupancyReport() {
       setAvailableSlots(slotsData || [])
     } catch (error) {
       console.error('Error loading weekly data:', error)
-      toast.error('Error cargando datos de la semana')
+      toast.error(t('occupancyReport.toasts.errorLoadingWeek'))
     } finally {
       setLoading(false)
+    }
+  }
+
+  const cancelBooking = async () => {
+    if (!selectedBooking) return
+
+    try {
+      setCancellingBooking(true)
+
+      // Actualizar estado en la base de datos
+      const { error } = await supabase
+        .from('bookings')
+        .update({ 
+          estado: 'cancelada',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', selectedBooking.id)
+
+      if (error) throw error
+
+      // Enviar emails de cancelación
+      try {
+        const cancelationData = {
+          cliente_email: selectedBooking.profiles?.email,
+          cliente_nombre: selectedBooking.profiles?.nombre_completo,
+          pet_name: selectedBooking.dogs?.nombre,
+          service_name: selectedBooking.services?.nombre,
+          fecha: selectedBooking.fecha_hora.substring(0, 10),
+          hora: selectedBooking.fecha_hora.substring(11, 16),
+          motivo_cancelacion: 'Cancelación por parte del centro'
+        }
+
+        // Email al cliente
+        await notifyBookingCanceled(cancelationData)
+        
+        // Email al admin
+        await notifyAdminCancellation(cancelationData)
+        
+      } catch (emailError) {
+        console.error('Error enviando emails de cancelación:', emailError)
+        // No interrumpir el flujo si falla el email
+      }
+
+      toast.success(t('occupancyReport.toasts.appointmentCancelled'))
+      
+      // Cerrar modales
+      setShowCancelModal(false)
+      setSelectedBooking(null)
+      
+      // Recargar datos
+      await loadWeeklyBookings()
+
+    } catch (error) {
+      console.error('Error cancelling booking:', error)
+      toast.error(t('occupancyReport.toasts.errorCancelling'))
+    } finally {
+      setCancellingBooking(false)
     }
   }
 
@@ -270,12 +338,11 @@ export default function OccupancyReport() {
       const bookingDuration = booking.duracion_minutos || booking.services?.duracion_minutos || 30
       
       // CORREGIDO: Aplicar tiempo de descanso según el tipo de servicio
-      let restTime = 15 // Por defecto 15 min
-      if (booking.services?.tipo === 'rehabilitacion_domicilio') {
-        restTime = 0 // Las visitas a domicilio no necesitan tiempo de descanso en el centro
-      } else if (booking.services?.tipo === 'hidroterapia' || booking.services?.tipo === 'hidroterapia_rehabilitacion') {
-        restTime = 30 // 30 min para servicios de hidroterapia
+      let restTime = 0 // Por defecto sin descanso
+      if (booking.services?.tipo === 'hidroterapia') {
+        restTime = 15 // 15 min para hidroterapia (secar al perro)
       }
+      // hidroterapia_rehabilitacion y rehabilitacion_domicilio: 0 min
       
       const bookingEnd = bookingStart + bookingDuration + restTime
       
@@ -390,7 +457,7 @@ export default function OccupancyReport() {
       }
     })
     
-    // 🚨 NUEVO: Agrupar slots por día y fusionar consecutivos
+    // Agrupar slots por día y fusionar consecutivos
     const slotsByDay = {}
     availableSlots.forEach(slot => {
       if (!slotsByDay[slot.date]) {
@@ -403,7 +470,7 @@ export default function OccupancyReport() {
     Object.entries(slotsByDay).forEach(([dayKey, daySlots]) => {
       if (!matrix[dayKey]) return
       
-      // 🚨 FUSIONAR slots consecutivos del día
+      // Fusionar slots consecutivos del día
       const mergedSlots = mergeConsecutiveSlots(daySlots)
       console.log(`📅 OccupancyReport - Día ${dayKey}: ${daySlots.length} slots originales, ${mergedSlots.length} fusionados`)
       
@@ -439,8 +506,8 @@ export default function OccupancyReport() {
           
           matrix[dayKey].events.push(availableEvent)
         })
-      }) // Cierre del mergedSlots.forEach
-    }) // Cierre del Object.entries forEach
+      })
+    })
     
     // Luego, procesar cada cita como evento independiente
     filteredBookings.forEach(booking => {
@@ -472,6 +539,7 @@ export default function OccupancyReport() {
     
     return matrix
   }
+  
   const renderDayColumn = (day, dayKey) => {
     const dayData = bookingMatrix[dayKey]
     if (!dayData) return null
@@ -494,6 +562,7 @@ export default function OccupancyReport() {
 
           const horizontalPosition = getHorizontalPosition()
         
+          const isAdminOnlySlot = event.isAvailable && event.slot?.admin_only
           
           // Estilo para citas normales con contenido adaptativo
           return (
@@ -506,8 +575,8 @@ export default function OccupancyReport() {
                   : 'cursor-pointer hover:shadow-md hover:-translate-y-0.5' // Solo para citas
               }`}
               style={{
-                backgroundColor: getServiceColor(event.services?.tipo),
-                borderLeftColor: getServiceBorderColor(event.services?.tipo),
+                backgroundColor: isAdminOnlySlot ? '#FEE2E2' : getServiceColor(event.services?.tipo),
+                borderLeftColor: isAdminOnlySlot ? '#DC2626' : getServiceBorderColor(event.services?.tipo),
                 top: `${event.topPixels}px`,
                 height: `${Math.max(event.heightPixels, 24)}px`,
                 minHeight: '24px',
@@ -518,8 +587,8 @@ export default function OccupancyReport() {
 
                 {(() => {
                   const serviceIcon = getServiceIcon(event.services?.tipo)
-                  const clientName = event.profiles?.nombre_completo || 'Cliente'
-                  const dogName = event.dogs?.nombre || 'Perro'
+                  const clientName = event.profiles?.nombre_completo || t('occupancyReport.detailsModal.client')
+                  const dogName = event.dogs?.nombre || t('occupancyReport.detailsModal.dog')
                   
                   // Calcular altura disponible y líneas que caben - CORREGIDO
                   const estimatedHeightPx = event.heightPixels
@@ -540,28 +609,34 @@ export default function OccupancyReport() {
                   
                   // Renderizado para eventos DISPONIBLES
                   if (event.isAvailable) {
+                    const isAdminOnly = event.slot?.admin_only
+                    const bgColor = isAdminOnly ? 'text-red-700' : 'text-green-700'
+                    const textColor = isAdminOnly ? 'text-red-600' : 'text-green-600'
+                    const icon = isAdminOnly ? '🔒' : '✅'
+                    const label = isAdminOnly ? t('occupancyReport.available.adminOnly') : t('occupancyReport.available.available')
+                    
                     return (
                       <div className="text-center px-1 py-1 w-full h-full flex flex-col justify-center">
                         {/* Siempre mostrar algo, adaptándose al espacio disponible */}
                         {maxLines >= 2 ? (
                           // Espacio para 2+ líneas: mostrar completo
                           <>
-                            <div className={`font-medium text-green-700 leading-tight ${fontSize}`}>
-                              ✅ DISPONIBLE
+                            <div className={`font-medium ${bgColor} leading-tight ${fontSize}`}>
+                              {icon} {label}
                             </div>
-                            <div className={`text-green-600 leading-tight ${fontSize}`}>
+                            <div className={`${textColor} leading-tight ${fontSize}`}>
                               {event.displayStartTime} - {event.displayEndTime}
                             </div>
                           </>
                         ) : maxLines >= 1 ? (
-                          // Espacio para 1 línea: solo "✅ DISPONIBLE"
-                          <div className={`font-medium text-green-700 leading-tight ${fontSize}`}>
-                            ✅ DISPONIBLE
+                          // Espacio para 1 línea: solo texto
+                          <div className={`font-medium ${bgColor} leading-tight ${fontSize}`}>
+                            {icon} {label}
                           </div>
                         ) : (
                           // Muy poco espacio: solo el emoji
-                          <div className={`font-medium text-green-700 leading-tight text-center ${fontSize}`}>
-                            ✅
+                          <div className={`font-medium ${bgColor} leading-tight text-center ${fontSize}`}>
+                            {icon}
                           </div>
                         )}
                       </div>
@@ -730,36 +805,44 @@ export default function OccupancyReport() {
         <div className="p-4 border-b bg-gray-50">
           <div className="flex items-center justify-between">
             <h3 className="font-semibold text-gray-900 capitalize">
-              {format(day, 'EEEE d \'de\' MMMM', { locale: es })}
+              {format(day, 'EEEE d \'de\' MMMM', { locale: getDateLocale() })}
             </h3>
             <span className="text-sm text-gray-500">
-              {dayBookings.length} cita{dayBookings.length !== 1 ? 's' : ''} | {dayAvailableSlots.length} disponible{dayAvailableSlots.length !== 1 ? 's' : ''}
+              {dayBookings.length} {t('occupancyReport.mobile.appointment', { count: dayBookings.length })} | {dayAvailableSlots.length} {t('occupancyReport.mobile.available', { count: dayAvailableSlots.length })}
             </span>
           </div>
         </div>
         
         <div className="p-4 space-y-3">
           {allEvents.length === 0 ? (
-            <p className="text-gray-500 text-center py-8">No hay citas ni horarios disponibles</p>
+            <p className="text-gray-500 text-center py-8">{t('occupancyReport.mobile.noAppointmentsOrSchedules')}</p>
           ) : (
             allEvents.map((event, index) => {
               if (event.isAvailable) {
+                const isAdminOnly = event.slot?.admin_only
+                const borderColor = isAdminOnly ? 'border-red-400' : 'border-green-400'
+                const bgColor = isAdminOnly ? 'bg-red-50' : 'bg-green-50'
+                const textColor = isAdminOnly ? 'text-red-700' : 'text-green-700'
+                const subTextColor = isAdminOnly ? 'text-red-600' : 'text-green-600'
+                const icon = isAdminOnly ? '🔒' : '✅'
+                const label = isAdminOnly ? t('occupancyReport.available.adminOnly') : t('occupancyReport.available.schedule')
+                
                 // Renderizar slot disponible
                 return (
                   <div
                     key={`${event.id}-${index}`}
-                    className="p-3 rounded-lg border-2 border-dashed border-green-400 bg-green-50"
+                    className={`p-3 rounded-lg border-2 border-dashed ${borderColor} ${bgColor}`}
                   >
                     <div className="flex justify-between items-start mb-2">
-                      <div className="font-medium text-green-700">
-                        ✅ Horario Disponible
+                      <div className={`font-medium ${textColor}`}>
+                        {icon} {label}
                       </div>
-                      <div className="text-sm font-medium text-green-700">
+                      <div className={`text-sm font-medium ${textColor}`}>
                         {event.displayStartTime} - {event.displayEndTime}
                       </div>
                     </div>
-                    <div className="text-sm text-green-600">
-                      Duración: {event.duration} minutos
+                    <div className={`text-sm ${subTextColor}`}>
+                      {t('occupancyReport.available.duration', { duration: event.duration })}
                     </div>
                   </div>
                 )
@@ -788,10 +871,10 @@ export default function OccupancyReport() {
                       </div>
                     </div>
                     <div className="text-sm text-gray-700 space-y-1">
-                      <div>Cliente: {event.profiles?.nombre_completo}</div>
-                      <div>Perro: {event.dogs?.nombre}</div>
+                      <div>{t('occupancyReport.detailsModal.client')}: {event.profiles?.nombre_completo}</div>
+                      <div>{t('occupancyReport.detailsModal.dog')}: {event.dogs?.nombre}</div>
                       <div className="flex justify-between">
-                        <span>Duración: {duration}min</span>
+                        <span>{t('occupancyReport.detailsModal.duration')}: {duration}min</span>
                         {event.precio && <span className="font-medium">{displayPrice(event.services?.nombre, event.precio)}</span>}
                       </div>
                     </div>
@@ -812,7 +895,7 @@ export default function OccupancyReport() {
     return (
       <div className="flex justify-center items-center py-12">
         <div className="loading-spinner mr-3"></div>
-        <span className="text-gray-600">Cargando calendario...</span>
+        <span className="text-gray-600">{t('occupancyReport.toasts.loadingCalendar')}</span>
       </div>
     )
   }
@@ -823,8 +906,8 @@ export default function OccupancyReport() {
         {/* Header responsive */}
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
           <div>
-            <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">Ocupación de Espacios</h2>
-            <p className="text-sm sm:text-base text-gray-600">Vista semanal de citas y disponibilidad</p>
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">{t('occupancyReport.title')}</h2>
+            <p className="text-sm sm:text-base text-gray-600">{t('occupancyReport.subtitle')}</p>
           </div>
           
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
@@ -833,9 +916,9 @@ export default function OccupancyReport() {
               onChange={(e) => setSelectedSpace(e.target.value)}
               className="border border-gray-300 rounded-md px-3 py-2 text-sm"
             >
-              <option value="all">Todos los Espacios</option>
-              <option value="rehabilitacion">Caseta de Rehabilitación</option>
-              <option value="hidroterapia">Piscina (Hidroterapia)</option>
+              <option value="all">{t('occupancyReport.allSpaces')}</option>
+              <option value="rehabilitacion">{t('occupancyReport.rehabCabin')}</option>
+              <option value="hidroterapia">{t('occupancyReport.pool')}</option>
             </select>
             
             {/* Toggle vista móvil/desktop */}
@@ -844,7 +927,7 @@ export default function OccupancyReport() {
                 onClick={() => setViewMode('mobile')}
                 className={`px-3 py-1 text-xs rounded transition-colors ${viewMode === 'mobile' ? 'bg-white shadow text-blue-600' : 'text-gray-600'}`}
               >
-                Lista
+                {t('occupancyReport.listView')}
               </button>
             </div>
           </div>
@@ -854,15 +937,15 @@ export default function OccupancyReport() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
           <div className="bg-white p-3 sm:p-4 rounded-lg shadow-sm border">
             <div className="text-xl sm:text-2xl font-bold text-blue-600">{stats.totalBookings}</div>
-            <div className="text-xs sm:text-sm text-gray-600">Citas esta semana</div>
+            <div className="text-xs sm:text-sm text-gray-600">{t('occupancyReport.stats.bookingsThisWeek')}</div>
           </div>
           <div className="bg-white p-3 sm:p-4 rounded-lg shadow-sm border">
             <div className="text-xl sm:text-2xl font-bold text-green-600">€{stats.totalRevenue.toFixed(2)}</div>
-            <div className="text-xs sm:text-sm text-gray-600">Ingresos estimados</div>
+            <div className="text-xs sm:text-sm text-gray-600">{t('occupancyReport.stats.estimatedRevenue')}</div>
           </div>
           <div className="bg-white p-3 sm:p-4 rounded-lg shadow-sm border">
             <div className="text-xl sm:text-2xl font-bold text-purple-600">{stats.totalHours}h</div>
-            <div className="text-xs sm:text-sm text-gray-600">Tiempo ocupado</div>
+            <div className="text-xs sm:text-sm text-gray-600">{t('occupancyReport.stats.occupiedTime')}</div>
           </div>
         </div>
 
@@ -876,18 +959,18 @@ export default function OccupancyReport() {
               <svg className="w-4 h-4 sm:w-5 sm:h-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
-              <span className="text-sm sm:text-base">Anterior</span>
+              <span className="text-sm sm:text-base">{t('occupancyReport.navigation.previous')}</span>
             </button>
             
             <div className="text-center">
               <h3 className="text-sm sm:text-lg font-semibold">
-                Semana del {format(weekDays[0], 'd')} al {format(weekDays[6], 'd \'de\' MMMM yyyy', { locale: es })}
+                {t('occupancyReport.navigation.weekFrom')} {format(weekDays[0], 'd')} {t('occupancyReport.navigation.to')} {format(weekDays[6], 'd \'de\' MMMM yyyy', { locale: getDateLocale() })}
               </h3>
               <button 
                 onClick={goToCurrentWeek} 
                 className="text-xs sm:text-sm text-blue-600 hover:text-blue-800 mt-1 transition-colors"
               >
-                Ir a semana actual
+                {t('occupancyReport.navigation.goToCurrentWeek')}
               </button>
             </div>
             
@@ -895,7 +978,7 @@ export default function OccupancyReport() {
               onClick={goToNextWeek} 
               className="flex items-center px-3 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded w-full sm:w-auto justify-center sm:justify-start transition-colors"
             >
-              <span className="text-sm sm:text-base">Siguiente</span>
+              <span className="text-sm sm:text-base">{t('occupancyReport.navigation.next')}</span>
               <svg className="w-4 h-4 sm:w-5 sm:h-5 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
@@ -905,23 +988,23 @@ export default function OccupancyReport() {
 
         {/* Leyenda responsive - CORREGIDA */}
         <div className="bg-white p-3 sm:p-4 rounded-lg shadow-sm border">
-          <h4 className="font-medium text-gray-900 mb-3 text-sm sm:text-base">Leyenda de Servicios</h4>
+          <h4 className="font-medium text-gray-900 mb-3 text-sm sm:text-base">{t('occupancyReport.legend.title')}</h4>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
             <div className="flex items-center">
               <div className="w-3 h-3 sm:w-4 sm:h-4 rounded" style={{ backgroundColor: '#FEF3C7', border: '2px solid #F59E0B' }}></div>
-              <span className="ml-2 text-xs sm:text-sm">🏥 Rehabilitación</span>
+              <span className="ml-2 text-xs sm:text-sm">🏥 {t('occupancyReport.legend.rehabilitation')}</span>
             </div>
             <div className="flex items-center">
               <div className="w-3 h-3 sm:w-4 sm:h-4 rounded" style={{ backgroundColor: '#DBEAFE', border: '2px solid #3B82F6' }}></div>
-              <span className="ml-2 text-xs sm:text-sm">💧 Hidroterapia</span>
+              <span className="ml-2 text-xs sm:text-sm">💧 {t('occupancyReport.legend.hydrotherapy')}</span>
             </div>
             <div className="flex items-center">
               <div className="w-3 h-3 sm:w-4 sm:h-4 rounded" style={{ backgroundColor: '#D1FAE5', border: '2px solid #10B981' }}></div>
-              <span className="ml-2 text-xs sm:text-sm">🏥💧 Rehabilitación + Hidroterapia</span>
+              <span className="ml-2 text-xs sm:text-sm">🏥💧 {t('occupancyReport.legend.rehabHydro')}</span>
             </div>
             <div className="flex items-center">
               <div className="w-3 h-3 sm:w-4 sm:h-4 rounded" style={{ backgroundColor: '#F3E8FF', border: '2px solid #9333EA' }}></div>
-              <span className="ml-2 text-xs sm:text-sm">🏠 Rehabilitación a Domicilio</span>
+              <span className="ml-2 text-xs sm:text-sm">🏠 {t('occupancyReport.legend.homeRehab')}</span>
             </div>
           </div>
         </div>
@@ -950,8 +1033,8 @@ export default function OccupancyReport() {
                   {/* Headers de días */}
                   {weekDays.map(day => (
                     <div key={day.toString()} className="flex-1 text-center text-xs sm:text-sm font-semibold text-gray-700 border-r border-gray-200 flex flex-col items-center justify-center" style={{ height: '60px' }}>
-                      <div className="capitalize">{format(day, 'EEEE', { locale: es })}</div>
-                      <div className="text-xs text-gray-500 capitalize">{format(day, 'd MMM', { locale: es })}</div>
+                      <div className="capitalize">{format(day, 'EEEE', { locale: getDateLocale() })}</div>
+                      <div className="text-xs text-gray-500 capitalize">{format(day, 'd MMM', { locale: getDateLocale() })}</div>
                     </div>
                   ))}
                 </div>
@@ -989,7 +1072,7 @@ export default function OccupancyReport() {
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-lg p-4 sm:p-6 w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-base sm:text-lg font-semibold">Detalles de la Cita</h3>
+                <h3 className="text-base sm:text-lg font-semibold">{t('occupancyReport.detailsModal.title')}</h3>
                 <button
                   onClick={() => setSelectedBooking(null)}
                   className="text-gray-400 hover:text-gray-600 transition-colors"
@@ -1002,31 +1085,31 @@ export default function OccupancyReport() {
               
               <div className="space-y-3">
                 <div>
-                  <label className="text-sm font-medium text-gray-500">Cliente</label>
+                  <label className="text-sm font-medium text-gray-500">{t('occupancyReport.detailsModal.client')}</label>
                   <p className="text-gray-900">{selectedBooking.profiles?.nombre_completo}</p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-500">Perro</label>
+                  <label className="text-sm font-medium text-gray-500">{t('occupancyReport.detailsModal.dog')}</label>
                   <p className="text-gray-900">{selectedBooking.dogs?.nombre}</p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-500">Servicio</label>
+                  <label className="text-sm font-medium text-gray-500">{t('occupancyReport.detailsModal.service')}</label>
                   <p className="text-gray-900 flex items-center">
                     <span className="mr-2">{getServiceIcon(selectedBooking.services?.tipo)}</span>
                     {selectedBooking.services?.nombre}
                   </p>
                   {selectedBooking.services?.tipo === 'rehabilitacion_domicilio' && (
-                    <p className="text-xs text-purple-600 font-medium mt-1">Visita a domicilio</p>
+                    <p className="text-xs text-purple-600 font-medium mt-1">{t('occupancyReport.detailsModal.homeVisit')}</p>
                   )}
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-500">Fecha</label>
+                  <label className="text-sm font-medium text-gray-500">{t('occupancyReport.detailsModal.date')}</label>
                   <p className="text-gray-900">
-                    {format(new Date(selectedBooking.fecha_hora.substring(0, 10)), 'EEEE d \'de\' MMMM yyyy', { locale: es })}
+                    {format(new Date(selectedBooking.fecha_hora.substring(0, 10)), 'EEEE d \'de\' MMMM yyyy', { locale: getDateLocale() })}
                   </p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-500">Horario</label>
+                  <label className="text-sm font-medium text-gray-500">{t('occupancyReport.detailsModal.schedule')}</label>
                   <p className="text-gray-900">
                     {selectedBooking.displayStartTime || selectedBooking.fecha_hora.substring(11, 16)} - {selectedBooking.displayEndTime || minutesToTime(
                       timeToMinutes(selectedBooking.fecha_hora.substring(11, 16)) + 
@@ -1035,29 +1118,66 @@ export default function OccupancyReport() {
                   </p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-500">Duración</label>
-                  <p className="text-gray-900">{selectedBooking.duracion_minutos || selectedBooking.services?.duracion_minutos || 30} minutos</p>
+                  <label className="text-sm font-medium text-gray-500">{t('occupancyReport.detailsModal.duration')}</label>
+                  <p className="text-gray-900">{selectedBooking.duracion_minutos || selectedBooking.services?.duracion_minutos || 30} {t('occupancyReport.detailsModal.minutes')}</p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-500">Estado</label>
+                  <label className="text-sm font-medium text-gray-500">{t('occupancyReport.detailsModal.status')}</label>
                   <p className="text-gray-900 capitalize">{selectedBooking.estado}</p>
                 </div>
                 {selectedBooking.precio && (
                   <div>
-                    <label className="text-sm font-medium text-gray-500">Precio</label>
+                    <label className="text-sm font-medium text-gray-500">{t('occupancyReport.detailsModal.price')}</label>
                     <p className="text-gray-900 font-semibold">{displayPrice(selectedBooking.services?.nombre, selectedBooking.precio)}</p>
                   </div>
                 )}
                 {selectedBooking.observaciones && (
                   <div>
-                    <label className="text-sm font-medium text-gray-500">Observaciones</label>
+                    <label className="text-sm font-medium text-gray-500">{t('occupancyReport.detailsModal.observations')}</label>
                     <p className="text-gray-900 bg-gray-50 p-2 rounded text-sm">{selectedBooking.observaciones}</p>
                   </div>
                 )}
               </div>
+
+              {/* Botón de cancelar - Solo mostrar si la cita está pendiente */}
+              {selectedBooking.estado === 'pendiente' && (
+                <div className="mt-6 pt-4 border-t border-gray-200">
+                  <button
+                    onClick={() => setShowCancelModal(true)}
+                    disabled={cancellingBooking}
+                    className="w-full bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center transition-colors"
+                  >
+                    {cancellingBooking ? (
+                      <>
+                        <div className="loading-spinner mr-2"></div>
+                        {t('occupancyReport.buttons.cancelling')}
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                        {t('occupancyReport.buttons.cancelAppointment')}
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         )}
+
+        {/* Modal de confirmación de cancelación */}
+        <ConfirmModal
+          isOpen={showCancelModal}
+          onClose={() => setShowCancelModal(false)}
+          onConfirm={cancelBooking}
+          title={t('occupancyReport.cancelModal.title')}
+          message={t('occupancyReport.cancelModal.message', { clientName: selectedBooking?.profiles?.nombre_completo })}
+          confirmText={t('occupancyReport.cancelModal.confirm')}
+          cancelText={t('occupancyReport.cancelModal.cancel')}
+          confirmButtonClass="bg-red-600 hover:bg-red-700"
+        />
       </div>
     </div>
   )

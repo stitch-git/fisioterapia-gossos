@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 
-// Iconos SVG inline (sin dependencias externas)
 const CheckCircleIcon = () => (
   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -26,6 +26,7 @@ const RefreshIcon = ({ spinning = false }) => (
 )
 
 const UpdateNotification = () => {
+  const { t, i18n } = useTranslation()
   const [showUpdate, setShowUpdate] = useState(false)
   const [isUpdating, setIsUpdating] = useState(false)
   const [currentVersion, setCurrentVersion] = useState(null)
@@ -35,7 +36,6 @@ const UpdateNotification = () => {
     
     const checkForUpdates = async () => {
       try {
-        // Verificar versión del servidor vs local
         const response = await fetch('/version.json?' + Date.now(), {
           cache: 'no-store'
         })
@@ -44,14 +44,12 @@ const UpdateNotification = () => {
           const serverVersion = await response.json()
           const localVersion = localStorage.getItem('app_version')
           
-          // Si es primera visita, guardar versión actual
           if (!localVersion) {
             localStorage.setItem('app_version', serverVersion.version)
             setCurrentVersion(serverVersion)
             return
           }
           
-          // Si hay nueva versión, mostrar notificación
           if (serverVersion.version !== localVersion && !showUpdate) {
             setShowUpdate(true)
             setCurrentVersion(serverVersion)
@@ -62,14 +60,11 @@ const UpdateNotification = () => {
       }
     }
 
-    // Verificar al cargar y cada 30 segundos
     checkForUpdates()
     interval = setInterval(checkForUpdates, 30000)
 
-    // Escuchar eventos de service worker
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.addEventListener('controllerchange', () => {
-        // Service worker cambió, hay nueva versión
         if (!showUpdate) {
           setShowUpdate(true)
         }
@@ -85,42 +80,34 @@ const UpdateNotification = () => {
     setIsUpdating(true)
     
     try {
-      // Actualizar versión local
       if (currentVersion) {
         localStorage.setItem('app_version', currentVersion.version)
       }
 
-      // Si hay service worker, forzar actualización
       if ('serviceWorker' in navigator) {
         const registration = await navigator.serviceWorker.getRegistration()
         if (registration && registration.waiting) {
-          // Decir al service worker que tome control
           registration.waiting.postMessage({ type: 'SKIP_WAITING' })
         }
       }
 
-      // Pequeña pausa para UX
       setTimeout(() => {
-        // Recargar la página para obtener nueva versión
         window.location.reload()
       }, 1000)
 
     } catch (error) {
       console.error('Error al actualizar:', error)
       setIsUpdating(false)
-      // Fallback: simplemente recargar
       window.location.reload()
     }
   }
 
   const handleDismiss = () => {
     setShowUpdate(false)
-    // Recordar que el usuario rechazó esta versión por 1 hora
-    const dismissTime = Date.now() + (60 * 60 * 1000) // 1 hora
+    const dismissTime = Date.now() + (60 * 60 * 1000)
     localStorage.setItem('update_dismissed', dismissTime.toString())
   }
 
-  // No mostrar si se rechazó recientemente
   useEffect(() => {
     const dismissedUntil = localStorage.getItem('update_dismissed')
     if (dismissedUntil && Date.now() < parseInt(dismissedUntil)) {
@@ -140,14 +127,14 @@ const UpdateNotification = () => {
           
           <div className="flex-1 min-w-0">
             <div className="text-sm font-medium text-gray-900">
-              Nueva versión disponible
+              {t('updateNotification.title')}
             </div>
             <div className="text-sm text-gray-500 mt-1">
-              Actualiza para obtener las últimas mejoras y funcionalidades.
+              {t('updateNotification.message')}
             </div>
             {currentVersion?.updated && (
               <div className="text-xs text-gray-400 mt-1">
-                Actualizada: {new Date(currentVersion.updated).toLocaleString('es-ES')}
+                {t('updateNotification.updated')} {new Date(currentVersion.updated).toLocaleString(i18n.language === 'ca' ? 'ca-ES' : 'es-ES')}
               </div>
             )}
           </div>
@@ -169,12 +156,12 @@ const UpdateNotification = () => {
             {isUpdating ? (
               <>
                 <RefreshIcon spinning={true} />
-                Actualizando...
+                {t('updateNotification.updating')}
               </>
             ) : (
               <>
                 <DownloadIcon />
-                Actualizar
+                {t('updateNotification.update')}
               </>
             )}
           </button>
@@ -183,7 +170,7 @@ const UpdateNotification = () => {
             onClick={handleDismiss}
             className="px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
           >
-            Más tarde
+            {t('updateNotification.later')}
           </button>
         </div>
       </div>
@@ -193,7 +180,6 @@ const UpdateNotification = () => {
 
 export default UpdateNotification
 
-// CSS personalizado (agregar a tu archivo CSS principal)
 const styles = `
 @keyframes slide-in {
   from {
@@ -211,7 +197,6 @@ const styles = `
 }
 `
 
-// Si necesitas inyectar el CSS dinámicamente:
 if (typeof document !== 'undefined') {
   const styleSheet = document.createElement("style")
   styleSheet.innerText = styles

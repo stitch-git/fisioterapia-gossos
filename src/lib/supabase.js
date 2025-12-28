@@ -1,10 +1,11 @@
 import { createClient } from '@supabase/supabase-js'
+import i18next from 'i18next'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
 if (!supabaseUrl || !supabaseKey) {
-  throw new Error('Missing Supabase environment variables. Check your .env file.')
+  throw new Error(i18next.t('errors.supabase.missingEnvVars'))
 }
 
 export const supabase = createClient(supabaseUrl, supabaseKey, {
@@ -23,18 +24,18 @@ export const handleAuthError = (error) => {
   if (error?.message) {
     switch (error.message) {
       case 'Invalid login credentials':
-        return 'Email o contraseña incorrectos'
+        return i18next.t('errors.auth.invalidCredentials')
       case 'User already registered':
-        return 'Este email ya está registrado'
+        return i18next.t('errors.auth.userAlreadyRegistered')
       case 'Email not confirmed':
-        return 'Por favor confirma tu email antes de iniciar sesión'
+        return i18next.t('errors.auth.emailNotConfirmed')
       case 'Password should be at least 6 characters':
-        return 'La contraseña debe tener al menos 6 caracteres'
+        return i18next.t('errors.auth.passwordTooShort')
       default:
         return error.message
     }
   }
-  return 'Ha ocurrido un error desconocido'
+  return i18next.t('errors.supabase.unknownError')
 }
 
 // Helper function to handle database errors
@@ -42,14 +43,14 @@ export const handleDatabaseError = (error) => {
   if (error?.code) {
     switch (error.code) {
       case '23505':
-        return 'Ya existe un registro con estos datos'
+        return i18next.t('errors.database.duplicateEntry')
       case '23503':
-        return 'Error de referencia en la base de datos'
+        return i18next.t('errors.database.referenceError')
       case '42501':
-        return 'No tienes permisos para realizar esta acción'
+        return i18next.t('errors.database.permissionDenied')
       default:
-        return `Error de base de datos: ${error.message}`
+        return i18next.t('errors.database.genericError', { message: error.message })
     }
   }
-  return error?.message || 'Error de conexión con la base de datos'
+  return error?.message || i18next.t('errors.database.connectionError')
 }

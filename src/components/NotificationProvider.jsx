@@ -1,7 +1,7 @@
-// src/components/NotificationProvider.jsx
 import React, { createContext, useContext, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { useNotifications } from '../hooks/useNotifications'
+import { useTranslation } from 'react-i18next'
 
 const NotificationContext = createContext({})
 
@@ -15,6 +15,7 @@ export const useNotificationContext = () => {
 
 export const NotificationProvider = ({ children }) => {
   const { user, profile } = useAuth()
+  const { t, i18n } = useTranslation()
   const { 
     sendBookingConfirmationEmail, 
     sendBookingCancellationEmail,
@@ -24,7 +25,6 @@ export const NotificationProvider = ({ children }) => {
     showToast 
   } = useNotifications()
 
-  // ✅ AGREGADO: Listener para evento de bienvenida
   useEffect(() => {
     const handleWelcomeEmail = async (event) => {
       console.log('🎉 Evento de bienvenida recibido:', event.detail)
@@ -36,27 +36,24 @@ export const NotificationProvider = ({ children }) => {
         
         if (result.success) {
           console.log('✅ Email de bienvenida enviado correctamente')
-          showToast('success', 'Email de bienvenida enviado')
+          showToast('success', t('notifications.welcomeEmailSent'))
         } else {
           console.error('❌ Error enviando email de bienvenida:', result.error)
-          showToast('error', 'Error enviando email de bienvenida')
+          showToast('error', t('notifications.welcomeEmailError'))
         }
       } catch (error) {
         console.error('❌ Error en handleWelcomeEmail:', error)
-        showToast('error', 'Error procesando email de bienvenida')
+        showToast('error', t('notifications.processingWelcomeError'))
       }
     }
 
-    // Registrar el listener
     window.addEventListener('sendWelcomeEmail', handleWelcomeEmail)
 
-    // Cleanup
     return () => {
       window.removeEventListener('sendWelcomeEmail', handleWelcomeEmail)
     }
-  }, [sendWelcomeEmail, showToast])
+  }, [sendWelcomeEmail, showToast, t])
 
-  // ✅ AGREGADO: Debug del sistema
   useEffect(() => {
     console.log('🔧 NotificationProvider montado:', {
       sendWelcomeEmail: !!sendWelcomeEmail,
@@ -66,7 +63,6 @@ export const NotificationProvider = ({ children }) => {
     })
   }, [sendWelcomeEmail, showToast, user, profile])
 
-  // Enviar email de bienvenida
   const sendWelcome = async (userData) => {
     if (!user?.email) return false
 
@@ -88,58 +84,53 @@ export const NotificationProvider = ({ children }) => {
     }
   }
 
-  // Confirmar cita por email
-  // En NotificationProvider.jsx, reemplaza la función confirmBooking (línea ~81):
-
-// Confirmar cita por email
-const confirmBooking = async (bookingData) => {
-  // 🔧 USAR EMAIL DEL CLIENTE si se proporciona, sino el del usuario actual
-  const targetEmail = bookingData.client_email || user?.email
-  const targetName = bookingData.client_name || profile?.nombre_completo || 'Cliente'
-  
-  if (!targetEmail) {
-    console.error('No se pudo determinar email destino para confirmación')
-    return false
-  }
-
-  // Solo verificar email_notifications si es el usuario actual
-  const shouldCheckNotifications = targetEmail === user?.email
-  if (shouldCheckNotifications && !profile?.email_notifications) {
-    console.log('Usuario tiene notificaciones deshabilitadas')
-    return false
-  }
-
-  try {
-    const emailData = {
-      to: targetEmail,  // 🔧 USAR EMAIL CORRECTO
-      clientName: targetName,  // 🔧 USAR NOMBRE CORRECTO
-      dogName: bookingData.pet_name || bookingData.petName || 'Mascota',
-      service: bookingData.service_name || bookingData.serviceName || 'Servicio',
-      date: formatDate(bookingData.fecha || bookingData.date),
-      time: formatTime(bookingData.hora || bookingData.time),
-      duration: bookingData.duracion || bookingData.duration || '60',
-      price: bookingData.precio || bookingData.price || '0'
-    }
-
-    const result = await sendBookingConfirmationEmail(emailData)
-
-    if (result.success) {
-      console.log('Email de confirmación enviado a:', targetEmail)
-      showToast('success', 'Confirmación enviada por email')
-      return true
-    } else {
-      console.error('Error enviando confirmación:', result.error)
-      showToast('error', 'Error enviando confirmación por email')
+  const confirmBooking = async (bookingData) => {
+    const targetEmail = bookingData.client_email || user?.email
+    const targetName = bookingData.client_name || profile?.nombre_completo || 'Cliente'
+    
+    if (!targetEmail) {
+      console.error('No se pudo determinar email destino para confirmación')
       return false
     }
-  } catch (error) {
-    console.error('Error en confirmBooking:', error)
-    showToast('error', 'Error enviando confirmación')
-    return false
-  }
-}
 
-  // Cancelar cita por email
+    const shouldCheckNotifications = targetEmail === user?.email
+    if (shouldCheckNotifications && !profile?.email_notifications) {
+      console.log('Usuario tiene notificaciones deshabilitadas')
+      return false
+    }
+
+    try {
+      const emailData = {
+        to: targetEmail,
+        clientName: targetName,
+        dogName: bookingData.pet_name || bookingData.petName || 'Mascota',
+        service: bookingData.service_name || bookingData.serviceName || 'Servicio',
+        date: formatDate(bookingData.fecha || bookingData.date),
+        time: formatTime(bookingData.hora || bookingData.time),
+        duration: bookingData.duracion || bookingData.duration || '60',
+        price: bookingData.precio || bookingData.price || '0'
+      }
+
+      // Usar el idioma preferido del usuario si está disponible
+      const userLanguage = bookingData.preferredLanguage || profile?.preferred_language
+      const result = await sendBookingConfirmationEmail(emailData, userLanguage)
+
+      if (result.success) {
+        console.log('Email de confirmación enviado a:', targetEmail)
+        showToast('success', t('notifications.confirmationSent'))
+        return true
+      } else {
+        console.error('Error enviando confirmación:', result.error)
+        showToast('error', t('notifications.confirmationError'))
+        return false
+      }
+    } catch (error) {
+      console.error('Error en confirmBooking:', error)
+      showToast('error', t('notifications.confirmationError'))
+      return false
+    }
+  }
+
   const cancelBooking = async (cancelationData) => {
     const emailDestino = cancelationData.cliente_email || user?.email
     
@@ -158,25 +149,26 @@ const confirmBooking = async (bookingData) => {
         cancellationReason: cancelationData.motivo_cancelacion || 'Cancelación de cita'
       }
 
-      const result = await sendBookingCancellationEmail(emailData)
+      // Usar el idioma preferido del usuario si está disponible
+      const userLanguage = cancelationData.preferredLanguage || profile?.preferred_language
+      const result = await sendBookingCancellationEmail(emailData, userLanguage)
 
       if (result.success) {
         console.log('Email de cancelación enviado a:', emailDestino)
-        showToast('success', 'Notificación de cancelación enviada por email')
+        showToast('success', t('notifications.cancellationSent'))
         return true
       } else {
         console.error('Error enviando cancelación:', result.error)
-        showToast('error', 'Error enviando notificación de cancelación')
+        showToast('error', t('notifications.cancellationError'))
         return false
       }
     } catch (error) {
       console.error('Error en cancelBooking:', error)
-      showToast('error', 'Error enviando notificación de cancelación')
+      showToast('error', t('notifications.cancellationError'))
       return false
     }
   }
 
-  // Enviar recordatorio de cita
   const sendReminder = async (reminderData) => {
     const emailDestino = reminderData.cliente_email || user?.email
     
@@ -199,21 +191,20 @@ const confirmBooking = async (bookingData) => {
 
       if (result.success) {
         console.log('Email de recordatorio enviado a:', emailDestino)
-        showToast('success', 'Recordatorio enviado por email')
+        showToast('success', t('notifications.reminderSent'))
         return true
       } else {
         console.error('Error enviando recordatorio:', result.error)
-        showToast('error', 'Error enviando recordatorio')
+        showToast('error', t('notifications.reminderError'))
         return false
       }
     } catch (error) {
       console.error('Error en sendReminder:', error)
-      showToast('error', 'Error enviando recordatorio')
+      showToast('error', t('notifications.reminderError'))
       return false
     }
   }
 
-  // Notificar cancelación al admin
   const notifyAdminCancellation = async (cancelationData) => {
     try {
       const emailData = {
@@ -228,7 +219,7 @@ const confirmBooking = async (bookingData) => {
         chargeAmount: cancelationData.chargeAmount || '0'
       }
 
-      const result = await sendAdminCancellationEmail(emailData)  // ✅ Usar directamente
+      const result = await sendAdminCancellationEmail(emailData)
 
       if (result.success) {
         console.log('Notificación al admin enviada')
@@ -239,19 +230,17 @@ const confirmBooking = async (bookingData) => {
       }
     } catch (error) {
       console.error('Error en notifyAdminCancellation:', error)
-      showToast('error', 'Error notificando al admin')
+      showToast('error', t('notifications.adminNotificationError'))
       return false
     }
   }
 
-
-
-  // Utilidades de formato
   const formatDate = (dateStr) => {
     if (!dateStr) return ''
     try {
       const date = new Date(dateStr)
-      return date.toLocaleDateString('es-ES', {
+      const locale = i18n.language === 'ca' ? 'ca-ES' : 'es-ES'
+      return date.toLocaleDateString(locale, {
         weekday: 'long',
         year: 'numeric',
         month: 'long',
@@ -266,14 +255,13 @@ const confirmBooking = async (bookingData) => {
   const formatTime = (timeStr) => {
     if (!timeStr) return ''
     try {
-      return timeStr.substring(0, 5) // HH:MM
+      return timeStr.substring(0, 5)
     } catch (error) {
       console.error('Error formateando hora:', error)
       return timeStr
     }
   }
 
-  // Estado del sistema
   const getStatus = () => {
     const canSendEmails = !!(user?.email && profile?.email_notifications)
     
@@ -286,19 +274,13 @@ const confirmBooking = async (bookingData) => {
   }
 
   const value = {
-    // Métodos principales
     sendWelcome,
     confirmBooking,
     cancelBooking,
     sendReminder,
     notifyAdminCancellation,
-
-    
-    // Estado
     getStatus,
     isReady: !!(user?.email && profile?.email_notifications),
-    
-    // Toast para feedback inmediato
     showToast
   }
 
@@ -309,7 +291,6 @@ const confirmBooking = async (bookingData) => {
   )
 }
 
-// Hook personalizado para reservas
 export const useBookingNotifications = () => {
   const { confirmBooking, cancelBooking, sendReminder, notifyAdminCancellation, showToast } = useNotificationContext()
   
@@ -322,7 +303,6 @@ export const useBookingNotifications = () => {
   }
 }
 
-// Hook para registro/autenticación  
 export const useAuthNotifications = () => {
   const { sendWelcome, showToast } = useNotificationContext()
   

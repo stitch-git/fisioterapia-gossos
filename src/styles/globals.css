@@ -162,11 +162,15 @@
   .status-pending {
     @apply status-badge bg-yellow-100 text-yellow-800;
   }
-  
+
+  .status-pending-confirmation {
+    @apply status-badge bg-orange-100 text-orange-800;
+  }
+
   .status-cancelled {
     @apply status-badge bg-red-100 text-red-800;
   }
-  
+
   .status-completed {
     @apply status-badge bg-blue-100 text-blue-800;
   }

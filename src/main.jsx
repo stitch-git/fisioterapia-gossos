@@ -2,15 +2,15 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
 import './styles/globals.css'
+import './i18n.js'
+import i18next from 'i18next'
 
-// PWA Install prompt handling
 let deferredPrompt
 window.addEventListener('beforeinstallprompt', (e) => {
   console.log('PWA install prompt available')
   e.preventDefault()
   deferredPrompt = e
   
-  // Store the prompt event but don't show banner automatically
   window.showPWAInstallPrompt = () => {
     if (deferredPrompt) {
       deferredPrompt.prompt()
@@ -24,7 +24,6 @@ window.addEventListener('beforeinstallprompt', (e) => {
   }
 })
 
-// Handle PWA install success
 window.addEventListener('appinstalled', () => {
   console.log('PWA was installed')
   const banner = document.getElementById('pwa-install-banner')
@@ -33,7 +32,6 @@ window.addEventListener('appinstalled', () => {
   }
 })
 
-// Error boundary for the entire app
 class ErrorBoundary extends React.Component {
   constructor(props) {
     super(props)
@@ -50,7 +48,6 @@ class ErrorBoundary extends React.Component {
       errorInfo: errorInfo
     })
     
-    // Log error to console in development
     if (import.meta.env.DEV) {
       console.error('Error caught by boundary:', error, errorInfo)
     }
@@ -69,15 +66,15 @@ class ErrorBoundary extends React.Component {
                   </svg>
                 </div>
                 <h3 className="mt-4 text-lg font-medium text-gray-900">
-                  Error en la aplicación
+                  {i18next.t('errorBoundary.title')}
                 </h3>
                 <p className="mt-2 text-sm text-gray-600">
-                  Ha ocurrido un error inesperado. Por favor, recarga la página.
+                  {i18next.t('errorBoundary.message')}
                 </p>
                 {import.meta.env.DEV && this.state.error && (
                   <details className="mt-4 text-left">
                     <summary className="cursor-pointer text-sm text-gray-500">
-                      Detalles del error (solo desarrollo)
+                      {i18next.t('errorBoundary.detailsLabel')}
                     </summary>
                     <pre className="mt-2 text-xs text-red-600 bg-red-50 p-2 rounded overflow-auto">
                       {this.state.error.toString()}
@@ -89,7 +86,7 @@ class ErrorBoundary extends React.Component {
                   onClick={() => window.location.reload()}
                   className="mt-4 btn btn-primary"
                 >
-                  Recargar página
+                  {i18next.t('errorBoundary.reloadButton')}
                 </button>
               </div>
             </div>
@@ -102,7 +99,6 @@ class ErrorBoundary extends React.Component {
   }
 }
 
-// Initialize React app
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <ErrorBoundary>

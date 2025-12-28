@@ -1,7 +1,6 @@
-// src/utils/emailService.js
 import { supabase } from '../lib/supabase'
+import i18next from 'i18next'
 
-// Función base para enviar emails
 const sendEmail = async (type, to, data) => {
   try {
     console.log(`📧 Enviando email tipo: ${type} a: ${to}`)
@@ -27,14 +26,12 @@ const sendEmail = async (type, to, data) => {
   }
 }
 
-// 1. Email de bienvenida al registrarse
 export const sendWelcomeEmail = async (userData) => {
   return sendEmail('welcome', userData.email, {
-    clientName: userData.nombre_completo || userData.email?.split('@')[0] || 'Usuario'
+    clientName: userData.nombre_completo || userData.email?.split('@')[0] || i18next.t('emailService.defaultUser')
   })
 }
 
-// 2. Email cuando se crea una cita
 export const sendBookingCreatedEmail = async (bookingData) => {
   const emailData = {
     clientName: bookingData.profiles?.nombre_completo || bookingData.clientName,
@@ -49,7 +46,6 @@ export const sendBookingCreatedEmail = async (bookingData) => {
   return sendEmail('booking_created', bookingData.profiles?.email || bookingData.clientEmail, emailData)
 }
 
-// 3. Email recordatorio 24h antes
 export const sendReminderEmail = async (bookingData) => {
   const emailData = {
     clientName: bookingData.profiles?.nombre_completo || bookingData.clientName,
@@ -63,7 +59,6 @@ export const sendReminderEmail = async (bookingData) => {
   return sendEmail('reminder_24h', bookingData.profiles?.email || bookingData.clientEmail, emailData)
 }
 
-// 4. Email cuando se cancela una cita
 export const sendCancellationEmail = async (bookingData, canceledBy = 'client', reason = null) => {
   const emailData = {
     clientName: bookingData.profiles?.nombre_completo || bookingData.clientName,
@@ -71,14 +66,13 @@ export const sendCancellationEmail = async (bookingData, canceledBy = 'client', 
     service: bookingData.service_name || bookingData.service,
     date: formatDate(bookingData.fecha || bookingData.date),
     time: bookingData.hora || bookingData.time,
-    canceledBy, // 'client' o 'admin'
+    canceledBy,
     reason
   }
 
   return sendEmail('booking_cancelled', bookingData.profiles?.email || bookingData.clientEmail, emailData)
 }
 
-// 5. Email post-cita (especial para primera cita)
 export const sendPostAppointmentEmail = async (bookingData, isFirstAppointment = false, notes = null) => {
   const emailData = {
     clientName: bookingData.profiles?.nombre_completo || bookingData.clientName,
@@ -94,7 +88,6 @@ export const sendPostAppointmentEmail = async (bookingData, isFirstAppointment =
   return sendEmail('post_appointment', bookingData.profiles?.email || bookingData.clientEmail, emailData)
 }
 
-// Funciones auxiliares para obtener datos de servicios
 const getServiceDuration = (serviceName) => {
   const durations = {
     'Rehabilitación': 60,
@@ -117,13 +110,13 @@ const getServicePrice = (serviceName) => {
   return prices[serviceName] || 50
 }
 
-// Función para formatear fechas
 const formatDate = (dateStr) => {
   if (!dateStr) return ''
   
   try {
     const date = new Date(dateStr)
-    return date.toLocaleDateString('es-ES', {
+    const locale = i18next.language === 'ca' ? 'ca-ES' : 'es-ES'
+    return date.toLocaleDateString(locale, {
       weekday: 'long',
       year: 'numeric',
       month: 'long',
@@ -135,7 +128,6 @@ const formatDate = (dateStr) => {
   }
 }
 
-// Función para verificar si es la primera cita del cliente
 export const checkIfFirstAppointment = async (userId) => {
   try {
     const { data: completedBookings, error } = await supabase
@@ -143,14 +135,13 @@ export const checkIfFirstAppointment = async (userId) => {
       .select('id')
       .eq('user_id', userId)
       .eq('status', 'completed')
-      .limit(2) // Solo necesitamos saber si hay más de 1
+      .limit(2)
 
     if (error) {
       console.error('Error verificando primera cita:', error)
       return false
     }
 
-    // Es primera cita si solo hay 1 cita completada (la actual)
     return completedBookings?.length === 1
   } catch (error) {
     console.error('Error en checkIfFirstAppointment:', error)
@@ -158,23 +149,19 @@ export const checkIfFirstAppointment = async (userId) => {
   }
 }
 
-// Función para programar recordatorios automáticos
 export const scheduleEmailReminder = async (bookingData) => {
   if (!bookingData.fecha || !bookingData.hora) return false
 
   try {
-    // Calcular timestamp para 24h antes
     const bookingDateTime = new Date(`${bookingData.fecha}T${bookingData.hora}`)
     const reminderTime = new Date(bookingDateTime.getTime() - (24 * 60 * 60 * 1000))
     const now = new Date()
 
-    // Solo programar si es en el futuro
     if (reminderTime <= now) {
       console.log('⚠️ La cita es en menos de 24h, enviando recordatorio inmediato')
       return await sendReminderEmail(bookingData)
     }
 
-    // Guardar en tabla de recordatorios programados
     const { error } = await supabase
       .from('scheduled_email_reminders')
       .insert({
@@ -205,14 +192,13 @@ export const scheduleEmailReminder = async (bookingData) => {
   }
 }
 
-// Función para envío masivo (utilidad para administradores)
 export const sendBulkEmails = async (type, recipients, commonData) => {
   const results = []
   
   for (const recipient of recipients) {
     const result = await sendEmail(type, recipient.email, {
       ...commonData,
-      clientName: recipient.nombre_completo || recipient.email?.split('@')[0] || 'Usuario'
+      clientName: recipient.nombre_completo || recipient.email?.split('@')[0] || i18next.t('emailService.defaultUser')
     })
     
     results.push({
@@ -235,7 +221,6 @@ export const sendBulkEmails = async (type, recipients, commonData) => {
   }
 }
 
-// Función de testing para desarrollo
 export const testEmailSystem = async (testEmail) => {
   if (process.env.NODE_ENV !== 'development') {
     console.log('⚠️ Test de emails solo disponible en desarrollo')
@@ -269,7 +254,6 @@ export const testEmailSystem = async (testEmail) => {
     const result = await sendEmail(test.type, testEmail, test.data)
     results.push({ type: test.type, success: result.success })
     
-    // Delay entre tests
     await new Promise(resolve => setTimeout(resolve, 2000))
   }
 
@@ -277,7 +261,6 @@ export const testEmailSystem = async (testEmail) => {
   return results
 }
 
-// Exportar funciones principales
 export {
   sendEmail as sendCustomEmail,
   formatDate,

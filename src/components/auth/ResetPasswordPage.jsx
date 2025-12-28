@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import toast from 'react-hot-toast'
 import { supabase } from '../../lib/supabase'
 
@@ -19,19 +20,20 @@ const validatePassword = (password) => {
 
 // Componente indicadores de requisitos
 const PasswordRequirements = ({ password }) => {
+  const { t } = useTranslation()
   const validation = validatePassword(password)
   
   const requirementsList = [
-    { key: 'length', label: 'Mínimo 8 caracteres', met: validation.requirements.length },
-    { key: 'lowercase', label: 'Al menos una minúscula (a-z)', met: validation.requirements.lowercase },
-    { key: 'uppercase', label: 'Al menos una mayúscula (A-Z)', met: validation.requirements.uppercase },
-    { key: 'number', label: 'Al menos un número (0-9)', met: validation.requirements.number },
-    { key: 'symbol', label: 'Al menos un símbolo (!@#$%^&*)', met: validation.requirements.symbol }
+    { key: 'length', label: t('resetPassword.passwordRequirements.minLength'), met: validation.requirements.length },
+    { key: 'lowercase', label: t('resetPassword.passwordRequirements.lowercase'), met: validation.requirements.lowercase },
+    { key: 'uppercase', label: t('resetPassword.passwordRequirements.uppercase'), met: validation.requirements.uppercase },
+    { key: 'number', label: t('resetPassword.passwordRequirements.number'), met: validation.requirements.number },
+    { key: 'symbol', label: t('resetPassword.passwordRequirements.symbol'), met: validation.requirements.symbol }
   ]
   
   return (
     <div className="mt-2 space-y-2">
-      <p className="text-xs font-medium text-gray-700">Requisitos de contraseña:</p>
+      <p className="text-xs font-medium text-gray-700">{t('resetPassword.passwordRequirements.title')}</p>
       <div className="grid grid-cols-1 gap-1">
         {requirementsList.map((req) => (
           <div key={req.key} className="flex items-center text-xs">
@@ -57,6 +59,7 @@ const PasswordRequirements = ({ password }) => {
 }
 
 export default function ResetPasswordPage() {
+  const { t } = useTranslation()
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -128,18 +131,18 @@ export default function ResetPasswordPage() {
     e.preventDefault()
     
     if (!password || !confirmPassword) {
-      toast.error('Por favor completa todos los campos')
+      toast.error(t('resetPassword.errors.completeFields'))
       return
     }
 
     const passwordValidation = validatePassword(password)
     if (!passwordValidation.isValid) {
-      toast.error('La contraseña no cumple todos los requisitos de seguridad')
+      toast.error(t('resetPassword.errors.passwordRequirements'))
       return
     }
 
     if (password !== confirmPassword) {
-      toast.error('Las contraseñas no coinciden')
+      toast.error(t('resetPassword.errors.passwordMismatch'))
       return
     }
 
@@ -180,7 +183,7 @@ export default function ResetPasswordPage() {
 
         if (updateError) {
           // Si falla, informar al usuario que revise su email
-          toast.error('Por favor, verifica tu email y usa el enlace más reciente que recibiste')
+          toast.error(t('resetPassword.errors.checkEmail'))
           return
         }
 
@@ -188,7 +191,7 @@ export default function ResetPasswordPage() {
         throw new Error('No se encontró información de reset válida')
       }
 
-      toast.success('Contraseña actualizada correctamente')
+      toast.success(t('resetPassword.success.updated'))
       
       // Redirigir al login después de un breve delay
       setTimeout(() => {
@@ -197,7 +200,7 @@ export default function ResetPasswordPage() {
 
     } catch (error) {
       console.error('Error actualizando contraseña:', error)
-      toast.error(error.message || 'Error actualizando contraseña')
+      toast.error(error.message || t('resetPassword.errors.passwordRequirements'))
     } finally {
       setLoading(false)
     }
@@ -210,7 +213,7 @@ export default function ResetPasswordPage() {
         <div className="sm:mx-auto sm:w-full sm:max-w-md">
           <div className="text-center">
             <div className="loading-spinner mx-auto mb-4"></div>
-            <p className="text-gray-600">Verificando enlace...</p>
+            <p className="text-gray-600">{t('resetPassword.verifying.title')}</p>
           </div>
         </div>
       </div>
@@ -229,10 +232,10 @@ export default function ResetPasswordPage() {
               </svg>
             </div>
             <h2 className="mt-6 text-3xl font-bold text-gray-900">
-              Enlace Inválido
+              {t('resetPassword.invalidLink.title')}
             </h2>
             <p className="mt-2 text-sm text-gray-600">
-              Este enlace de recuperación ha expirado o no es válido
+              {t('resetPassword.invalidLink.subtitle')}
             </p>
           </div>
         </div>
@@ -245,12 +248,12 @@ export default function ResetPasswordPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <h3 className="text-lg font-medium text-yellow-900 mb-2">
-                  Posibles causas
+                  {t('resetPassword.invalidLink.possibleCauses')}
                 </h3>
                 <ul className="text-sm text-yellow-700 space-y-1 text-left">
-                  <li>• El enlace ha expirado (válido por 60 minutos)</li>
-                  <li>• El enlace ya fue utilizado</li>
-                  <li>• El enlace está incompleto o dañado</li>
+                  <li>• {t('resetPassword.invalidLink.expiredLink')}</li>
+                  <li>• {t('resetPassword.invalidLink.usedLink')}</li>
+                  <li>• {t('resetPassword.invalidLink.brokenLink')}</li>
                 </ul>
               </div>
 
@@ -259,14 +262,14 @@ export default function ResetPasswordPage() {
                   to="/forgot-password" 
                   className="w-full btn btn-primary"
                 >
-                  Solicitar nuevo enlace
+                  {t('resetPassword.invalidLink.requestNew')}
                 </Link>
 
                 <Link 
                   to="/login" 
                   className="w-full btn btn-secondary"
                 >
-                  Volver al inicio de sesión
+                  {t('resetPassword.invalidLink.backToLogin')}
                 </Link>
               </div>
             </div>
@@ -286,10 +289,10 @@ export default function ResetPasswordPage() {
             </svg>
           </div>
           <h2 className="mt-6 text-3xl font-bold text-gray-900">
-            Nueva Contraseña
+            {t('resetPassword.title')}
           </h2>
           <p className="mt-2 text-sm text-gray-600">
-            Crea una contraseña segura para tu cuenta
+            {t('resetPassword.subtitle')}
           </p>
         </div>
       </div>
@@ -300,7 +303,7 @@ export default function ResetPasswordPage() {
             {/* Nueva Contraseña */}
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                Nueva Contraseña <span className="text-red-500">*</span>
+                {t('resetPassword.newPassword')} <span className="text-red-500">{t('resetPassword.required')}</span>
               </label>
               <div className="mt-1 relative">
                 <input
@@ -310,7 +313,7 @@ export default function ResetPasswordPage() {
                   autoComplete="new-password"
                   required
                   className="input pr-10"
-                  placeholder="••••••••"
+                  placeholder={t('resetPassword.passwordPlaceholder')}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
@@ -337,7 +340,7 @@ export default function ResetPasswordPage() {
             {/* Confirmar Contraseña */}
             <div>
               <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
-                Confirmar Contraseña <span className="text-red-500">*</span>
+                {t('resetPassword.confirmPassword')} <span className="text-red-500">{t('resetPassword.required')}</span>
               </label>
               <div className="mt-1 relative">
                 <input
@@ -347,7 +350,7 @@ export default function ResetPasswordPage() {
                   autoComplete="new-password"
                   required
                   className="input pr-10"
-                  placeholder="••••••••"
+                  placeholder={t('resetPassword.passwordPlaceholder')}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                 />
@@ -369,7 +372,7 @@ export default function ResetPasswordPage() {
                 </button>
               </div>
               {confirmPassword && password !== confirmPassword && (
-                <p className="mt-1 text-sm text-red-600">Las contraseñas no coinciden</p>
+                <p className="mt-1 text-sm text-red-600">{t('resetPassword.errors.passwordMismatch')}</p>
               )}
             </div>
 
@@ -383,14 +386,14 @@ export default function ResetPasswordPage() {
                 {loading ? (
                   <>
                     <div className="loading-spinner mr-2"></div>
-                    Actualizando...
+                    {t('resetPassword.updating')}
                   </>
                 ) : (
                   <>
                     <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    Actualizar Contraseña
+                    {t('resetPassword.updateButton')}
                   </>
                 )}
               </button>
@@ -403,7 +406,7 @@ export default function ResetPasswordPage() {
                 <div className="w-full border-t border-gray-300" />
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">¿Recordaste tu contraseña?</span>
+                <span className="px-2 bg-white text-gray-500">{t('resetPassword.rememberPassword')}</span>
               </div>
             </div>
 
@@ -412,7 +415,7 @@ export default function ResetPasswordPage() {
                 to="/login" 
                 className="font-medium text-primary-600 hover:text-primary-500 transition-colors duration-200"
               >
-                Volver al inicio de sesión
+                {t('resetPassword.backToLogin')}
               </Link>
             </div>
           </div>

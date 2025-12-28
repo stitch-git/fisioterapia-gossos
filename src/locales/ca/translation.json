@@ -1,0 +1,1421 @@
+{
+  "common": {
+    "welcome": "Benvingut",
+    "loading": "Carregant...",
+    "save": "Desar",
+    "saving": "Desant...",
+    "cancel": "Cancel·lar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "confirm": "Confirmar",
+    "close": "Tancar",
+    "search": "Cercar",
+    "filter": "Filtrar",
+    "logout": "Tancar sessió",
+    "language": "Idioma",
+    "spanish": "Castellà",
+    "catalan": "Català"
+  },
+  "profile": {
+    "myProfile": "El meu perfil",
+    "personalInfo": "Informació personal",
+    "preferences": "Preferències",
+    "preferredLanguage": "Idioma preferit",
+    "changeLanguage": "Canviar idioma",
+    "updateProfile": "Actualitzar perfil",
+    "profileUpdated": "Perfil actualitzat correctament",
+    "name": "Nom",
+    "languageDescription": "Selecciona l'idioma de l'aplicació",
+    "languageUpdated": "Idioma actualitzat correctament",
+    "languageUpdateError": "Error en actualitzar l'idioma",
+    "loadError": "Error en carregar el perfil"
+  },
+  "admin": {
+    "header": {
+      "openMenu": "Obrir menú",
+      "logoAlt": "Logotip de Fisioteràpia Gossos",
+      "title": "Fisioteràpia Gossos",
+      "subtitle": "Sistema de Reserves",
+      "administrator": "Administrador",
+      "admin": "admin",
+      "logout": "Tancar Sessió",
+      "logoutConfirmTitle": "Tancar Sessió",
+      "logoutConfirmMessage": "Estàs segur que vols tancar sessió? Hauràs de tornar a iniciar sessió per accedir al teu compte.",
+      "cancel": "Cancel·lar"
+    }
+  },
+  "bookingsManagement": {
+    "title": "Gestió de Cites",
+    "subtitle": "Administra totes les cites del sistema",
+    "newBooking": "Nova Cita",
+    "loadingBookings": "Carregant cites...",
+    "bookingsList": "Cites",
+    "noBookingsFound": "No s'han trobat cites",
+    "adjustFilters": "Ajusta els filtres o crea una nova cita",
+    "listView": "Llista",
+    "client": "Client",
+    "dog": "Gos",
+    "homeVisit": "Visita a domicili",
+    "bookingsUpdated": "Reserves actualitzades",
+    "centerBookings": "Reserves del centre",
+    "homeVisits": "Visites",
+    "schedulesUpdated": "Horaris actualitzats",
+    "loadingSchedulesFor": "Carregant horaris per a",
+    "refreshingSchedules": "refrescant horaris",
+    "receivedBookingUpdate": "va rebre actualització de reserva",
+    "finalVerification": "Verificació final de disponibilitat...",
+    "notifiedNewBooking": "va notificar nova reserva a tots els usuaris",
+    "cancellationByCenterReason": "Cancel·lació per part del centre",
+    "analyzingAvailability": "Analitzant disponibilitat...",
+    "weekDaysShort": ["L", "M", "X", "J", "V", "S", "D"],
+    "filters": {
+      "status": "Estat",
+      "allStatuses": "Tots els estats",
+      "period": "Període",
+      "search": "Cercar",
+      "searchPlaceholder": "Client, gos, servei o email..."
+    },
+    "status": {
+      "pending": "Pendent",
+      "pendingConfirmation": "Pendent de confirmació",
+      "completed": "Completada",
+      "cancelled": "Cancel·lada"
+    },
+    "stats": {
+      "pending": "Pendents",
+      "completed": "Completades",
+      "cancelled": "Cancel·lades"
+    },
+    "table": {
+      "dateTime": "Data/Hora",
+      "client": "Client",
+      "dog": "Gos",
+      "service": "Servei",
+      "status": "Estat",
+      "actions": "Accions"
+    },
+    "actions": {
+      "cancel": "Cancel·lar",
+      "confirm": "Confirmar",
+      "reject": "Rebutjar",
+      "viewDetails": "Veure detalls"
+    },
+    "modal": {
+      "newBooking": "Nova Cita",
+      "client": "Client",
+      "selectClient": "Selecciona un client",
+      "dog": "Gos",
+      "selectDog": "Selecciona un gos",
+      "service": "Servei",
+      "selectService": "Selecciona un servei",
+      "perHour": "hora",
+      "date": "Data",
+      "selectDate": "Selecciona una data",
+      "startTime": "Hora d'Inici",
+      "endTime": "Hora de Fi",
+      "selectTime": "Selecciona hora",
+      "loading": "Carregant...",
+      "selectDateServiceFirst": "Selecciona data i servei primer",
+      "selectEndTime": "Selecciona hora fi",
+      "duration": "Durada",
+      "price": "Preu",
+      "homeAddress": "Adreça del Domicili",
+      "addressPlaceholder": "Carrer, número, pis, codi postal, ciutat...",
+      "time": "Hora",
+      "loadingAvailableSchedules": "Carregant horaris disponibles...",
+      "observations": "Observacions",
+      "observationsPlaceholder": "Informació addicional...",
+      "cancel": "Cancel·lar",
+      "creating": "Creant...",
+      "createBooking": "Crear Cita"
+    },
+    "calendar": {
+      "available": "Disponible",
+      "notAvailable": "No Disponible",
+      "outOfMonth": "Fora del mes",
+      "pastDay": "Dia passat",
+      "fullyBooked": "Dia completament ocupat",
+      "noSchedulesConfigured": "Sense horaris configurats"
+    },
+    "dateRangePicker": {
+      "selectStartDate": "📅 Selecciona data d'inici",
+      "selectEndDate": "📅 Selecciona data de fi",
+      "today": "Avui",
+      "close": "Tancar"
+    },
+    "noSlots": {
+      "noSchedulesConfigured": "Sense horaris configurats",
+      "noWorkHoursFor": "No hi ha horaris de treball per al {{date}}",
+      "configureSchedulesSuggestion": "Configura horaris a \"Configuració d'Horaris\" o selecciona una altra data.",
+      "serviceTooLong": "Servei massa llarg",
+      "serviceTooLongMessage": "\"{{serviceName}}\" dura {{serviceDuration}} min, però l'horari més ampli és de {{maxDuration}} min ({{startTime}} - {{endTime}})",
+      "serviceTooLongSuggestion": "Necessites un horari més ampli. Configura'n un a \"Configuració d'Horaris\" o selecciona un altre servei/data.",
+      "schedulesOccupied": "Horaris ocupats",
+      "schedulesOccupiedMessage": "Tots els espais disponibles estan reservats o bloquejats per altres cites.",
+      "schedulesOccupiedSuggestion": "Selecciona una altra data o revisa el \"Calendari de Cites\" per veure l'ocupació."
+    },
+    "detailsModal": {
+      "title": "Detalls de la Cita",
+      "client": "Client",
+      "dog": "Gos",
+      "service": "Servei",
+      "dateTime": "Data i Hora",
+      "status": "Estat",
+      "observations": "Observacions",
+      "created": "Creada",
+      "updated": "Actualitzada",
+      "minutes": "minuts"
+    },
+    "deleteModal": {
+      "title": "Eliminar Cita",
+      "message": "Estàs segur que vols eliminar aquesta cita? Aquesta acció no es pot desfer.",
+      "confirm": "Eliminar",
+      "cancel": "Cancel·lar"
+    },
+    "spaces": {
+      "clientHome": "Domicili del Client",
+      "rehabCabinPool": "Caseta de Rehabilitació + Piscina (Hidroteràpia)",
+      "rehabCabin": "Caseta de Rehabilitació",
+      "pool": "Piscina (Hidroteràpia)",
+      "generalSpace": "Espai General"
+    },
+    "toasts": {
+      "bookingCancelled": "Cita cancel·lada",
+      "bookingConfirmed": "Cita confirmada correctament",
+      "bookingRejected": "Cita rebutjada correctament",
+      "bookingUpdated": "Cita actualitzada",
+      "bookingDeleted": "Cita eliminada correctament",
+      "bookingCreated": "Cita creada correctament"
+    },
+    "errors": {
+      "loadingBookings": "Error carregant cites",
+      "loadingAvailableSchedules": "Error carregant horaris disponibles",
+      "updatingBooking": "Error actualitzant cita",
+      "confirmingBooking": "Error confirmant cita",
+      "rejectingBooking": "Error rebutjant cita",
+      "deletingBooking": "Error eliminant cita",
+      "completeRequiredFields": "Completa tots els camps obligatoris",
+      "completeHomeVisitFields": "Completa tots els camps obligatoris per a visita a domicili",
+      "minimumDuration30": "La durada mínima és de 30 minuts",
+      "selectTime": "Selecciona una hora",
+      "endTimeMustBeAfterStart": "L'hora de fi ha de ser posterior a la d'inici",
+      "verifyingAvailability": "Error verificant disponibilitat",
+      "conflictDetected": "Conflicte detectat: Aquest horari ja no està disponible",
+      "technicalError": "Error tècnic al crear la cita",
+      "creatingBooking": "Error al crear la cita",
+      "unexpectedError": "Error inesperat al crear la cita"
+    }
+  },
+
+  "clientsManagement": {
+    "title": "Gestió de Clients",
+    "subtitle": "Administra els clients registrats i els seus gossos",
+    "registrationNote": "Els clients han de registrar-se directament al sistema fent servir el formulari de registre.",
+    "loadingClients": "Carregant clients...",
+    "searchPlaceholder": "Cercar per nom, email o telèfon...",
+    "client": "client",
+    "listView": "Llista",
+    "clients": "Clients",
+    "noClientsFound": "No s'han trobat clients",
+    "adjustSearch": "Ajusta la cerca",
+    "registered": "Registrat",
+    "selectClient": "Selecciona un client",
+    "selectClientMessage": "Fes clic en un client de la llista per veure els seus detalls",
+    "clientInfo": {
+      "title": "Informació del Client",
+      "name": "Nom",
+      "email": "Email",
+      "phone": "Telèfon",
+      "notSpecified": "No especificat",
+      "notifications": "Notificacions",
+      "yes": "Sí",
+      "no": "No"
+    },
+    "dogs": {
+      "title": "Gossos",
+      "add": "Afegir",
+      "addDog": "Afegir Gos",
+      "noDogs": "No hi ha gossos registrats",
+      "inactive": "Inactiu",
+      "breed": "Raça",
+      "age": "Edat",
+      "years": "anys",
+      "weight": "Pes",
+      "kg": "kg"
+    },
+    "bookingHistory": {
+      "title": "Historial de Cites",
+      "noBookings": "No hi ha cites registrades",
+      "dog": "Gos",
+      "minutes": "min"
+    },
+    "editModal": {
+      "title": "Editar Client",
+      "fullName": "Nom complet",
+      "email": "Email",
+      "country": "País",
+      "phone": "Telèfon",
+      "notificationPreferences": "Preferències de notificació",
+      "emailNotifications": "Notificacions per email",
+      "cancel": "Cancel·lar",
+      "updating": "Actualitzant...",
+      "update": "Actualitzar"
+    },
+    "addDogModal": {
+      "title": "Afegir Gos a {{name}}",
+      "dogName": "Nom del gos",
+      "breed": "Raça",
+      "breedPlaceholder": "Ex: Labrador, Pastor Alemany...",
+      "age": "Edat (anys)",
+      "weight": "Pes (kg)",
+      "observations": "Observacions",
+      "observationsPlaceholder": "Al·lèrgies, problemes de salut, comportament...",
+      "cancel": "Cancel·lar",
+      "adding": "Afegint...",
+      "addDog": "Afegir Gos"
+    },
+    "toasts": {
+      "errorLoadingClients": "Error carregant clients",
+      "errorLoadingBookings": "Error carregant historial de cites",
+      "errorLoadingDogs": "Error carregant gossos del client",
+      "nameEmailRequired": "Nom complet i email són obligatoris",
+      "clientCreated": "Client creat correctament. El client haurà de registrar-se al sistema per activar el seu compte.",
+      "emailExists": "Ja existeix un client amb aquest email",
+      "errorCreatingClient": "Error creant client",
+      "clientUpdated": "Client actualitzat correctament",
+      "errorUpdatingClient": "Error actualitzant client",
+      "dogNameRequired": "El nom del gos és obligatori",
+      "dogAdded": "Gos afegit correctament",
+      "errorAddingDog": "Error afegint gos"
+    }
+  },
+
+  "configurationPanel": {
+    "title": "Configuració d'Horaris",
+    "subtitle": "Defineix horaris disponibles per data específica",
+    "loadingConfig": "Carregant configuració...",
+    "previous": "Anterior",
+    "next": "Següent",
+    "weekOf": "Setmana del",
+    "to": "al",
+    "goToCurrentWeek": "Anar a setmana actual",
+    "stats": {
+      "totalSchedules": "Total horaris configurats",
+      "daysWithSchedules": "Dies amb horaris"
+    },
+    "filters": {
+      "title": "Filtrar Horaris",
+      "all": "Tots els Horaris",
+      "normal": "Només Normals (Clients)",
+      "adminOnly": "🔒 Només Admin"
+    },
+    "form": {
+      "addNew": "Afegir Nou Horari",
+      "edit": "✏️ Editar Horari",
+      "cancelEdit": "❌ Cancel·lar edició",
+      "startHour": "Hora inici",
+      "startMinute": "Minut d'inici",
+      "endHour": "Hora fi",
+      "endMinute": "Minut fi",
+      "enter": "Introduir",
+      "onlyIntervals": "Només intervals de 15 min",
+      "adminOnlyLabel": "🔒 Només per a Admin",
+      "adminOnlyDesc": "Aquest horari NO estarà disponible per a clients",
+      "updating": "Actualitzant...",
+      "adding": "Afegint...",
+      "update": "💾 Actualitzar",
+      "add": "Afegir",
+      "quickSuggestions": "Suggeriments ràpids:",
+      "morning": "Matí (08:00-12:00)",
+      "afternoon": "Tarda (14:00-18:00)",
+      "fullDay": "Jornada completa (08:00-18:00)",
+      "thirtyMin": "30 min (09:00-09:30)",
+      "oneHour": "1 hora (10:00-11:00)"
+    },
+    "selection": {
+      "title": "Selecció de Dies",
+      "instruction": "Selecciona els dies on vols afegir l'horari",
+      "selected": "{{count}} dia seleccionat",
+      "selected_plural": "{{count}} dies seleccionats",
+      "selectAll": "Seleccionar tots",
+      "clearSelection": "Netejar selecció",
+      "clearSchedules": "Netejar horaris dies seleccionats",
+      "howToUse": "Com utilitzar:",
+      "howToUseText": "Marca els dies amb els checkboxes blaus, configura l'horari i fes clic a \"Afegir\" per aplicar-lo a tots els dies seleccionats.",
+      "editMode": "✏️ Mode Edició:",
+      "editModeText": "Estàs editant un horari existent. El dia ja està seleccionat automàticament."
+    },
+    "dayCard": {
+      "schedules": "horari",
+      "schedules_plural": "horaris",
+      "clear": "Netejar",
+      "noSchedules": "Sense horaris configurats",
+      "past": "passat",
+      "edit": "Editar horari",
+      "delete": "Eliminar horari"
+    },
+    "mobile": {
+      "selectedDays": "Dies seleccionats",
+      "noDaysSelected": "Cap dia seleccionat",
+      "selectDay": "Seleccionar dia...",
+      "selected": "seleccionat",
+      "past": "passat"
+    },
+    "viewToggle": {
+      "byDay": "Vista per Dia",
+      "complete": "Vista Completa"
+    },
+    "deleteModal": {
+      "title": "Eliminar Horari",
+      "message": "Estàs segur que vols eliminar l'horari {{slot}} del {{date}}?",
+      "confirm": "Eliminar",
+      "cancel": "Cancel·lar"
+    },
+    "toasts": {
+      "errorLoading": "Error carregant configuració d'horaris",
+      "cannotSelectPast": "No pots seleccionar un dia anterior a avui",
+      "selectAtLeastOneDay": "❌ Has de seleccionar almenys un dia per afegir horaris",
+      "completeAllFields": "❌ Has de completar tots els camps d'horari (hora i minuts d'inici i fi)",
+      "endAfterStart": "❌ L'hora de fi ha de ser posterior a l'hora d'inici",
+      "minimumDuration": "❌ L'horari ha de tenir una durada mínima de 30 minuts",
+      "scheduleAdded": "✅ Horari afegit correctament a {{count}} dia",
+      "scheduleAdded_plural": "✅ Horari afegit correctament a {{count}} dies",
+      "scheduleAddedPartial": "⚠️ Horari afegit a {{success}} de {{total}} dies. {{errors}} error",
+      "scheduleAddedPartial_plural": "⚠️ Horari afegit a {{success}} de {{total}} dies. {{errors}} errors",
+      "couldNotAdd": "❌ No s'ha pogut afegir l'horari a cap data",
+      "alreadyExists": "L'horari {{time}} ja existeix en aquest dia",
+      "overlap": "L'horari {{newTime}} se solapa amb l'horari existent {{existingTime}}",
+      "editingSchedule": "📝 Editant horari: {{time}}",
+      "scheduleUpdated": "✅ Horari actualitzat correctament",
+      "errorUpdating": "❌ Error actualitzant horari: {{error}}",
+      "scheduleDeleted": "Horari eliminat correctament",
+      "errorDeleting": "Error eliminant horari",
+      "noDaySchedules": "No hi ha horaris per eliminar en aquest dia",
+      "daySchedulesCleared": "Tots els horaris del {{date}} han estat eliminats",
+      "errorClearingDay": "Error eliminant horaris del dia",
+      "noSelectedDays": "No hi ha dies seleccionats per netejar",
+      "noDaysWithSchedules": "No hi ha horaris per eliminar als dies seleccionats",
+      "selectedDaysCleared": "{{slotCount}} horari eliminat de {{dayCount}} dia",
+      "selectedDaysCleared_plural": "{{slotCount}} horaris eliminats de {{dayCount}} dies",
+      "errorClearingSelected": "Error eliminant horaris dels dies seleccionats"
+    }
+  },
+  
+  "homeVisitBooking": {
+    "title": "Rehabilitació a Domicili",
+    "subtitle": "Gestiona les visites a domicili programades",
+    "newHomeVisit": "Nova Visita a Domicili",
+    "importantBlocking": "Important sobre el bloqueig d'horaris",
+    "blockingMessage": "Les cites a domicili bloquegen automàticament els horaris al centre per a tots els serveis.",
+    "rate": "Tarifa:",
+    "perHour": "€80 per hora. Durada mínima: 30 minuts.",
+    "upcomingVisits": "Properes Visites a Domicili",
+    "noVisitsScheduled": "No hi ha visites programades",
+    "scheduleFirstVisit": "Programa la teva primera visita a domicili",
+    "dog": "Gos",
+    "dateAndTime": "Data i Horari",
+    "contact": "Contacte",
+    "price": "Preu",
+    "address": "Adreça",
+    "observations": "Observacions",
+    "deleteVisit": "Eliminar visita",
+    "modal": {
+      "title": "Nova Visita a Domicili",
+      "client": "Client",
+      "selectClient": "Selecciona un client",
+      "dog": "Gos",
+      "selectDog": "Selecciona un gos",
+      "date": "Data",
+      "startTime": "Hora d'Inici",
+      "endTime": "Hora de Fi",
+      "selectTime": "Selecciona hora",
+      "selectEndTime": "Selecciona hora fi",
+      "duration": "Durada: {{hours}}h ({{minutes}} min)",
+      "totalPrice": "Preu total: €{{price}} (€80/hora)",
+      "homeAddress": "Adreça del Domicili",
+      "addressPlaceholder": "Carrer, número, pis, codi postal, ciutat...",
+      "observations": "Observacions",
+      "observationsPlaceholder": "Informació addicional sobre la visita...",
+      "blockingWarning": "⚠️ Aquesta visita bloquejarà automàticament els horaris al centre per a tots els serveis.",
+      "cancel": "Cancel·lar",
+      "scheduling": "Programant...",
+      "scheduleVisit": "Programar Visita"
+    },
+    "deleteModal": {
+      "title": "Eliminar Visita a Domicili",
+      "message": "Estàs segur que vols eliminar aquesta visita a domicili? Aquesta acció no es pot desfer.",
+      "confirm": "Eliminar",
+      "cancel": "Cancel·lar"
+    },
+    "toasts": {
+      "errorLoadingClients": "Error carregant clients",
+      "errorLoadingVisits": "Error carregant visites a domicili",
+      "completeRequiredFields": "Completa tots els camps obligatoris",
+      "endAfterStart": "L'hora de fi ha de ser posterior a la d'inici",
+      "minimumDuration": "La durada mínima és de 30 minuts",
+      "visitScheduled": "Visita a domicili programada correctament",
+      "errorScheduling": "Error programant visita a domicili",
+      "visitDeleted": "Visita a domicili eliminada",
+      "errorDeleting": "Error eliminant visita"
+    }
+  },
+
+  "occupancyReport": {
+    "title": "Ocupació d'Espais",
+    "subtitle": "Vista setmanal de cites i disponibilitat",
+    "allSpaces": "Tots els Espais",
+    "rehabCabin": "Caseta de Rehabilitació",
+    "pool": "Piscina (Hidroteràpia)",
+    "listView": "Llista",
+    "stats": {
+      "bookingsThisWeek": "Cites aquesta setmana",
+      "estimatedRevenue": "Ingressos estimats",
+      "occupiedTime": "Temps ocupat"
+    },
+    "navigation": {
+      "previous": "Anterior",
+      "next": "Següent",
+      "weekFrom": "Setmana del",
+      "to": "al",
+      "goToCurrentWeek": "Anar a setmana actual"
+    },
+    "legend": {
+      "title": "Llegenda de Serveis",
+      "rehabilitation": "Rehabilitació",
+      "hydrotherapy": "Hidroteràpia",
+      "rehabHydro": "Rehabilitació + Hidroteràpia",
+      "homeRehab": "Rehabilitació a Domicili"
+    },
+    "available": {
+      "adminOnly": "NOMÉS ADMIN",
+      "available": "DISPONIBLE",
+      "schedule": "Horari Disponible",
+      "duration": "Durada: {{duration}} minuts"
+    },
+    "mobile": {
+      "appointment": "cita",
+      "appointment_plural": "cites",
+      "available": "disponible",
+      "available_plural": "disponibles",
+      "noAppointmentsOrSchedules": "No hi ha cites ni horaris disponibles"
+    },
+    "detailsModal": {
+      "title": "Detalls de la Cita",
+      "client": "Client",
+      "dog": "Gos",
+      "service": "Servei",
+      "date": "Data",
+      "schedule": "Horari",
+      "duration": "Durada",
+      "status": "Estat",
+      "price": "Preu",
+      "observations": "Observacions",
+      "homeVisit": "Visita a domicili",
+      "minutes": "minuts"
+    },
+    "cancelModal": {
+      "title": "Cancel·lar Cita",
+      "message": "Estàs segur que vols cancel·lar la cita de {{clientName}}? S'enviarà un email de notificació al client.",
+      "confirm": "Sí, Cancel·lar Cita",
+      "cancel": "No, Mantenir Cita"
+    },
+    "buttons": {
+      "cancelAppointment": "Cancel·lar Cita",
+      "cancelling": "Cancel·lant..."
+    },
+    "toasts": {
+      "loadingCalendar": "Carregant calendari...",
+      "errorLoadingWeek": "Error carregant dades de la setmana",
+      "appointmentCancelled": "Cita cancel·lada correctament",
+      "errorCancelling": "Error cancel·lant la cita"
+    },
+    "price": {
+      "from": "A partir de 80 €"
+    }
+  },
+
+  "forgotPassword": {
+    "title": "Has oblidat la contrasenya?",
+    "subtitle": "No et preocupis, t'enviem les instruccions per restablir-la",
+    "emailLabel": "Email registrat",
+    "emailPlaceholder": "el.teu@email.com",
+    "emailHint": "T'enviarem un enllaç per restablir la teva contrasenya",
+    "sendButton": "Enviar instruccions",
+    "sending": "Enviant...",
+    "rememberPassword": "Has recordat la contrasenya?",
+    "backToLogin": "Tornar a l'inici de sessió",
+    "success": {
+      "title": "Email Enviat",
+      "message": "Hem enviat les instruccions per restablir la teva contrasenya a:",
+      "checkInbox": "Revisa la teva safata d'entrada",
+      "spamWarning": "Si no trobes l'email, revisa també la carpeta de spam o correu no desitjat.",
+      "linkExpires": "L'enllaç expirarà en 60 minuts per seguretat.",
+      "retryMessage": "Si no reps l'email en uns minuts, pots intentar de nou.",
+      "tryAnother": "Intentar amb un altre email"
+    },
+    "errors": {
+      "enterEmail": "Si us plau introdueix el teu email",
+      "invalidEmail": "Si us plau introdueix un email vàlid"
+    }
+  },
+
+  "login": {
+    "title": "Fisioteràpia Gossos",
+    "subtitle": "Inicia sessió per accedir al teu compte",
+    "logoAlt": "Logotip de Fisioteràpia Gossos",
+    "emailLabel": "Email",
+    "emailPlaceholder": "el.teu@email.com",
+    "passwordLabel": "Contrasenya",
+    "passwordPlaceholder": "••••••••",
+    "rememberMe": "Recorda'm",
+    "forgotPassword": "Has oblidat la contrasenya?",
+    "loginButton": "Iniciar Sessió",
+    "loggingIn": "Iniciant sessió...",
+    "noAccount": "No tens compte?",
+    "registerHere": "Registra't aquí",
+    "errors": {
+      "completeFields": "Si us plau completa tots els camps"
+    }
+  },
+
+  "register": {
+    "title": "Crear Compte",
+    "subtitle": "Uneix-te a Fisioteràpia Gossos",
+    "fullName": "Nom Complet",
+    "fullNamePlaceholder": "Joan Pérez García",
+    "phone": "Telèfon",
+    "phonePlaceholder": "600 123 456",
+    "email": "Email",
+    "emailPlaceholder": "el.teu@email.com",
+    "preferredLanguage": "Idioma preferit",
+    "languageHint": "Pots canviar l'idioma en qualsevol moment des del teu perfil",
+    "password": "Contrasenya",
+    "passwordPlaceholder": "••••••••",
+    "confirmPassword": "Confirmar Contrasenya",
+    "acceptTerms": "Accepto els",
+    "termsAndConditions": "termes i condicions",
+    "createButton": "Crear Compte",
+    "creating": "Creant compte...",
+    "alreadyHaveAccount": "Ja tens compte?",
+    "loginHere": "Inicia sessió aquí",
+    "required": "*",
+    "countries": {
+      "ES": "Espanya",
+      "FR": "França",
+      "IT": "Itàlia",
+      "DE": "Alemanya",
+      "GB": "Regne Unit",
+      "US": "Estats Units",
+      "AR": "Argentina",
+      "MX": "Mèxic",
+      "CO": "Colòmbia"
+    },
+    "languages": {
+      "spanish": "Español",
+      "catalan": "Català"
+    },
+    "passwordRequirements": {
+      "title": "Requisits de contrasenya:",
+      "minLength": "Mínim 8 caràcters",
+      "lowercase": "Almenys una minúscula (a-z)",
+      "uppercase": "Almenys una majúscula (A-Z)",
+      "number": "Almenys un número (0-9)",
+      "symbol": "Almenys un símbol (!@#$%^&*)"
+    },
+    "validation": {
+      "validPhone": "Telèfon vàlid",
+      "validPhoneDigits": "Telèfon vàlid ({{digits}} dígits)",
+      "validEmail": "Email vàlid",
+      "fixErrors": "Corregeix els errors"
+    },
+    "errors": {
+      "emailRequired": "L'email és obligatori",
+      "prohibitedChars": "Caràcters no permesos: {{chars}}",
+      "noSpaces": "Els emails no poden contenir espais",
+      "needsAt": "L'email ha de contenir @",
+      "oneAt": "L'email només pot contenir una @",
+      "noDoubleDots": "No es permeten punts consecutius",
+      "invalidFormat": "Format d'email invàlid",
+      "phoneRequired": "El telèfon és obligatori",
+      "onlyNumbers": "Només es permeten números, espais, guions i parèntesis",
+      "minDigits": "El telèfon ha de tenir almenys 9 dígits",
+      "maxDigits": "El telèfon no pot tenir més de 9 dígits",
+      "spanishStart": "Els números espanyols han de començar per 6 o 7",
+      "noLettersInPhone": "Només es permeten números en el telèfon",
+      "fullNameRequired": "El nom complet és requerit",
+      "passwordRequired": "La contrasenya és requerida",
+      "passwordRequirements": "La contrasenya no compleix tots els requisits de seguretat",
+      "passwordMismatch": "Les contrasenyes no coincideixen"
+    }
+  },
+
+  "resetPassword": {
+    "title": "Nova Contrasenya",
+    "subtitle": "Crea una contrasenya segura per al teu compte",
+    "newPassword": "Nova Contrasenya",
+    "passwordPlaceholder": "••••••••",
+    "confirmPassword": "Confirmar Contrasenya",
+    "updateButton": "Actualitzar Contrasenya",
+    "updating": "Actualitzant...",
+    "rememberPassword": "Has recordat la contrasenya?",
+    "backToLogin": "Tornar a l'inici de sessió",
+    "required": "*",
+    "passwordRequirements": {
+      "title": "Requisits de contrasenya:",
+      "minLength": "Mínim 8 caràcters",
+      "lowercase": "Almenys una minúscula (a-z)",
+      "uppercase": "Almenys una majúscula (A-Z)",
+      "number": "Almenys un número (0-9)",
+      "symbol": "Almenys un símbol (!@#$%^&*)"
+    },
+    "verifying": {
+      "title": "Verificant enllaç..."
+    },
+    "invalidLink": {
+      "title": "Enllaç Invàlid",
+      "subtitle": "Aquest enllaç de recuperació ha expirat o no és vàlid",
+      "possibleCauses": "Possibles causes",
+      "expiredLink": "L'enllaç ha expirat (vàlid per 60 minuts)",
+      "usedLink": "L'enllaç ja va ser utilitzat",
+      "brokenLink": "L'enllaç està incomplet o malmès",
+      "requestNew": "Sol·licitar nou enllaç",
+      "backToLogin": "Tornar a l'inici de sessió"
+    },
+    "errors": {
+      "completeFields": "Si us plau completa tots els camps",
+      "passwordRequirements": "La contrasenya no compleix tots els requisits de seguretat",
+      "passwordMismatch": "Les contrasenyes no coincideixen",
+      "checkEmail": "Si us plau, verifica el teu email i usa l'enllaç més recent que vas rebre"
+    },
+    "success": {
+      "updated": "Contrasenya actualitzada correctament"
+    }
+  },
+
+  "bookingSection": {
+    "tip": {
+      "icon": "⚡",
+      "title": "Consell:",
+      "message": "Els horaris es reserven per ordre d'arribada. Completa la teva reserva ràpidament una vegada seleccionada l'hora."
+    },
+    "title": "Reservar Cita",
+    "subtitle": "Selecciona el servei i horari per al teu gos",
+    "homeVisitInfo": {
+      "title": "Necessites una sessió a domicili?",
+      "message": "Les sessions de rehabilitació a domicili estan disponibles sota consulta.",
+      "contact": "Contacta amb nosaltres al",
+      "schedule": "per programar la teva visita personalitzada."
+    },
+    "steps": {
+      "selectService": "1. Selecciona el Servei",
+      "selectDog": "2. Selecciona el teu Gos",
+      "selectDate": "3. Selecciona la Data",
+      "selectTime": "4. Selecciona l'Hora",
+      "observations": "5. Observacions (opcional)"
+    },
+    "service": {
+      "duration": "Durada: {{minutes}} min",
+      "price": "Preu: {{price}} € IVA inclòs"
+    },
+    "dog": {
+      "selectPlaceholder": "Selecciona un gos...",
+      "noDogs": "No tens gossos registrats.",
+      "addDog": "Afegir gos"
+    },
+    "date": {
+      "selectPlaceholder": "Selecciona una data"
+    },
+    "time": {
+      "loadingSlots": "Carregant horaris disponibles...",
+      "noSlots": {
+        "title": "No hi ha horaris disponibles per a aquesta data.",
+        "reason": "Això pot ser degut a cites programades o visites a domicili.",
+        "suggestion": "Prova amb una altra data."
+      }
+    },
+    "observations": {
+      "placeholder": "Informació addicional sobre el teu gos o la cita..."
+    },
+    "submit": {
+      "processing": "Processant...",
+      "button": "Sol·licitar Cita"
+    },
+    "calendar": {
+      "weekDays": ["L", "M", "X", "J", "V", "S", "D"],
+      "loading": "Carregant disponibilitat...",
+      "tooltips": {
+        "outOfMonth": "Fora del mes",
+        "pastDay": "Dia passat",
+        "noSlots": "Sense disponibilitat horària",
+        "partial": "Disponibilitat limitada",
+        "available": "Disponible"
+      },
+      "legend": {
+        "available": "Disponible",
+        "noSlots": "Sense horaris"
+      }
+    },
+    "spaces": {
+      "rehabCabinPool": "Caseta de Rehabilitació + Piscina (Hidroteràpia)",
+      "rehabCabin": "Caseta de Rehabilitació",
+      "pool": "Piscina (Hidroteràpia)",
+      "general": "Espai General"
+    },
+    "toasts": {
+      "loadingServices": "Error carregant serveis",
+      "loadingDogs": "Error carregant gossos",
+      "loadingSlots": "Error carregant horaris",
+      "completeFields": "Si us plau completa tots els camps obligatoris",
+      "slotTaken": "Aquest horari ja va ser reservat per un altre usuari. Selecciona un altre horari.",
+      "technicalError": "Error tècnic al crear la reserva",
+      "slotConflict": "Aquest horari ja no està disponible. Selecciona un altre horari.",
+      "unexpectedError": "Error inesperat. Torna-ho a provar.",
+      "bookingSuccess": "Cita reservada correctament!",
+      "bookingPendingConfirmation": "Cita sol·licitada! Està pendent de confirmació per l'administrador. Rebràs un email quan sigui confirmada.",
+      "navigateToDogs": "Navegar a \"Els meus Gossos\" per afegir un nou gos",
+      "cannotNavigate": "No es pot navegar a la secció de gossos"
+    }
+  },
+
+  "clientHeader": {
+    "openMenu": "Obrir menú",
+    "logoAlt": "Logotip de Fisioteràpia Gossos",
+    "title": "Fisioteràpia Gossos",
+    "subtitle": "Sistema de Reserves",
+    "client": "Client",
+    "logout": "Tancar Sessió",
+    "logoutModal": {
+      "title": "Tancar Sessió",
+      "message": "Estàs segur que vols tancar sessió? Hauràs de tornar a iniciar sessió per accedir al teu compte.",
+      "confirm": "Tancar Sessió",
+      "cancel": "Cancel·lar"
+    }
+  },
+
+  "myBookings": {
+    "loading": "Carregant les teves cites...",
+    "title": "Les meves Cites",
+    "subtitle": "Gestiona les teves reserves i revisa l'historial",
+    "tabs": {
+      "pending": "Pendents",
+      "completed": "Completades",
+      "cancelled": "Cancel·lades",
+      "all": "Totes"
+    },
+    "sort": {
+      "title": "Ordenar per:",
+      "appointment": "cita",
+      "appointment_plural": "cites",
+      "date": "Data",
+      "service": "Servei",
+      "dog": "Gos"
+    },
+    "status": {
+      "pending": "Pendent",
+      "pendingConfirmation": "Pendent de confirmació",
+      "completed": "Completada",
+      "cancelled": "Cancel·lada"
+    },
+    "noBookings": {
+      "title": "No hi ha cites",
+      "all": "No tens cites registrades.",
+      "filtered": "No tens cites {{status}}."
+    },
+    "booking": {
+      "cancelled": "CITA CANCEL·LADA",
+      "completed": "CITA COMPLETADA",
+      "chargeApplied": "Recàrrec corresponent aplicat",
+      "lateCancellation": "Cancel·lació tardana",
+      "chargeWarning": "S'aplicarà el recàrrec corresponent",
+      "cancelling": "Cancel·lant...",
+      "cancelButton": "Cancel·lar Cita",
+      "dateTime": "Data i Hora",
+      "createdOn": "Creada el",
+      "observations": "Observacions",
+      "chargeReason": "Motiu del recàrrec",
+      "cancelledOn": "Cancel·lada el",
+      "minutes": "min"
+    },
+    "spaces": {
+      "rehabCabinPool": "Caseta de Rehabilitació + Piscina (Hidroteràpia)",
+      "rehabCabin": "Caseta de Rehabilitació",
+      "pool": "Piscina (Hidroteràpia)",
+      "general": "Espai General"
+    },
+    "cancelModal": {
+      "title": "Cancel·lar Cita",
+      "titleWithCharge": "Cancel·lar Cita - Recàrrec per Cancel·lació Tardana",
+      "message": "Estàs segur que vols cancel·lar aquesta cita? No s'aplicaran càrrecs addicionals.",
+      "messageWithCharge": "Estàs segur que vols cancel·lar aquesta cita? S'aplicarà el recàrrec corresponent per cancel·lació amb menys de 24 hores d'anticipació.",
+      "confirm": "Cancel·lar Cita",
+      "cancel": "Mantenir Cita"
+    },
+    "toasts": {
+      "loadError": "Error carregant cites",
+      "autoCompleted": "{{count}} cita marcada com a completada",
+      "autoCompleted_plural": "{{count}} cites marcades com a completades",
+      "cancelError": "Error cancel·lant la cita"
+    }
+  },
+
+  "myDogs": {
+    "loading": "Carregant els teus gossos...",
+    "title": "Els meus Gossos 🐶",
+    "subtitle": "Gestiona la informació dels teus gossos",
+    "addButton": "Afegir Gos",
+    "addButtonMobile": "Afegir Nou Gos",
+    "form": {
+      "titleAdd": "Afegir Nou Gos",
+      "titleEdit": "Editar {{name}}",
+      "profilePhoto": "Foto de Perfil",
+      "fileTypes": "PNG, JPG, GIF fins a 5MB",
+      "removeImage": "Treure imatge",
+      "name": "Nom",
+      "namePlaceholder": "Nom del gos",
+      "breed": "Raça",
+      "breedPlaceholder": "Ex: Golden Retriever",
+      "age": "Edat (anys)",
+      "agePlaceholder": "0",
+      "weight": "Pes (kg)",
+      "weightPlaceholder": "0.0",
+      "pathologies": "Patologies",
+      "pathologiesPlaceholder": "Displàsia de maluc, artritis, problemes cardíacs, etc.",
+      "pathologiesHint": "Especifica malalties o condicions mèdiques diagnosticades, en cas contrari, indica \"No en té\"",
+      "observations": "Observacions Generals",
+      "observationsPlaceholder": "Comportament, al·lèrgies, medicaments, cures especials, etc.",
+      "observationsHint": "Informació addicional rellevant per al tractament",
+      "cancel": "Cancel·lar",
+      "save": "Guardar Gos",
+      "update": "Actualitzar Gos",
+      "uploading": "Pujant...",
+      "saving": "Guardant...",
+      "required": "*"
+    },
+    "dogCard": {
+      "breed": "Raça:",
+      "age": "Edat:",
+      "years": "anys",
+      "weight": "Pes:",
+      "kg": "kg",
+      "pathologies": "Patologies:",
+      "observations": "Observacions generals:",
+      "edit": "Editar",
+      "delete": "Eliminar",
+      "editTitle": "Editar gos",
+      "deleteTitle": "Eliminar gos"
+    },
+    "emptyState": {
+      "title": "No hi ha gossos registrats",
+      "message": "Afegeix informació sobre les teves mascotes per poder fer reserves.",
+      "button": "Afegir Primer Gos"
+    },
+    "deleteModal": {
+      "title": "Eliminar Gos",
+      "message": "Estàs segur que vols eliminar a {{name}}? Aquesta acció no es pot desfer i s'eliminaran totes les dades associades.",
+      "confirm": "Eliminar",
+      "cancel": "Cancel·lar"
+    },
+    "toasts": {
+      "loadError": "Error carregant gossos",
+      "nameRequired": "El nom és obligatori",
+      "invalidImage": "Si us plau selecciona una imatge vàlida",
+      "imageTooLarge": "La imatge ha de ser menor a 5MB",
+      "dogUpdated": "Gos actualitzat correctament",
+      "dogCreated": "Gos registrat correctament",
+      "saveError": "Error guardant gos",
+      "dogDeleted": "{{name}} eliminat correctament",
+      "deleteError": "Error eliminant gos"
+    }
+  },
+
+  "myProfile": {
+    "loading": "Carregant...",
+    "title": "El meu Perfil",
+    "subtitle": "Gestiona la teva informació personal i preferències",
+    "personalInfo": {
+      "title": "Informació Personal",
+      "fullName": "Nom Complet",
+      "fullNamePlaceholder": "El teu nom complet",
+      "countryAndPhone": "País i Telèfon",
+      "phonePlaceholder": "Número de telèfon",
+      "format": "Format:",
+      "email": "Email",
+      "emailCannotChange": "L'email no es pot canviar"
+    },
+    "accountSummary": {
+      "title": "Resum de Compte",
+      "registeredClient": "Client registrat",
+      "contactInfo": "Informació de Contacte",
+      "country": "País:",
+      "phone": "Telèfon:",
+      "notSpecified": "No especificat",
+      "notAvailable": "No disponible",
+      "notificationPreferences": "Preferències de Notificació",
+      "active": "Actiu",
+      "inactive": "Inactiu",
+      "languagePreferences": "Preferències d'Idioma"
+    },
+    "form": {
+      "unsavedChanges": "Tens canvis sense desar",
+      "cancel": "Cancel·lar",
+      "saving": "Desant...",
+      "saveChanges": "Desar Canvis",
+      "required": "*"
+    },
+    "validation": {
+      "fullNameRequired": "El nom complet és obligatori",
+      "phoneRequired": "El telèfon és obligatori",
+      "spanishPhoneStart": "Els números espanyols han de començar per 6 o 7"
+    }
+  },
+
+  "confirmModal": {
+    "defaultTitle": "Confirmar acció",
+    "defaultMessage": "Estàs segur que vols continuar?",
+    "defaultConfirm": "Confirmar",
+    "defaultCancel": "Cancel·lar"
+  },
+
+  "cookieBanner": {
+    "message": "Utilitzem cookies pròpies i de tercers per millorar els nostres serveis i mostrar-li publicitat relacionada amb les seves preferències. Si continua navegant, considerem que accepta el seu ús. Pot consultar la nostra",
+    "privacyPolicy": "Política de Privacitat",
+    "reject": "Rebutjar",
+    "accept": "Acceptar"
+  },
+
+  "countries": {
+    "ES": "Espanya",
+    "FR": "França",
+    "IT": "Itàlia",
+    "PT": "Portugal",
+    "DE": "Alemanya",
+    "GB": "Regne Unit",
+    "US": "Estats Units",
+    "phoneDescriptions": {
+      "ES": "9 dígits, començant per 6 o 7",
+      "FR": "9 dígits",
+      "IT": "9-10 dígits, començant per 3",
+      "PT": "9 dígits, començant per 91, 92, 93 o 96",
+      "DE": "10-11 dígits, començant per 15, 16 o 17",
+      "GB": "10 dígits, començant per 7",
+      "US": "10 dígits"
+    }
+  },
+  "phoneValidation": {
+    "unsupportedCountry": "País no suportat",
+    "invalidLength": "El telèfon ha de tenir {{lengths}} dígits",
+    "invalidFormat": "Format incorrecte: {{description}}",
+    "valid": "Vàlid"
+  },
+
+  "footer": {
+    "termsAndConditions": "Termes i condicions"
+  },
+
+  "iosInstallBanner": {
+    "title": "Instal·la FisioGossos al teu {{device}}!",
+    "subtitle": "Accedeix més ràpid i gaudeix d'una millor experiència",
+    "later": "Més tard",
+    "showHowToInstall": "Veure com instal·lar",
+    "tap": "Toca",
+    "addToHome": "Afegir a Inici",
+    "devices": {
+      "iPad": "iPad",
+      "iPhone": "iPhone"
+    }
+  },
+
+  "languageSelector": {
+    "spanish": "Espanyol",
+    "catalan": "Català"
+  },
+
+  "loadingSpinner": {
+    "defaultMessage": "Carregant..."
+  },
+
+  "notificationPreferences": {
+    "title": "Preferències de Notificació",
+    "emailLabel": "Rebre missatges per correu electrònic",
+    "emailBadge": "Email",
+    "required": "*",
+    "validation": {
+      "emailRequired": "Les notificacions per email són obligatòries"
+    }
+  },
+
+  "termsModal": {
+    "title": "Termes i Condicions",
+    "close": "Tancar",
+    "understood": "Entès",
+    "header": {
+      "mainTitle": "TERMES I CONDICIONS D'ÚS",
+      "subtitle": "SISTEMA DE RESERVES DE FISIOTERÀPIA GOSSOS"
+    },
+    "section1": {
+      "title": "1. ACCEPTACIÓ DE TERMES",
+      "content": "En accedir i utilitzar el sistema de reserves en línia de Fisioteràpia Gossos (d'ara endavant, <strong>\"el Servei\"</strong>), vostè (l'usuari/ària) accepta complir aquests Termes i Condicions. Si no està d'acord amb algun punt, si us plau, no utilitzi el Servei."
+    },
+    "section2": {
+      "title": "2. ÚS DEL SERVEI",
+      "intro": "El Servei permet reservar sessions de fisioteràpia i/o hidroteràpia per a gossos.",
+      "items": [
+        "L'usuari es compromet a proporcionar dades verídiques i actualitzades.",
+        "Les reserves són personals i no poden ser transferides a tercers sense autorització.",
+        "El Servei no pot ser utilitzat amb finalitats fraudulentes o il·legals."
+      ]
+    },
+    "section3": {
+      "title": "3. POLÍTICA DE RESERVES I CANCEL·LACIONS",
+      "items": [
+        "Les reserves es consideren confirmades una vegada rebi el correu o missatge de confirmació.",
+        "<strong class=\"text-red-600\">Les cancel·lacions s'han de realitzar amb un mínim de 24 hores d'antelació. Cancel·lacions fora d'aquest termini poden comportar el cobrament parcial o total de la sessió.</strong>",
+        "En cas de retard, es podrà reduir el temps de la sessió sense ajust del preu."
+      ]
+    },
+    "section4": {
+      "title": "4. RESPONSABILITATS",
+      "items": [
+        "Fisioteràpia Gossos es compromet a prestar el servei amb professionalitat i a garantir la seguretat de l'animal dins de les instal·lacions.",
+        "L'usuari és responsable de l'estat de salut del gos i ha d'informar prèviament de qualsevol condició mèdica rellevant.",
+        "El centre no es fa responsable de lesions o incidents derivats de dades incorrectes o omissions en la informació facilitada per l'usuari."
+      ]
+    },
+    "section5": {
+      "title": "5. PROTECCIÓ DE DADES",
+      "items": [
+        "Les dades personals recollides (nom, telèfon, email, dades de l'animal) es tractaran d'acord amb el <strong>Reglament (UE) 2016/679 (RGPD)</strong> i la <strong>LOPDGDD</strong>.",
+        "L'usuari pot exercir els seus drets d'accés, rectificació, supressió, oposició i portabilitat enviant una sol·licitud a <a href=\"mailto:info@fisioterapiagossos.com\" class=\"text-blue-600 hover:text-blue-800 underline font-medium\">info@fisioterapiagossos.com</a>."
+      ]
+    },
+    "section6": {
+      "title": "6. MODIFICACIONS",
+      "content": "Fisioteràpia Gossos es reserva el dret de modificar aquests Termes i Condicions en qualsevol moment. Les modificacions entraran en vigor en el moment de la seva publicació al lloc web o plataforma de reserves."
+    },
+    "section7": {
+      "title": "7. CONTACTE",
+      "intro": "Per a qualsevol dubte o reclamació sobre aquests Termes i Condicions, pot contactar-nos a:",
+      "email": "Correu electrònic:",
+      "phone": "Telèfon:"
+    }
+  },
+
+  "notifications": {
+    "welcomeEmailSent": "Email de benvinguda enviat",
+    "welcomeEmailError": "Error enviant email de benvinguda",
+    "processingWelcomeError": "Error processant email de benvinguda",
+    "confirmationSent": "Confirmació enviada per email",
+    "confirmationError": "Error enviant confirmació per email",
+    "cancellationSent": "Notificació de cancel·lació enviada per email",
+    "cancellationError": "Error enviant notificació de cancel·lació",
+    "reminderSent": "Recordatori enviat per email",
+    "reminderError": "Error enviant recordatori",
+    "adminNotificationError": "Error notificant a l'admin"
+  },
+
+  "updateNotification": {
+    "title": "Nova versió disponible",
+    "message": "Actualitza per obtenir les últimes millores i funcionalitats.",
+    "updated": "Actualitzada:",
+    "updating": "Actualitzant...",
+    "update": "Actualitzar",
+    "later": "Més tard"
+  },
+
+  "auth": {
+    "user": "Usuari",
+    "client": "Client",
+    "signUp": {
+      "success": "Compte creat exitosament. Revisa el teu email per confirmar el teu compte.",
+      "errorCreatingUser": "No s'ha pogut crear l'usuari"
+    },
+    "signIn": {
+      "success": "Sessió iniciada correctament",
+      "error": "Error en l'inici de sessió",
+      "persistentSession": "Sessió persistent activada (60 dies)",
+      "temporarySession": "Sessió temporal activada (es tancarà en tancar el navegador)"
+    },
+    "signOut": {
+      "success": "Sessió tancada correctament",
+      "error": "Error tancant sessió"
+    },
+    "profile": {
+      "updateSuccess": "Perfil actualitzat correctament",
+      "updateError": "Error actualitzant perfil",
+      "noAuthenticatedUser": "No hi ha usuari autenticat"
+    },
+    "passwordReset": {
+      "success": "Email de recuperació enviat",
+      "noAccountFound": "No trobem un compte registrat amb aquest email",
+      "errorSendingEmail": "Error enviant email de recuperació"
+    },
+    "notifications": {
+      "atLeastOne": "Has de mantenir almenys una preferència de notificació activada"
+    }
+  },
+
+  "emailNotifications": {
+    "fallbacks": {
+      "user": "Usuari",
+      "defaultCancellationReason": "Cancel·lació de cita"
+    },
+    "subjects": {
+      "welcome": "Benvingut/da a Fisioteràpia Gossos!",
+      "bookingConfirmation": "📅 Confirmació de cita - Fisioteràpia Gossos",
+      "cancellation": "❌ Cita cancel·lada - Fisioteràpia Gossos",
+      "reminder": "🔔 Recordatori de cita - Fisioteràpia Gossos",
+      "passwordReset": "🔑 Restableix la teva contrasenya - Fisioteràpia Gossos",
+      "passwordChanged": "✅ Contrasenya actualitzada - Fisioteràpia Gossos",
+      "adminNewBooking": "🔔 Nova reserva registrada - Fisioteràpia Gossos",
+      "adminCancellation": "❌ Cita cancel·lada - Fisioteràpia Gossos"
+    },
+    "test": {
+      "onlyInDevelopment": "⚠️ Test de emails només disponible en desenvolupament",
+      "startingTest": "🧪 Iniciant test del sistema de emails...",
+      "testingType": "🔬 Testejant email tipus:",
+      "results": "📋 Resultats del test:",
+      "testData": {
+        "clientName": "Joan Pérez",
+        "dogName": "Max",
+        "service": "Hidroteràpia",
+        "observations": "Test d'observacions",
+        "cancellationReason": "Motius personals",
+        "adminCancellationReason": "Cancel·lació per part del client"
+      }
+    }
+  },
+
+  "pwaInstall": {
+    "buttons": {
+      "addToHome": "Afegir a Inici",
+      "installApp": "Instal·lar App"
+    },
+    "platforms": {
+      "safariIOS": "Safari iOS ({{device}})",
+      "chromeIOS": "Chrome iOS",
+      "chromeDesktop": "Chrome Desktop",
+      "chromeAndroid": "Chrome Android"
+    },
+    "instructions": {
+      "safariIOS": {
+        "steps": [
+          "A la part inferior de Safari, toca el botó de \"compartir\" (quadrat amb fletxa cap amunt)",
+          "Al menú que apareix, desplaça't cap avall fins a trobar \"Afegir a pantalla d'inici\"",
+          "Toca \"Afegir a pantalla d'inici\"",
+          "Confirma tocant \"Afegir\" a la part superior dreta",
+          "L'app apareixerà a la teva pantalla d'inici com qualsevol altra aplicació"
+        ],
+        "benefits": [
+          "Accés ràpid des de la teva pantalla d'inici",
+          "Experiència d'aplicació nativa",
+          "Funciona sense connexió per a certes funcions",
+          "Sense barra d'adreces del navegador"
+        ],
+        "troubleshooting": [
+          "Si no veus el botó de compartir, assegura't d'estar utilitzant Safari (no Chrome)",
+          "Si \"Afegir a pantalla d'inici\" no apareix, actualitza Safari a l'última versió",
+          "Alguns bloquejadors de contingut poden interferir - desactiva'ls temporalment"
+        ]
+      },
+      "chromeIOS": {
+        "steps": [
+          "Toca els tres punts (⋯) a la cantonada superior dreta de Chrome",
+          "Busca i selecciona \"Afegir a pantalla d'inici\"",
+          "Confirma tocant \"Afegir\""
+        ],
+        "note": "Chrome a iOS té limitacions per a PWAs. Per a la millor experiència, recomanem utilitzar Safari.",
+        "benefits": [
+          "Accés ràpid des de la teva pantalla d'inici",
+          "Marcador millorat (no és una PWA completa a Chrome iOS)"
+        ]
+      },
+      "chromeDesktop": {
+        "steps": [
+          "Toca els tres punts (⋮) a la cantonada superior dreta",
+          "Busca l'opció \"Enviar, desar i compartir\"",
+          "Fes clic a \"Instal·lar pàgina com a aplicació\"",
+          "L'aplicació s'obrirà en una finestra independent"
+        ],
+        "benefits": [
+          "Finestra d'aplicació independent",
+          "Accés ràpid des de l'escriptori",
+          "Notificacions del sistema",
+          "Funciona offline per a certes funcions"
+        ]
+      },
+      "chromeAndroid": {
+        "steps": [
+          "Toca els tres punts (⋮) a la cantonada superior dreta",
+          "Selecciona \"Afegir a pantalla d'inici\" o \"Instal·lar aplicació\"",
+          "Confirma tocant \"Afegir\" o \"Instal·lar\"",
+          "L'app apareixerà al teu calaix d'aplicacions i pantalla d'inici"
+        ],
+        "benefits": [
+          "Aplicació nativa completa",
+          "Notificacions push",
+          "Funciona offline",
+          "Accés des del calaix d'aplicacions"
+        ]
+      }
+    }
+  },
+
+  "errors": {
+    "supabase": {
+      "missingEnvVars": "Falten variables d'entorn de Supabase. Comprova el teu arxiu .env.",
+      "unknownError": "Ha ocorregut un error desconegut"
+    },
+    "auth": {
+      "invalidCredentials": "Email o contrasenya incorrectes",
+      "userAlreadyRegistered": "Aquest email ja està registrat",
+      "emailNotConfirmed": "Si us plau confirma el teu email abans d'iniciar sessió",
+      "passwordTooShort": "La contrasenya ha de tenir almenys 6 caràcters"
+    },
+    "database": {
+      "duplicateEntry": "Ja existeix un registre amb aquestes dades",
+      "referenceError": "Error de referència a la base de dades",
+      "permissionDenied": "No tens permisos per realitzar aquesta acció",
+      "genericError": "Error de base de dades: {{message}}",
+      "connectionError": "Error de connexió amb la base de dades"
+    }
+  },
+
+  "adminDashboard": {
+    "title": "Panell d'Admin",
+    "defaultAdmin": "Administrador",
+    "navigation": {
+      "occupancy": "Calendari de Cites",
+      "bookings": "Gestió de Cites",
+      "clients": "Historial de Clients",
+      "configuration": "🕑 Configuració d'Horaris",
+      "profile": "El meu Perfil",
+      "systemLogs": "Logs del Sistema",
+      "emailLogs": "Correus"
+    },
+    "pwa": {
+      "installed": "App Instal·lada",
+      "install": "Instal·lar App",
+      "installShort": "Instal·lar App",
+      "toastMessage": "Per instal·lar l'aplicació, busca l'opció \"Instal·lar\" al menú del teu navegador."
+    },
+    "installModal": {
+      "title": "Instal·lar a {{platform}}",
+      "intro": "Segueix aquests passos per instal·lar l'aplicació:",
+      "benefits": "Beneficis d'instal·lar:",
+      "recommendation": "Recomanació:",
+      "chromeIOSNote": "Per a una millor experiència a iOS, considera utilitzar Safari en lloc de Chrome.",
+      "confirm": "Entès",
+      "cancel": "Cancel·lar"
+    },
+    "version": {
+      "appName": "Fisioteràpia Gossos",
+      "version": "Versió",
+      "lastUpdate": "Última actualització:"
+    }
+  },
+
+  "emailLogsPanel": {
+    "stats": {
+      "totalSent": "Total Enviats",
+      "failed": "Fallits",
+      "pending": "Pendents",
+      "successRate": "Taxa d'Èxit"
+    },
+    "filters": {
+      "status": "Estat",
+      "emailType": "Tipus d'Email",
+      "recipientEmail": "Email Destinatari",
+      "searchPlaceholder": "Cercar per email...",
+      "all": "Tots",
+      "sent": "Enviats",
+      "pending": "Pendents"
+    },
+    "emailTypes": {
+      "welcome": "Benvinguda",
+      "confirmation": "Confirmació",
+      "cancellation": "Cancel·lació",
+      "reminder": "Recordatori",
+      "passwordReset": "Restablir Contrasenya",
+      "passwordChanged": "Contrasenya Canviada",
+      "adminNewBooking": "Admin: Nova Reserva",
+      "adminCancellation": "Admin: Cancel·lació"
+    },
+    "table": {
+      "date": "Data",
+      "type": "Tipus",
+      "recipient": "Destinatari",
+      "subject": "Assumpte",
+      "status": "Estat",
+      "actions": "Accions",
+      "retry": "Reintentar"
+    },
+    "loading": "Carregant logs...",
+    "noLogsFound": "No s'han trobat logs d'emails"
+  },
+
+  "clientDashboard": {
+    "greeting": "Hola, {{name}}",
+    "defaultUser": "Usuari",
+    "clientPanel": "Panell de client",
+    "navigation": {
+      "booking": "Reservar Cita",
+      "myBookings": "Les meves Cites",
+      "myDogs": "Els meus Gossos",
+      "profile": "El meu Perfil"
+    },
+    "pwa": {
+      "installed": "App Instal·lada",
+      "install": "Instal·lar App",
+      "installShort": "Instal·lar App",
+      "toastMessage": "Per instal·lar l'aplicació, busca l'opció \"Instal·lar\" al menú del teu navegador."
+    },
+    "installModal": {
+      "title": "Instal·lar a {{platform}}",
+      "intro": "Segueix aquests passos per instal·lar l'aplicació:",
+      "benefits": "Beneficis d'instal·lar:",
+      "recommendation": "Recomanació:",
+      "chromeIOSNote": "Per a una millor experiència a iOS, considera utilitzar Safari en lloc de Chrome.",
+      "confirm": "Entès",
+      "cancel": "Cancel·lar"
+    },
+    "version": {
+      "appName": "Fisioteràpia Gossos",
+      "version": "Versió",
+      "lastUpdate": "Última actualització:"
+    }
+  },
+
+  "emailService": {
+    "defaultUser": "Usuari"
+  },
+
+  "app": {
+    "accessDenied": {
+      "title": "Accés Denegat",
+      "message": "No tens permisos per accedir a aquesta secció.",
+      "back": "Tornar"
+    },
+    "notFound": {
+      "title": "Pàgina no trobada",
+      "message": "La pàgina que busques no existeix.",
+      "backToHome": "Tornar a l'inici"
+    }
+  },
+
+  "errorBoundary": {
+    "title": "Error a l'aplicació",
+    "message": "Ha ocorregut un error inesperat. Si us plau, recarrega la pàgina.",
+    "detailsLabel": "Detalls de l'error (només desenvolupament)",
+    "reloadButton": "Recarregar pàgina"
+  },
+
+  "meta": {
+    "title": "Fisioteràpia Gossos - Sistema de Reserves",
+    "description": "Sistema de reserves professional per a fisioteràpia canina",
+    "keywords": "fisioteràpia, gossos, mascotes, reserves, cites, veterinària",
+    "ogTitle": "Fisioteràpia Gossos - Sistema de Reserves",
+    "ogDescription": "Sistema de reserves professional per a fisioteràpia canina",
+    "twitterTitle": "Fisioteràpia Gossos - Sistema de Reserves",
+    "twitterDescription": "Sistema de reserves professional per a fisioteràpia canina"
+  }
+}

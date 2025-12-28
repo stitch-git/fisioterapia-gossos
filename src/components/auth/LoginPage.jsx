@@ -1,27 +1,39 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import toast from 'react-hot-toast'
 import { useAuth } from '../../contexts/AuthContext'
 
 export default function LoginPage() {
+  const { t } = useTranslation()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
+  const [rememberMe, setRememberMe] = useState(false) // ✅ NUEVO ESTADO
   const { signIn, loading } = useAuth()
+
+  // ✅ NUEVO: Auto-completar email si existe en cookies
+  useEffect(() => {
+    const savedEmail = localStorage.getItem('rememberedEmail')
+    if (savedEmail) {
+      setEmail(savedEmail)
+      setRememberMe(true)
+    }
+  }, [])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     
     if (!email || !password) {
-      toast.error('Por favor completa todos los campos')
+      toast.error(t('login.errors.completeFields'))
       return
     }
 
-    const { error } = await signIn(email, password)
+    // ✅ PASAR rememberMe al signIn
+    const { error } = await signIn(email, password, rememberMe)
     
     if (!error) {
-      // Success is handled by the auth context and routing
-      console.log('Login successful')
+      console.log('Login successful with rememberMe:', rememberMe)
     }
   }
 
@@ -32,15 +44,15 @@ export default function LoginPage() {
           <div className="mx-auto h-16 w-16 mb-4">
             <img 
               src="https://uymcuavjzygvsfnqdciy.supabase.co/storage/v1/object/public/app-assets/logos/dog-logo.jpg"
-              alt="Fisioterapia Gossos Logo"
+              alt={t('login.logoAlt')}
               className="h-16 w-16 rounded-full object-cover shadow-lg"
             />
           </div>
           <h2 className="mt-6 text-3xl font-bold text-gray-900">
-            Fisioterapia Gossos
+            {t('login.title')}
           </h2>
           <p className="mt-2 text-sm text-gray-600">
-            Inicia sesión para acceder a tu cuenta
+            {t('login.subtitle')}
           </p>
         </div>
       </div>
@@ -50,7 +62,7 @@ export default function LoginPage() {
           <form className="space-y-6" onSubmit={handleSubmit}>
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                Email
+                {t('login.emailLabel')}
               </label>
               <div className="mt-1">
                 <input
@@ -60,7 +72,7 @@ export default function LoginPage() {
                   autoComplete="email"
                   required
                   className="input"
-                  placeholder="tu@email.com"
+                  placeholder={t('login.emailPlaceholder')}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                 />
@@ -69,7 +81,7 @@ export default function LoginPage() {
 
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                Contraseña
+                {t('login.passwordLabel')}
               </label>
               <div className="mt-1 relative">
                 <input
@@ -79,7 +91,7 @@ export default function LoginPage() {
                   autoComplete="current-password"
                   required
                   className="input pr-10"
-                  placeholder="••••••••"
+                  placeholder={t('login.passwordPlaceholder')}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
@@ -109,19 +121,20 @@ export default function LoginPage() {
                   name="remember-me"
                   type="checkbox"
                   className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                  checked={rememberMe} // ✅ VINCULADO AL ESTADO
+                  onChange={(e) => setRememberMe(e.target.checked)} // ✅ HANDLER
                 />
                 <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">
-                  Recordarme
+                  {t('login.rememberMe')}
                 </label>
               </div>
 
               <div className="text-sm">
-                {/* ✅ BOTÓN ACTUALIZADO - Conectado con la nueva página */}
                 <Link
                   to="/forgot-password"
                   className="font-medium text-primary-600 hover:text-primary-500 transition-colors duration-200"
                 >
-                  ¿Olvidaste tu contraseña?
+                  {t('login.forgotPassword')}
                 </Link>
               </div>
             </div>
@@ -135,14 +148,14 @@ export default function LoginPage() {
                 {loading ? (
                   <>
                     <div className="loading-spinner mr-2"></div>
-                    Iniciando sesión...
+                    {t('login.loggingIn')}
                   </>
                 ) : (
                   <>
                     <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
                     </svg>
-                    Iniciar Sesión
+                    {t('login.loginButton')}
                   </>
                 )}
               </button>
@@ -155,7 +168,7 @@ export default function LoginPage() {
                 <div className="w-full border-t border-gray-300" />
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">¿No tienes cuenta?</span>
+                <span className="px-2 bg-white text-gray-500">{t('login.noAccount')}</span>
               </div>
             </div>
 
@@ -164,7 +177,7 @@ export default function LoginPage() {
                 to="/register" 
                 className="font-medium text-primary-600 hover:text-primary-500 transition-colors duration-200"
               >
-                Regístrate aquí
+                {t('login.registerHere')}
               </Link>
             </div>
           </div>

@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 
 export default function CookieBanner() {
+  const { t, i18n } = useTranslation()
   const [showBanner, setShowBanner] = useState(false)
 
   useEffect(() => {
-    // Verificar si ya se dio consentimiento
     const cookieConsent = localStorage.getItem('cookieConsent')
     if (!cookieConsent) {
       setShowBanner(true)
@@ -23,21 +24,22 @@ export default function CookieBanner() {
 
   if (!showBanner) return null
 
+  const privacyPolicyUrl = `https://fisioterapiagossos.com/${i18n.language}/politica-privacidad/`
+
   return (
     <div className="fixed bottom-0 left-0 right-0 bg-gray-900 text-white p-4 z-50 shadow-lg">
       <div className="max-w-6xl mx-auto">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex-1 text-sm">
             <p>
-              Utilizamos cookies propias y de terceros para mejorar nuestros servicios y mostrarle publicidad relacionada con sus preferencias. 
-              Si continúa navegando, consideramos que acepta su uso. Puede consultar nuestra{' '}
+              {t('cookieBanner.message')}{' '}
               <a 
-                href="https://fisioterapiagossos.com/es/politica-privacidad/" 
+                href={privacyPolicyUrl}
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="text-blue-300 hover:text-blue-200 underline"
               >
-                Política de Privacidad
+                {t('cookieBanner.privacyPolicy')}
               </a>.
             </p>
           </div>
@@ -46,13 +48,13 @@ export default function CookieBanner() {
               onClick={rejectCookies}
               className="px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded text-sm font-medium transition-colors"
             >
-              Rechazar
+              {t('cookieBanner.reject')}
             </button>
             <button
               onClick={acceptCookies}
               className="px-4 py-2 bg-primary-600 hover:bg-primary-700 rounded text-sm font-medium transition-colors"
             >
-              Aceptar
+              {t('cookieBanner.accept')}
             </button>
           </div>
         </div>

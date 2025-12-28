@@ -1,0 +1,29 @@
+name: Auto Complete Bookings
+
+on:
+  schedule:
+    # Ejecutar cada hora
+    - cron: '0 * * * *'
+  workflow_dispatch: # Permite ejecución manual desde GitHub
+
+jobs:
+  complete-bookings:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Call Supabase Edge Function
+        run: |
+          response=$(curl -X POST \
+            "${{ secrets.SUPABASE_URL }}/functions/v1/auto-complete-bookings" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
+            -H "Content-Type: application/json")
+          
+          echo "Response: $response"
+          
+          # Verificar si fue exitoso
+          if echo "$response" | grep -q '"success":true'; then
+            echo "✅ Bookings completados exitosamente"
+          else
+            echo "❌ Error completando bookings"
+            exit 1
+          fi

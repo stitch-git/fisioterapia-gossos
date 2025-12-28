@@ -2,7 +2,7 @@ import React from 'react'
 import { useTranslation } from 'react-i18next'
 
 export default function LanguageSelector() {
-  const { i18n } = useTranslation()
+  const { i18n, t } = useTranslation()
 
   const changeLanguage = (lng) => {
     i18n.changeLanguage(lng)
@@ -17,7 +17,7 @@ export default function LanguageSelector() {
             ? 'bg-white bg-opacity-20 text-white' 
             : 'bg-white bg-opacity-10 text-white hover:bg-opacity-15'
         }`}
-        title="Español"
+        title={t('languageSelector.spanish')}
       >
         ES
       </button>
@@ -28,7 +28,7 @@ export default function LanguageSelector() {
             ? 'bg-white bg-opacity-20 text-white' 
             : 'bg-white bg-opacity-10 text-white hover:bg-opacity-15'
         }`}
-        title="Català"
+        title={t('languageSelector.catalan')}
       >
         CA
       </button>

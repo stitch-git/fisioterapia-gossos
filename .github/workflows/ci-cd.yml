@@ -1,0 +1,194 @@
+name: CI/CD Pipeline - Fisioterapia Gossos
+
+on:
+  pull_request:
+    branches:
+      - develop
+      - main
+  push:
+    branches:
+      - develop
+      - main
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '18'
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # ================================
+  # ANÁLISIS Y TESTING - Para PRs a develop
+  # ================================
+  code-quality:
+    name: 🔍 Code Quality & Tests
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && github.base_ref == 'develop'
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: 📥 Install dependencies
+        run: npm ci
+
+      - name: 🔍 Lint check
+        run: npm run lint
+
+      - name: 🏗️ Build check
+        run: npm run build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+
+      - name: 🧪 Run tests (if exist)
+        run: |
+          if [ -f "package.json" ] && npm run | grep -q "test"; then
+            npm run test
+          else
+            echo "No tests found - skipping"
+          fi
+
+      - name: 📊 Bundle size check
+        run: |
+          echo "Build completed successfully"
+          ls -la dist/
+          du -sh dist/
+
+  # ================================
+  # BUILD Y STAGING - Push a develop
+  # ================================
+  build-staging:
+    name: 🏗️ Build & Deploy Staging
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: 📥 Install dependencies
+        run: npm ci
+
+      - name: 🏗️ Build for staging
+        run: npm run build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_APP_ENV: staging
+
+      - name: 🐳 Build Docker image
+        run: |
+          docker build -t fisioterapia-gossos:staging .
+
+      - name: ✅ Staging build completed
+        run: |
+          echo "✅ Staging build completed successfully"
+          echo "🔗 Ready for production deployment from main branch"
+
+  # ================================
+  # PRODUCTION DEPLOY - Push a main
+  # ================================
+  deploy-production:
+    name: 🚀 Deploy Production
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment: production
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: 📥 Install dependencies
+        run: npm ci
+
+      - name: 🏗️ Build for production
+        run: npm run build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_APP_ENV: production
+
+      - name: 🐳 Build Docker image
+        run: |
+          docker build -t fisioterapia-gossos:latest .
+
+      - name: 🚀 Deploy to server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            cd /opt/fisioterapia-gossos
+            git pull origin main
+            chmod +x deploy.sh
+            ./deploy.sh
+            
+      - name: 🎉 Deployment status
+        run: |
+          echo "🎉 Production deployment completed!"
+          echo "🌐 Application should be live at your domain"
+
+  # ================================
+  # SECURITY SCAN - Opcional
+  # ================================
+  security-scan:
+    name: 🔒 Security Scan
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔒 Run security audit
+        run: |
+          npm audit --audit-level moderate
+          
+      - name: 🔍 Check for secrets
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: main
+          head: HEAD
+
+  # ================================
+  # NOTIFICATION - Estado general
+  # ================================
+  notify-status:
+    name: 📢 Notify Status
+    runs-on: ubuntu-latest
+    needs: [code-quality, build-staging, deploy-production]
+    if: always()
+    
+    steps:
+      - name: 📢 Success notification
+        if: ${{ contains(needs.*.result, 'success') }}
+        run: |
+          echo "✅ Workflow completed successfully!"
+          
+      - name: ❌ Failure notification
+        if: ${{ contains(needs.*.result, 'failure') }}
+        run: |
+          echo "❌ Workflow failed - check logs above"
+          exit 1

@@ -1,11 +1,13 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../../lib/supabase'
-import { format, parseISO, addDays, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday, isBefore, startOfDay } from 'date-fns'
-import { es } from 'date-fns/locale'
+import { format, parseISO, addDays, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, isToday, isBefore, startOfDay, startOfWeek, endOfWeek } from 'date-fns'
+import { es, ca } from 'date-fns/locale'
 import toast from 'react-hot-toast'
 import ConfirmModal from '../common/ConfirmModal'
 import { useBookingNotifications } from "../NotificationProvider";
 import { useNotifications } from '../../hooks/useNotifications'
+import { useRealtimeBookings, useRealtimeBookingUpdates } from '../../hooks/useRealtimeBookings'
+import { useTranslation } from 'react-i18next'
 
 import { 
   generateFilteredTimeSlots,
@@ -18,20 +20,116 @@ import {
   isTimeSlotBlocked
 } from '../../utils/bookingUtils'
 
+// Componente para mostrar razón específica de no disponibilidad
+const NoSlotsReason = ({ fecha, serviceId, services }) => {
+  const { t } = useTranslation()
+  const [reason, setReason] = useState(null)
+  
+  useEffect(() => {
+    const analyzeReason = async () => {
+      const selectedService = services.find(s => s.id === parseInt(serviceId))
+      const serviceDuration = selectedService?.duracion_minutos || 0
+      
+      // Verificar slots configurados
+      const { data: configuredSlots } = await supabase
+        .from('available_time_slots')
+        .select('*')
+        .eq('date', fecha)
+        .eq('is_active', true)
+      
+      if (!configuredSlots || configuredSlots.length === 0) {
+        setReason({
+          title: t('bookingsManagement.noSlots.noSchedulesConfigured'),
+          message: t('bookingsManagement.noSlots.noWorkHoursFor', { date: format(new Date(fecha), 'dd/MM/yyyy') }),
+          suggestion: t('bookingsManagement.noSlots.configureSchedulesSuggestion')
+        })
+        return
+      }
+      
+      // Calcular slot más grande disponible
+      let maxSlot = null
+      let maxDuration = 0
+      
+      configuredSlots.forEach(slot => {
+        const slotStart = timeToMinutes(slot.start_time.substring(0, 5))
+        const slotEnd = timeToMinutes(slot.end_time.substring(0, 5))
+        const duration = slotEnd - slotStart
+        
+        if (duration > maxDuration) {
+          maxDuration = duration
+          maxSlot = slot
+        }
+      })
+      
+      if (serviceDuration > maxDuration) {
+        setReason({
+          title: t('bookingsManagement.noSlots.serviceTooLong'),
+          message: t('bookingsManagement.noSlots.serviceTooLongMessage', {
+            serviceName: selectedService.nombre,
+            serviceDuration,
+            maxDuration,
+            startTime: maxSlot.start_time.substring(0, 5),
+            endTime: maxSlot.end_time.substring(0, 5)
+          }),
+          suggestion: t('bookingsManagement.noSlots.serviceTooLongSuggestion')
+        })
+        return
+      }
+      
+      // Si llegamos aquí, están todos ocupados
+      setReason({
+        title: t('bookingsManagement.noSlots.schedulesOccupied'),
+        message: t('bookingsManagement.noSlots.schedulesOccupiedMessage'),
+        suggestion: t('bookingsManagement.noSlots.schedulesOccupiedSuggestion')
+      })
+    }
+    
+    if (fecha && serviceId) {
+      analyzeReason()
+    }
+  }, [fecha, serviceId, services, t])
+  
+  if (!reason) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <div className="loading-spinner mr-2"></div>
+        <span className="text-sm text-gray-600">{t('bookingsManagement.analyzingAvailability')}</span>
+      </div>
+    )
+  }
+  
+  return (
+    <div className="text-center py-8 bg-amber-50 rounded-lg border border-amber-200">
+      <div className="mb-2">❌</div>
+      <p className="text-sm font-bold text-amber-800 mb-2">{reason.title}</p>
+      <p className="text-sm text-amber-700 mb-3 px-4">{reason.message}</p>
+      <p className="text-xs text-amber-600 italic px-4">💡 {reason.suggestion}</p>
+    </div>
+  )
+}
+
 export default function BookingsManagement() {
+  const { t, i18n } = useTranslation()
+  const { forceUpdate } = useRealtimeBookings()
+  
   const [bookings, setBookings] = useState([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('pendiente')
-  const [dateFilter, setDateFilter] = useState('today')
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedBooking, setSelectedBooking] = useState(null)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [updating, setUpdating] = useState(new Set())
   const [viewMode, setViewMode] = useState('desktop')
   const { notifyBookingConfirmed, notifyBookingCanceled } = useBookingNotifications()
+  const [sortColumn, setSortColumn] = useState('fecha_hora')
+  const [sortDirection, setSortDirection] = useState('desc')
   const { notifyAdminCancellation } = useNotifications()
+  const [dateRangeStart, setDateRangeStart] = useState(new Date())
+  const [dateRangeEnd, setDateRangeEnd] = useState(new Date())
+  const [showDateRangePicker, setShowDateRangePicker] = useState(false)
+  const [selectingStartDate, setSelectingStartDate] = useState(true)
+  const [selectedService, setSelectedService] = useState(null);
 
-  // Estados para crear nueva cita
   const [clients, setClients] = useState([])
   const [services, setServices] = useState([])
   const [newBooking, setNewBooking] = useState({
@@ -47,11 +145,9 @@ export default function BookingsManagement() {
   })
   const [clientDogs, setClientDogs] = useState([])
 
-  // Estados para modal de confirmación de eliminación
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [bookingToDelete, setBookingToDelete] = useState(null)
 
-  // Estados para calendario
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [showCalendar, setShowCalendar] = useState(false)
   const [availableSlots, setAvailableSlots] = useState([])
@@ -59,191 +155,13 @@ export default function BookingsManagement() {
   const [dayAvailability, setDayAvailability] = useState({})
   const [endTimeSlots, setEndTimeSlots] = useState([])
 
-  useEffect(() => {
-    loadBookings()
-    loadClients()
-    loadServices()
-    
-    // Detectar tamaño de pantalla
-    const handleResize = () => {
-      setViewMode(window.innerWidth < 768 ? 'mobile' : 'desktop')
-    }
-    
-    handleResize()
-    window.addEventListener('resize', handleResize)
-    return () => window.removeEventListener('resize', handleResize)
-  }, [])
+  // Determinar locale para date-fns según idioma actual
+  const getDateLocale = () => i18n.language === 'ca' ? ca : es
 
-  // Cargar opciones de hora fin cuando cambia hora inicio
-  useEffect(() => {
-    const loadEndTimes = async () => {
-      if (newBooking.hora_inicio_domicilio && newBooking.fecha && isHomeVisitService()) {
-        const slots = await getEndTimeSlots()
-        setEndTimeSlots(slots)
-      } else {
-        setEndTimeSlots([])
-      }
-    }
-    
-    loadEndTimes()
-  }, [newBooking.hora_inicio_domicilio, newBooking.fecha])
-
-  // Cargar horarios disponibles cuando cambia fecha y servicio
-  useEffect(() => {
-    if (newBooking.fecha && newBooking.service_id) {
-      loadAvailableSlots()
-    }
-  }, [newBooking.fecha, newBooking.service_id])
-
-  useEffect(() => {
-    if (newBooking.client_id) {
-      loadClientDogs(newBooking.client_id)
-    }
-  }, [newBooking.client_id])
-
-  // Cargar disponibilidad del mes cuando cambian el mes, servicios o reservas
-  useEffect(() => {
-    loadMonthAvailability()
-  }, [currentMonth, services, bookings])
-
-  // CORREGIDO: Listener para actualizaciones en tiempo real
-  useEffect(() => {
-    const handleBookingUpdate = (event) => {
-      const { dateString, timestamp } = event.detail
-      
-      console.log('📡 Admin recibió actualización de reserva:', { dateString, timestamp })
-      
-      // Recargar todas las reservas para mantener la vista actualizada
-      loadBookings()
-      
-      // Si hay una fecha seleccionada en el formulario, recargar horarios
-      if (newBooking.fecha && (!dateString || dateString === newBooking.fecha)) {
-        loadAvailableSlots()
-      }
-      
-      // Recargar disponibilidad del mes
-      loadMonthAvailability()
-    }
-    
-    // Escuchar eventos de actualización de reservas
-    window.addEventListener('booking-updated', handleBookingUpdate)
-    
-    return () => {
-      window.removeEventListener('booking-updated', handleBookingUpdate)
-    }
-  }, [newBooking.fecha]) // CORREGIDO: Solo el estado en dependencias
-
-  // Función para calcular la disponibilidad de los días del mes
-  const calculateMonthAvailability = async (monthStart, monthEnd) => {
+  const loadBookings = useCallback(async (skipLoadingState = false) => {
     try {
-      const availability = {}
-      const days = eachDayOfInterval({ start: monthStart, end: monthEnd })
+      if (!skipLoadingState) setLoading(true)
       
-      // Obtener todas las reservas del mes
-      const { data: monthBookings, error: bookingsError } = await supabase
-        .from('bookings')
-        .select(`
-          fecha_hora, 
-          duracion_minutos,
-          services!inner(tipo)
-        `)
-        .gte('fecha_hora', `${format(monthStart, 'yyyy-MM-dd')}T00:00:00`)
-        .lt('fecha_hora', `${format(monthEnd, 'yyyy-MM-dd')}T23:59:59`)
-        .in('estado', ['pendiente'])
-
-      if (bookingsError) throw bookingsError
-
-      // Obtener todos los slots configurados del mes
-      const { data: configuredSlots, error: slotsError } = await supabase
-        .from('available_time_slots')
-        .select('*')
-        .gte('date', format(monthStart, 'yyyy-MM-dd'))
-        .lte('date', format(monthEnd, 'yyyy-MM-dd'))
-        .eq('is_active', true)
-
-      if (slotsError) throw slotsError
-
-      // Procesar cada día
-      for (const day of days) {
-        const dayStr = format(day, 'yyyy-MM-dd')
-        const isPastDay = isBefore(day, startOfDay(new Date()))
-        
-        // Los días pasados no se marcan como ocupados
-        if (isPastDay) {
-          availability[dayStr] = 'past'
-          continue
-        }
-
-        // Obtener reservas del día
-        const dayBookings = monthBookings?.filter(booking => 
-          booking.fecha_hora.substring(0, 10) === dayStr
-        ) || []
-
-        // Obtener visitas a domicilio del día
-        const dayHomeVisits = dayBookings.filter(booking => 
-          booking.services?.tipo === 'rehabilitacion_domicilio'
-        )
-
-        // Obtener slots configurados para este día
-        const dayConfiguredSlots = configuredSlots?.filter(slot => slot.date === dayStr) || []
-
-        // Si no hay slots configurados, el día no está disponible
-        if (dayConfiguredSlots.length === 0) {
-          availability[dayStr] = 'unavailable'
-          continue
-        }
-
-        // Verificar disponibilidad para cada servicio
-        let hasAvailableSlots = false
-
-        // Verificar para servicios normales (rehabilitación, hidroterapia, etc.)
-        for (const service of services) {
-          if (service.tipo === 'rehabilitacion_domicilio') continue
-          
-          try {
-            // Usar la función existente para generar slots filtrados
-            const availableSlots = await generateFilteredTimeSlots(
-              service, 
-              dayStr, 
-              dayBookings, 
-              dayHomeVisits
-            )
-            
-            if (availableSlots.length > 0) {
-              hasAvailableSlots = true
-              break
-            }
-          } catch (error) {
-            console.warn(`Error checking availability for service ${service.nombre} on ${dayStr}:`, error)
-          }
-        }
-
-        availability[dayStr] = hasAvailableSlots ? 'available' : 'unavailable'
-
-      }
-
-      return availability
-    } catch (error) {
-      console.error('Error calculating month availability:', error)
-      return {}
-    }
-  }
-
-  // Función para cargar la disponibilidad del mes actual
-  const loadMonthAvailability = async () => {
-    if (services.length === 0) return // Esperar a que se carguen los servicios
-    
-    const monthStart = startOfMonth(currentMonth)
-    const monthEnd = endOfMonth(currentMonth)
-    
-    const availability = await calculateMonthAvailability(monthStart, monthEnd)
-    setDayAvailability(availability)
-  }
-
-
-  const loadBookings = async () => {
-    try {
-      setLoading(true)
       const { data, error } = await supabase
         .from('bookings')
         .select(`
@@ -263,13 +181,287 @@ export default function BookingsManagement() {
         .order('fecha_hora', { ascending: false })
 
       if (error) throw error
-      setBookings(data)
+      
+      setBookings(prevBookings => {
+        const bookingsChanged = JSON.stringify(prevBookings) !== JSON.stringify(data)
+        if (bookingsChanged) {
+          console.log(`📊 Admin - ${t('bookingsManagement.bookingsUpdated')}: ${prevBookings.length} → ${data?.length || 0}`)
+        }
+        return data || []
+      })
+      
     } catch (error) {
       console.error('Error loading bookings:', error)
-      toast.error('Error cargando citas')
+      if (!skipLoadingState) {
+        toast.error(t('bookingsManagement.errors.loadingBookings'))
+      }
     } finally {
-      setLoading(false)
+      if (!skipLoadingState) setLoading(false)
     }
+  }, [t])
+
+  // 🆕 FUNCIÓN DE AUTO-COMPLETADO (como en MyBookings)
+  const checkAndUpdateCompletedBookings = async () => {
+    try {
+      const now = new Date()
+      
+      const bookingsToUpdate = bookings.filter(booking => {
+        if (!['pendiente', 'pendiente_confirmacion'].includes(booking.estado)) return false
+        
+        const bookingDateStr = booking.fecha_hora.substring(0, 10)
+        const bookingTimeStr = booking.fecha_hora.substring(11, 16)
+        const [hours, minutes] = bookingTimeStr.split(':').map(Number)
+
+        const bookingDateTime = new Date()
+        const [year, month, day] = bookingDateStr.split('-').map(Number)
+        bookingDateTime.setFullYear(year, month - 1, day)
+        bookingDateTime.setHours(hours, minutes, 0, 0)
+
+        const bookingEndTime = new Date(bookingDateTime.getTime() + booking.duracion_minutos * 60000)
+        
+        return now >= bookingEndTime
+      })
+
+      if (bookingsToUpdate.length > 0) {
+        for (const booking of bookingsToUpdate) {
+          await supabase
+            .from('bookings')
+            .update({ 
+              estado: 'completada',
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', booking.id)
+        }
+        
+        loadBookings(true)
+        toast.success(t('myBookings.toasts.autoCompleted', { count: bookingsToUpdate.length }))
+      }
+    } catch (error) {
+      console.error('Error updating completed bookings:', error)
+    }
+  }
+
+  useRealtimeBookingUpdates(newBooking.fecha, selectedService, () => {
+    loadBookings(true)
+    
+    if (newBooking.fecha && newBooking.service_id) {
+      loadAvailableSlots(true)
+    }
+    
+    loadMonthAvailability()
+  })
+
+  useEffect(() => {
+    loadBookings()
+    loadClients()
+    loadServices()
+    
+    // 🆕 Verificar citas completadas al cargar
+    const timer = setTimeout(() => {
+      checkAndUpdateCompletedBookings()
+    }, 1000)
+        
+    const handleResize = () => {
+      setViewMode(window.innerWidth < 768 ? 'mobile' : 'desktop')
+    }
+    
+    handleResize()
+    window.addEventListener('resize', handleResize)
+    
+    // ✅ Limpiar AMBAS cosas
+    return () => {
+      clearTimeout(timer)
+      window.removeEventListener('resize', handleResize)
+    }
+  }, [loadBookings])
+
+  useEffect(() => {
+    const loadEndTimes = async () => {
+      if (newBooking.hora_inicio_domicilio && newBooking.fecha && isHomeVisitService()) {
+        const slots = await getEndTimeSlots()
+        setEndTimeSlots(slots)
+      } else {
+        setEndTimeSlots([])
+      }
+    }
+    
+    loadEndTimes()
+  }, [newBooking.hora_inicio_domicilio, newBooking.fecha])
+
+  useEffect(() => {
+    if (newBooking.fecha && newBooking.service_id) {
+      const interval = setInterval(() => {
+        loadAvailableSlots(true)
+      }, 30000)
+      
+      return () => clearInterval(interval)
+    }
+  }, [newBooking.fecha, newBooking.service_id])
+
+  useEffect(() => {
+    if (newBooking.fecha && newBooking.service_id) {
+      console.log('📅 Admin - ' + t('bookingsManagement.loadingSchedulesFor'), newBooking.fecha)
+      loadAvailableSlots()
+    } else {
+      setAvailableSlots([])
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [newBooking.fecha, newBooking.service_id])
+
+  useEffect(() => {
+    const handleFocus = () => {
+      if (newBooking.fecha && newBooking.service_id) {
+        console.log('🔄 Admin - ' + t('bookingsManagement.refreshingSchedules'))
+        loadAvailableSlots(true)
+      }
+      loadBookings(true)
+    }
+    
+    window.addEventListener('focus', handleFocus)
+    document.addEventListener('visibilitychange', handleFocus)
+    
+    return () => {
+      window.removeEventListener('focus', handleFocus)
+      document.removeEventListener('visibilitychange', handleFocus)
+    }
+  }, [newBooking.fecha, newBooking.service_id, loadBookings, t])
+
+  useEffect(() => {
+    if (newBooking.client_id) {
+      loadClientDogs(newBooking.client_id)
+    }
+  }, [newBooking.client_id])
+
+  useEffect(() => {
+    loadMonthAvailability()
+  }, [currentMonth, services, bookings])
+
+  useEffect(() => {
+    const handleBookingUpdate = (event) => {
+      const { dateString, timestamp } = event.detail
+      
+      console.log('📡 Admin ' + t('bookingsManagement.receivedBookingUpdate') + ' (legacy):', { dateString, timestamp })
+      
+      loadBookings(true)
+      
+      if (newBooking.fecha && (!dateString || dateString === newBooking.fecha)) {
+        loadAvailableSlots(true)
+      }
+      
+      loadMonthAvailability()
+    }
+    
+    window.addEventListener('booking-updated', handleBookingUpdate)
+    
+    return () => {
+      window.removeEventListener('booking-updated', handleBookingUpdate)
+    }
+  }, [newBooking.fecha, loadBookings, t])
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showDateRangePicker && !event.target.closest('.relative')) {
+        setShowDateRangePicker(false)
+        setSelectingStartDate(true)
+      }
+    }
+    
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [showDateRangePicker])
+
+  const calculateMonthAvailability = async (monthStart, monthEnd) => {
+    try {
+      const availability = {}
+      const days = eachDayOfInterval({ start: monthStart, end: monthEnd })
+      
+      const { data: monthBookings, error: bookingsError } = await supabase
+        .from('bookings')
+        .select(`
+          fecha_hora, 
+          duracion_minutos,
+          services!inner(tipo)
+        `)
+        .gte('fecha_hora', `${format(monthStart, 'yyyy-MM-dd')}T00:00:00`)
+        .lt('fecha_hora', `${format(monthEnd, 'yyyy-MM-dd')}T23:59:59`)
+        .in('estado', ['pendiente', 'pendiente_confirmacion'])
+
+      if (bookingsError) throw bookingsError
+
+      const { data: configuredSlots, error: slotsError } = await supabase
+        .from('available_time_slots')
+        .select('*')
+        .gte('date', format(monthStart, 'yyyy-MM-dd'))
+        .lte('date', format(monthEnd, 'yyyy-MM-dd'))
+        .eq('is_active', true)
+
+      if (slotsError) throw slotsError
+
+      for (const day of days) {
+        const dayStr = format(day, 'yyyy-MM-dd')
+        const isPastDay = isBefore(day, startOfDay(new Date()))
+        
+        if (isPastDay) {
+          availability[dayStr] = 'past'
+          continue
+        }
+
+        const dayBookings = monthBookings?.filter(booking => 
+          booking.fecha_hora.substring(0, 10) === dayStr
+        ) || []
+
+        const dayHomeVisits = dayBookings.filter(booking => 
+          booking.services?.tipo === 'rehabilitacion_domicilio'
+        )
+
+        const dayConfiguredSlots = configuredSlots?.filter(slot => slot.date === dayStr) || []
+
+        if (dayConfiguredSlots.length === 0) {
+          availability[dayStr] = 'unavailable'
+          continue
+        }
+
+        let hasAvailableSlots = false
+
+        for (const service of services) {
+          if (service.tipo === 'rehabilitacion_domicilio') continue
+          
+          try {
+            const availableSlots = await generateFilteredTimeSlots(
+              service, 
+              dayStr, 
+              dayBookings, 
+              dayHomeVisits,
+              true
+            )
+            
+            if (availableSlots.length > 0) {
+              hasAvailableSlots = true
+              break
+            }
+          } catch (error) {
+            console.warn(`Error checking availability for service ${service.nombre} on ${dayStr}:`, error)
+          }
+        }
+
+        availability[dayStr] = hasAvailableSlots ? 'available' : 'unavailable'
+      }
+
+      return availability
+    } catch (error) {
+      console.error('Error calculating month availability:', error)
+      return {}
+    }
+  }
+
+  const loadMonthAvailability = async () => {
+    if (services.length === 0) return
+    
+    const monthStart = startOfMonth(currentMonth)
+    const monthEnd = endOfMonth(currentMonth)
+    
+    const availability = await calculateMonthAvailability(monthStart, monthEnd)
+    setDayAvailability(availability)
   }
 
   const loadClients = async () => {
@@ -318,13 +510,11 @@ export default function BookingsManagement() {
     }
   }
 
-  // Verificar si es servicio a domicilio
   const isHomeVisitService = () => {
     const selectedService = services.find(s => s.id === parseInt(newBooking.service_id))
     return selectedService?.tipo === 'rehabilitacion_domicilio'
   }
 
-  // Calcular duración y precio de visitas a domicilio
   const calculateHomeVisitData = () => {
     if (!newBooking.hora_inicio_domicilio || !newBooking.hora_fin_domicilio) {
       return { duracionMinutos: 0, precio: 0, error: null }
@@ -334,22 +524,21 @@ export default function BookingsManagement() {
     const finTotalMin = timeToMinutes(newBooking.hora_fin_domicilio)
     
     if (finTotalMin <= inicioTotalMin) {
-      return { duracionMinutos: 0, precio: 0, error: 'La hora de fin debe ser posterior a la de inicio' }
+      return { duracionMinutos: 0, precio: 0, error: t('bookingsManagement.errors.endTimeMustBeAfterStart') }
     }
     
     const duracionMinutos = finTotalMin - inicioTotalMin
     const duracionHoras = duracionMinutos / 60
-    const precio = duracionHoras * 80 // €80 por hora
+    const precio = duracionHoras * 80
     
     return { duracionMinutos, precio, duracionHoras, error: null }
   }
 
-  // Filtrar horas de fin basadas en hora de inicio Y slots configurados
   const getEndTimeSlots = async () => {
     if (!newBooking.hora_inicio_domicilio || !newBooking.fecha) return []
     
     try {
-      // Obtener slots configurados para encontrar el rango válido
+      // 1. Obtener slots configurados por admin
       const { data: configuredSlots, error } = await supabase
         .from('available_time_slots')
         .select('*')
@@ -359,20 +548,59 @@ export default function BookingsManagement() {
 
       if (error) throw error
 
+      // 2. Obtener reservas existentes del día
+      const { data: existingBookings, error: bookingsError } = await supabase
+        .from('bookings')
+        .select(`
+          fecha_hora, 
+          duracion_minutos,
+          services!inner(tipo)
+        `)
+        .gte('fecha_hora', `${newBooking.fecha}T00:00:00`)
+        .lt('fecha_hora', `${newBooking.fecha}T23:59:59`)
+        .eq('estado', 'pendiente')
+
+      if (bookingsError) throw bookingsError
+
       const startMinutes = timeToMinutes(newBooking.hora_inicio_domicilio)
       const allEndSlots = []
       
-      // Para cada slot configurado, verificar si contiene la hora de inicio
+      // 3. Generar slots candidatos basados en configuración admin
       configuredSlots.forEach(slot => {
         const slotStartMinutes = timeToMinutes(slot.start_time.substring(0, 5))
         const slotEndMinutes = timeToMinutes(slot.end_time.substring(0, 5))
         
-        // Si la hora de inicio está dentro de este slot
         if (startMinutes >= slotStartMinutes && startMinutes < slotEndMinutes) {
-          // Generar opciones desde inicio+30min hasta fin del slot cada 5 minutos
           for (let minutes = startMinutes + 30; minutes <= slotEndMinutes; minutes += 5) {
             const timeString = minutesToTime(minutes)
-            allEndSlots.push(timeString)
+            
+            // 4. Verificar si este rango (inicio -> fin) se solapa con alguna reserva
+            const proposedEndMinutes = timeToMinutes(timeString)
+            let hasConflict = false
+            
+            for (const booking of existingBookings || []) {
+              const bookingTime = booking.fecha_hora.substring(11, 16)
+              const bookingStartMinutes = timeToMinutes(bookingTime)
+              const bookingEndMinutes = bookingStartMinutes + booking.duracion_minutos
+              
+              // Verificar solapamiento: el rango (startMinutes -> proposedEndMinutes) 
+              // se solapa con (bookingStartMinutes -> bookingEndMinutes)
+              const hasOverlap = (
+                startMinutes < bookingEndMinutes && 
+                proposedEndMinutes > bookingStartMinutes
+              )
+              
+              if (hasOverlap) {
+                hasConflict = true
+                console.log(`❌ Hora fin ${timeString} bloqueada - conflicto con reserva ${bookingTime} (${booking.services?.tipo})`)
+                break
+              }
+            }
+            
+            // Solo agregar si NO hay conflicto
+            if (!hasConflict) {
+              allEndSlots.push(timeString)
+            }
           }
         }
       })
@@ -384,14 +612,13 @@ export default function BookingsManagement() {
     }
   }
 
-  // Cargar horarios disponibles
-  const loadAvailableSlots = async () => {
-    setLoadingSlots(true)
+  const loadAvailableSlots = useCallback(async (skipLoadingState = false) => {
+    if (!skipLoadingState) setLoadingSlots(true)
+    
     try {
       const selectedService = services.find(s => s.id === parseInt(newBooking.service_id))
       if (!selectedService) return
       
-      // OBTENER RESERVAS FRESCAS DIRECTAMENTE (sin cache)
       const { data: freshBookings, error: bookingsError } = await supabase
         .from('bookings')
         .select(`
@@ -401,7 +628,7 @@ export default function BookingsManagement() {
         `)
         .gte('fecha_hora', `${newBooking.fecha}T00:00:00`)
         .lt('fecha_hora', `${newBooking.fecha}T23:59:59`)
-        .in('estado', ['pendiente'])
+        .in('estado', ['pendiente', 'pendiente_confirmacion'])
         
       if (bookingsError) {
         console.error('Admin error obteniendo reservas:', bookingsError)
@@ -412,26 +639,33 @@ export default function BookingsManagement() {
       const centerBookings = freshBookings?.filter(b => b.services?.tipo !== 'rehabilitacion_domicilio') || []
       const homeVisits = freshBookings?.filter(b => b.services?.tipo === 'rehabilitacion_domicilio') || []
       
-      console.log(`📊 Admin - Reservas del centro: ${centerBookings.length}, Visitas: ${homeVisits.length}`)
+      console.log(`📊 Admin - ${t('bookingsManagement.centerBookings')}: ${centerBookings.length}, ${t('bookingsManagement.homeVisits')}: ${homeVisits.length}`)
       
-      // Usar función corregida con datos frescos
       const available = await generateFilteredTimeSlots(
         selectedService, 
         newBooking.fecha, 
-        centerBookings,  // Datos frescos
-        homeVisits       // Datos frescos
+        centerBookings,
+        homeVisits,
+        true
       )
       
-      setAvailableSlots(available)
-      console.log(`✅ Admin - Horarios disponibles: ${available.length}`)
+      setAvailableSlots(prevSlots => {
+        const slotsChanged = JSON.stringify(prevSlots) !== JSON.stringify(available)
+        if (slotsChanged) {
+          console.log(`✅ Admin - ${t('bookingsManagement.schedulesUpdated')}: ${prevSlots.length} → ${available.length}`)
+        }
+        return available
+      })
       
     } catch (error) {
       console.error('Error loading available slots:', error)
-      toast.error('Error cargando horarios disponibles')
+      if (!skipLoadingState) {
+        toast.error(t('bookingsManagement.errors.loadingAvailableSchedules'))
+      }
     } finally {
-      setLoadingSlots(false)
+      if (!skipLoadingState) setLoadingSlots(false)
     }
-  }
+  }, [newBooking.fecha, newBooking.service_id, services, t])
 
   const handleDateSelect = (date) => {
     const dateStr = format(date, 'yyyy-MM-dd')
@@ -439,7 +673,6 @@ export default function BookingsManagement() {
     setShowCalendar(false)
   }
 
-  // Get day style for calendar
   const getDayStyle = (day) => {
     const dayStr = format(day, 'yyyy-MM-dd')
     const availability = dayAvailability[dayStr]
@@ -449,23 +682,18 @@ export default function BookingsManagement() {
     const isPastDay = isBefore(day, startOfDay(new Date()))
     
     if (isPastDay) {
-      // Días pasados - gris claro
       baseClasses += ' bg-gray-100 text-gray-400 cursor-not-allowed'
     } else if (availability === 'available') {
-      // Días con horarios configurados - VERDE
       baseClasses += ' bg-green-100 text-green-800 hover:bg-green-200 border-green-200'
     } else {
-      // Días sin horarios configurados (unavailable, full, undefined) - GRIS
       baseClasses += ' bg-gray-100 text-gray-500 cursor-not-allowed'
     }
     
-    // Día seleccionado
     const isSelected = newBooking.fecha && isSameDay(day, new Date(newBooking.fecha))
     if (isSelected && availability === 'available' && !isPastDay) {
       baseClasses += ' !border-blue-500 !bg-blue-500 !text-white'
     }
     
-    // Día actual
     if (isToday(day)) {
       baseClasses += ' font-bold'
     }
@@ -473,11 +701,14 @@ export default function BookingsManagement() {
     return baseClasses
   }
 
-  // Componente de calendario responsive
   const AdminCalendar = () => {
     const monthStart = startOfMonth(currentMonth)
     const monthEnd = endOfMonth(currentMonth)
-    const days = eachDayOfInterval({ start: monthStart, end: monthEnd })
+    
+    const calendarStart = startOfWeek(monthStart, { weekStartsOn: 1 })
+    const calendarEnd = endOfWeek(monthEnd, { weekStartsOn: 1 })
+    
+    const calendarDays = eachDayOfInterval({ start: calendarStart, end: calendarEnd })
 
     return (
       <div className="bg-white border border-gray-200 rounded-lg p-3 sm:p-4 mt-2 shadow-sm max-w-full overflow-hidden">
@@ -494,7 +725,7 @@ export default function BookingsManagement() {
             </svg>
           </button>
           <h2 className="text-sm sm:text-base font-semibold text-gray-900 capitalize">
-            {format(currentMonth, 'MMMM yyyy', { locale: es })}
+            {format(currentMonth, 'MMMM yyyy', { locale: getDateLocale() })}
           </h2>
           <button
             type="button"
@@ -510,38 +741,39 @@ export default function BookingsManagement() {
         </div>
         
         <div className="grid grid-cols-7 gap-1 mb-2">
-          {['L', 'M', 'X', 'J', 'V', 'S', 'D'].map(day => (
-            <div key={day} className="text-center text-xs sm:text-sm font-medium text-gray-500 py-2">
+          {t('bookingsManagement.weekDaysShort', { returnObjects: true }).map((day, index) => (
+            <div key={index} className="text-center text-xs sm:text-sm font-medium text-gray-500 py-2">
               {day}
             </div>
           ))}
         </div>
         
         <div className="grid grid-cols-7 gap-1">
-          {days.map(day => {
+          {calendarDays.map(day => {
             const dayStr = format(day, 'yyyy-MM-dd')
             const availability = dayAvailability[dayStr]
             const isPastDay = isBefore(day, startOfDay(new Date()))
             const isFullyBooked = availability === 'full'
             const isUnavailable = availability === 'unavailable'
+            const isCurrentMonth = isSameMonth(day, currentMonth)
             
             return (
               <button
                 key={day.toString()}
                 type="button"
                 onClick={() => {
-                  // Solo permitir selección si el día no está en el pasado y no está completamente ocupado
-                  if (!isPastDay && !isFullyBooked && !isUnavailable) {
+                  if (!isPastDay && !isFullyBooked && !isUnavailable && isCurrentMonth) {
                     handleDateSelect(day)
                   }
                 }}
-                disabled={isPastDay || isFullyBooked || isUnavailable}
-                className={getDayStyle(day)}
+                disabled={isPastDay || isFullyBooked || isUnavailable || !isCurrentMonth}
+                className={`${getDayStyle(day)} ${!isCurrentMonth ? '!text-gray-300 !bg-transparent !cursor-default' : ''}`}
                 title={
-                  isPastDay ? 'Día pasado' :
-                  isFullyBooked ? 'Día completamente ocupado' :
-                  isUnavailable ? 'Sin horarios configurados' :
-                  'Disponible'
+                  !isCurrentMonth ? t('bookingsManagement.calendar.outOfMonth') :
+                  isPastDay ? t('bookingsManagement.calendar.pastDay') :
+                  isFullyBooked ? t('bookingsManagement.calendar.fullyBooked') :
+                  isUnavailable ? t('bookingsManagement.calendar.noSchedulesConfigured') :
+                  t('bookingsManagement.calendar.available')
                 }
               >
                 {format(day, 'd')}
@@ -550,20 +782,152 @@ export default function BookingsManagement() {
           })}
         </div>
         
-        {/* Leyenda actualizada */}
         <div className="mt-4 pt-3 border-t border-gray-200">
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 text-xs">
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 bg-green-100 border border-green-200 rounded"></div>
-              <span className="text-gray-600">Disponible</span>
+              <span className="text-gray-600">{t('bookingsManagement.calendar.available')}</span>
             </div>
             
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 bg-gray-100 rounded"></div>
-              <span className="text-gray-600">No Disponible</span>
+              <span className="text-gray-600">{t('bookingsManagement.calendar.notAvailable')}</span>
             </div>
-            
           </div>
+        </div>
+      </div>
+    )
+  }
+
+  const DateRangePicker = () => {
+    const monthStart = startOfMonth(currentMonth)
+    const monthEnd = endOfMonth(currentMonth)
+    
+    const calendarStart = startOfWeek(monthStart, { weekStartsOn: 1 })
+    const calendarEnd = endOfWeek(monthEnd, { weekStartsOn: 1 })
+    
+    const calendarDays = eachDayOfInterval({ start: calendarStart, end: calendarEnd })
+
+    const handleDateClick = (day) => {
+      if (selectingStartDate) {
+        setDateRangeStart(day)
+        setDateRangeEnd(day)
+        setSelectingStartDate(false)
+      } else {
+        if (isBefore(day, dateRangeStart)) {
+          setDateRangeEnd(dateRangeStart)
+          setDateRangeStart(day)
+        } else {
+          setDateRangeEnd(day)
+        }
+        setSelectingStartDate(true)
+        setShowDateRangePicker(false)
+      }
+    }
+
+    const isInRange = (day) => {
+      if (!dateRangeStart || !dateRangeEnd) return false
+      return day >= dateRangeStart && day <= dateRangeEnd
+    }
+
+    const getRangeDayStyle = (day) => {
+      const isCurrentMonth = isSameMonth(day, currentMonth)
+      const isStart = isSameDay(day, dateRangeStart)
+      const isEnd = isSameDay(day, dateRangeEnd)
+      const inRange = isInRange(day)
+      
+      let classes = 'w-8 h-8 sm:w-10 sm:h-10 text-xs sm:text-sm rounded-md flex items-center justify-center cursor-pointer transition-colors'
+      
+      if (!isCurrentMonth) {
+        classes += ' text-gray-300 bg-transparent cursor-default'
+      } else if (isStart || isEnd) {
+        classes += ' bg-blue-600 text-white font-bold'
+      } else if (inRange) {
+        classes += ' bg-blue-100 text-blue-800'
+      } else if (isToday(day)) {
+        classes += ' bg-gray-200 text-gray-900 font-bold'
+      } else {
+        classes += ' text-gray-700 hover:bg-gray-100'
+      }
+      
+      return classes
+    }
+
+    return (
+      <div className="absolute top-full left-0 mt-2 bg-white border border-gray-200 rounded-lg p-3 sm:p-4 shadow-lg z-50 min-w-[280px]">
+        <div className="mb-3 p-2 bg-blue-50 rounded text-xs text-blue-800">
+          {selectingStartDate ? t('bookingsManagement.dateRangePicker.selectStartDate') : t('bookingsManagement.dateRangePicker.selectEndDate')}
+        </div>
+
+        <div className="flex justify-between items-center mb-4">
+          <button
+            type="button"
+            onClick={() => setCurrentMonth(addDays(currentMonth, -30))}
+            className="p-2 hover:bg-gray-100 rounded-md transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+          <h2 className="text-sm sm:text-base font-semibold text-gray-900 capitalize">
+            {format(currentMonth, 'MMMM yyyy', { locale: getDateLocale() })}
+          </h2>
+          <button
+            type="button"
+            onClick={() => setCurrentMonth(addDays(currentMonth, 30))}
+            className="p-2 hover:bg-gray-100 rounded-md transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        </div>
+        
+        <div className="grid grid-cols-7 gap-1 mb-2">
+          {t('bookingsManagement.weekDaysShort', { returnObjects: true }).map((day, index) => (
+            <div key={index} className="text-center text-xs sm:text-sm font-medium text-gray-500 py-2">
+              {day}
+            </div>
+          ))}
+        </div>
+        
+        <div className="grid grid-cols-7 gap-1">
+          {calendarDays.map(day => (
+            <button
+              key={day.toString()}
+              type="button"
+              onClick={() => handleDateClick(day)}
+              disabled={!isSameMonth(day, currentMonth)}
+              className={getRangeDayStyle(day)}
+            >
+              {format(day, 'd')}
+            </button>
+          ))}
+        </div>
+
+        <div className="mt-4 pt-3 border-t border-gray-200 flex justify-between items-center">
+          <button
+            type="button"
+            onClick={() => {
+              const today = new Date()
+              setDateRangeStart(today)
+              setDateRangeEnd(today)
+              setSelectingStartDate(true)
+            }}
+            className="text-xs text-blue-600 hover:text-blue-800"
+          >
+            {t('bookingsManagement.dateRangePicker.today')}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setShowDateRangePicker(false)
+              setSelectingStartDate(true)
+            }}
+            className="text-xs px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
+          >
+            {t('bookingsManagement.dateRangePicker.close')}
+          </button>
         </div>
       </div>
     )
@@ -583,7 +947,6 @@ export default function BookingsManagement() {
 
       if (error) throw error
 
-      // AÑADIR EMAIL DE CANCELACIÓN SI ES CANCELACIÓN
       if (newStatus === 'cancelada') {
         try {
           const canceledBooking = bookings.find(b => b.id === bookingId)
@@ -594,18 +957,14 @@ export default function BookingsManagement() {
             service_name: canceledBooking.services?.nombre,
             fecha: canceledBooking.fecha_hora.substring(0, 10),
             hora: canceledBooking.fecha_hora.substring(11, 16),
-            motivo_cancelacion: 'Cancelación por parte del centro'
+            motivo_cancelacion: t('bookingsManagement.cancellationByCenterReason')
           }
 
-          // Email al cliente
           await notifyBookingCanceled(cancelationData)
-          
-          // Email al admin
           await notifyAdminCancellation(cancelationData)
           
         } catch (emailError) {
           console.error('Error enviando emails de cancelación:', emailError)
-          // No interrumpir el flujo si falla el email
         }
       }
 
@@ -617,10 +976,10 @@ export default function BookingsManagement() {
         )
       )
 
-      toast.success(`Cita ${newStatus === 'cancelada' ? 'cancelada' : 'actualizada'}`)
+      toast.success(newStatus === 'cancelada' ? t('bookingsManagement.toasts.bookingCancelled') : t('bookingsManagement.toasts.bookingUpdated'))
     } catch (error) {
       console.error('Error updating booking:', error)
-      toast.error('Error actualizando cita')
+      toast.error(t('bookingsManagement.errors.updatingBooking'))
     } finally {
       setUpdating(prev => {
         const newSet = new Set(prev)
@@ -649,10 +1008,10 @@ export default function BookingsManagement() {
       if (error) throw error
 
       setBookings(prev => prev.filter(booking => booking.id !== bookingToDelete.id))
-      toast.success('Cita eliminada correctamente')
+      toast.success(t('bookingsManagement.toasts.bookingDeleted'))
     } catch (error) {
       console.error('Error deleting booking:', error)
-      toast.error('Error eliminando cita')
+      toast.error(t('bookingsManagement.errors.deletingBooking'))
     } finally {
       setUpdating(prev => {
         const newSet = new Set(prev)
@@ -664,20 +1023,109 @@ export default function BookingsManagement() {
     }
   }
 
+  // 🚨 NUEVA FUNCIÓN: Confirmar reserva pendiente de confirmación
+  const confirmPendingBooking = async (bookingId) => {
+    try {
+      setUpdating(prev => new Set(prev).add(bookingId))
+
+      const { error } = await supabase
+        .from('bookings')
+        .update({
+          estado: 'pendiente',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', bookingId)
+
+      if (error) throw error
+
+      // Enviar email de confirmación al cliente
+      try {
+        const confirmedBooking = bookings.find(b => b.id === bookingId)
+        // TODO: Implementar notifyBookingConfirmedByAdmin
+        console.log('📧 Email de confirmación pendiente:', confirmedBooking)
+      } catch (emailError) {
+        console.error('Error enviando email de confirmación:', emailError)
+      }
+
+      setBookings(prev =>
+        prev.map(booking =>
+          booking.id === bookingId
+            ? { ...booking, estado: 'pendiente', updated_at: new Date().toISOString() }
+            : booking
+        )
+      )
+
+      toast.success(t('bookingsManagement.toasts.bookingConfirmed'))
+    } catch (error) {
+      console.error('Error confirmando reserva:', error)
+      toast.error(t('bookingsManagement.errors.confirmingBooking'))
+    } finally {
+      setUpdating(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(bookingId)
+        return newSet
+      })
+    }
+  }
+
+  // 🚨 NUEVA FUNCIÓN: Rechazar reserva pendiente de confirmación
+  const rejectPendingBooking = async (bookingId) => {
+    try {
+      setUpdating(prev => new Set(prev).add(bookingId))
+
+      const { error } = await supabase
+        .from('bookings')
+        .update({
+          estado: 'cancelada',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', bookingId)
+
+      if (error) throw error
+
+      // Enviar email de rechazo al cliente
+      try {
+        const rejectedBooking = bookings.find(b => b.id === bookingId)
+        // TODO: Implementar notifyBookingRejectedByAdmin
+        console.log('📧 Email de rechazo pendiente:', rejectedBooking)
+      } catch (emailError) {
+        console.error('Error enviando email de rechazo:', emailError)
+      }
+
+      setBookings(prev =>
+        prev.map(booking =>
+          booking.id === bookingId
+            ? { ...booking, estado: 'cancelada', updated_at: new Date().toISOString() }
+            : booking
+        )
+      )
+
+      toast.success(t('bookingsManagement.toasts.bookingRejected'))
+    } catch (error) {
+      console.error('Error rechazando reserva:', error)
+      toast.error(t('bookingsManagement.errors.rejectingBooking'))
+    } finally {
+      setUpdating(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(bookingId)
+        return newSet
+      })
+    }
+  }
+
   const createBooking = async (e) => {
     e.preventDefault()
     
     const isHomeVisit = isHomeVisitService()
     
     if (!newBooking.client_id || !newBooking.dog_id || !newBooking.service_id || !newBooking.fecha) {
-      toast.error('Completa todos los campos obligatorios')
+      toast.error(t('bookingsManagement.errors.completeRequiredFields'))
       return
     }
 
-    // Validaciones específicas para cada tipo de servicio
     if (isHomeVisit) {
       if (!newBooking.hora_inicio_domicilio || !newBooking.hora_fin_domicilio || !newBooking.direccion_domicilio) {
-        toast.error('Completa todos los campos obligatorios para visita a domicilio')
+        toast.error(t('bookingsManagement.errors.completeHomeVisitFields'))
         return
       }
       
@@ -688,12 +1136,12 @@ export default function BookingsManagement() {
       }
       
       if (homeVisitData.duracionMinutos < 30) {
-        toast.error('La duración mínima es de 30 minutos')
+        toast.error(t('bookingsManagement.errors.minimumDuration30'))
         return
       }
     } else {
       if (!newBooking.hora) {
-        toast.error('Selecciona una hora')
+        toast.error(t('bookingsManagement.errors.selectTime'))
         return
       }
     }
@@ -701,10 +1149,10 @@ export default function BookingsManagement() {
     try {
       setLoading(true)
 
-      // VALIDACIÓN FINAL ANTES DE CREAR
-      console.log('🔒 Admin - Verificación final de disponibilidad...')
+      console.log('🔒 Admin - ' + t('bookingsManagement.finalVerification'))
       
       let targetTime
+      const selectedService = services.find(s => s.id === parseInt(newBooking.service_id))
       const isHomeVisit = selectedService?.tipo === 'rehabilitacion_domicilio'
       
       if (isHomeVisit) {
@@ -721,11 +1169,11 @@ export default function BookingsManagement() {
         `)
         .gte('fecha_hora', `${newBooking.fecha}T${targetTime}:00`)
         .lte('fecha_hora', `${newBooking.fecha}T${targetTime}:59`)
-        .in('estado', ['pendiente'])
+        .in('estado', ['pendiente', 'pendiente_confirmacion'])
 
       if (adminUltimateError) {
         console.error('Admin error en verificación final:', adminUltimateError)
-        toast.error('Error verificando disponibilidad')
+        toast.error(t('bookingsManagement.errors.verifyingAvailability'))
         setLoading(false)
         return
       }
@@ -740,29 +1188,27 @@ export default function BookingsManagement() {
         )
         
         if (isBlocked) {
-          toast.error('Conflicto detectado: Este horario ya no está disponible', {
+          toast.error(t('bookingsManagement.errors.conflictDetected'), {
             duration: 4000,
           })
-          await loadAvailableSlots() // Refrescar horarios
+          await loadAvailableSlots()
           setLoading(false)
           return
         }
       }
       
-      const selectedService = services.find(s => s.id === parseInt(newBooking.service_id))
-      
       const getSpaceForService = (serviceType) => {
         switch (serviceType) {
           case 'rehabilitacion_domicilio':
-            return { space_id: null, spaces_display: 'Domicilio del Cliente' }
+            return { space_id: null, spaces_display: t('bookingsManagement.spaces.clientHome') }
           case 'hidroterapia_rehabilitacion':
-            return { space_id: 1, spaces_display: 'Caseta de Rehabilitación + Piscina (Hidroterapia)' }
+            return { space_id: 1, spaces_display: t('bookingsManagement.spaces.rehabCabinPool') }
           case 'rehabilitacion':
-            return { space_id: 1, spaces_display: 'Caseta de Rehabilitación' }
+            return { space_id: 1, spaces_display: t('bookingsManagement.spaces.rehabCabin') }
           case 'hidroterapia':
-            return { space_id: 2, spaces_display: 'Piscina (Hidroterapia)' }
+            return { space_id: 2, spaces_display: t('bookingsManagement.spaces.pool') }
           default:
-            return { space_id: 1, spaces_display: 'Espacio General' }
+            return { space_id: 1, spaces_display: t('bookingsManagement.spaces.generalSpace') }
         }
       }
 
@@ -771,38 +1217,16 @@ export default function BookingsManagement() {
       let datetime, duracionMinutos, precio
       
       if (isHomeVisit) {
-        // Para visitas a domicilio, usar hora de inicio y duración calculada
         datetime = `${newBooking.fecha}T${newBooking.hora_inicio_domicilio}:00`
         const homeVisitData = calculateHomeVisitData()
         duracionMinutos = homeVisitData.duracionMinutos
         precio = homeVisitData.precio
       } else {
-        // Para servicios normales
         datetime = `${newBooking.fecha}T${newBooking.hora}:00`
         duracionMinutos = selectedService.duracion_minutos
         precio = selectedService.precio
       }
-      
-      const bookingData = {
-        client_id: newBooking.client_id,
-        dog_id: parseInt(newBooking.dog_id),
-        service_id: parseInt(newBooking.service_id),
-        space_id: spaceInfo.space_id,
-        fecha_hora: datetime,
-        duracion_minutos: duracionMinutos,
-        precio: precio,
-        observaciones: newBooking.observaciones.trim() || null,
-        estado: 'pendiente',
-        spaces_display: spaceInfo.spaces_display,
-        ...(isHomeVisit && {
-          es_visita_domicilio: true,
-          bloquea_centro: true,
-          direccion_domicilio: newBooking.direccion_domicilio.trim(),
-          hora_fin_domicilio: newBooking.hora_fin_domicilio
-        })
-      }
 
-      // USAR FUNCIÓN ATÓMICA
       const { data: result, error } = await supabase.rpc('create_booking_atomic', {
         p_client_id: newBooking.client_id,
         p_dog_id: parseInt(newBooking.dog_id),
@@ -821,27 +1245,24 @@ export default function BookingsManagement() {
 
       if (error) {
         console.error('Error calling atomic function:', error)
-        toast.error('Error técnico al crear la cita')
+        toast.error(t('bookingsManagement.errors.technicalError'))
         return
       }
 
       if (!result.success) {
         if (result.error_code === 'SLOT_CONFLICT') {
-          toast.error('Conflicto detectado: Este horario ya no está disponible')
+          toast.error(t('bookingsManagement.errors.conflictDetected'))
         } else {
-          toast.error(result.error || 'Error al crear la cita')
+          toast.error(result.error || t('bookingsManagement.errors.creatingBooking'))
         }
         return
       }
 
-      // ÉXITO
-      toast.success('Cita creada correctamente')
+      toast.success(t('bookingsManagement.toasts.bookingCreated'))
 
-      // INVALIDAR CACHE E INFORMAR INMEDIATAMENTE
       invalidateCacheAndNotify(newBooking.fecha)
-      console.log('🚨 Admin notificó nueva reserva a todos los usuarios')
+      console.log('🚨 Admin ' + t('bookingsManagement.notifiedNewBooking'))
 
-      // ENVIAR EMAIL DE CONFIRMACIÓN AL CLIENTE
       try {
         const selectedClient = clients.find(c => c.id === newBooking.client_id)
         const selectedDog = clientDogs.find(d => d.id === parseInt(newBooking.dog_id))
@@ -854,21 +1275,54 @@ export default function BookingsManagement() {
         }
         
         await notifyBookingConfirmed({
-          pet_name: selectedDog?.nombre,
-          service_name: selectedService?.nombre,
-          fecha: newBooking.fecha,
-          hora: timeDisplay,
-          duracion: duracionMinutos.toString(),
-          precio: precio.toString(),
-          client_email: selectedClient?.email,
-          client_name: selectedClient?.nombre_completo
-        })
+        pet_name: selectedDog?.nombre,
+        service_name: selectedService?.nombre,
+        fecha: newBooking.fecha,
+        hora: timeDisplay,
+        duracion: duracionMinutos.toString(),
+        precio: precio.toString(),
+        client_email: selectedClient?.email,
+        client_name: selectedClient?.nombre_completo
+      })
+
+      // 🔔 NUEVO: Programar recordatorio 24h antes
+      try {
+        // Buscar el booking recién creado para obtener su ID
+        const { data: createdBooking, error: fetchError } = await supabase
+          .from('bookings')
+          .select('id')
+          .eq('client_id', newBooking.client_id)
+          .eq('fecha_hora', datetime)
+          .eq('service_id', parseInt(newBooking.service_id))
+          .single()
         
+        if (fetchError) {
+          console.warn('⚠️ No se pudo obtener booking_id para recordatorio:', fetchError)
+        } else if (createdBooking?.id) {
+          const { scheduleEmailReminder } = await import('../../utils/emailService')
+          await scheduleEmailReminder({
+            id: createdBooking.id,
+            user_id: newBooking.client_id,
+            fecha: newBooking.fecha,
+            hora: isHomeVisit ? newBooking.hora_inicio_domicilio : newBooking.hora,
+            profiles: {
+              nombre_completo: selectedClient?.nombre_completo,
+              email: selectedClient?.email
+            },
+            pet_name: selectedDog?.nombre,
+            service_name: selectedService?.nombre,
+            duracion_minutos: duracionMinutos
+          })
+          console.log('✅ Recordatorio programado para 24h antes de la cita')
+        }
+      } catch (reminderError) {
+        console.error('⚠️ Error programando recordatorio (no crítico):', reminderError)
+      }
+
       } catch (emailError) {
         console.error('Error enviando email de confirmación:', emailError)
       }
 
-      // LIMPIAR FORMULARIO Y RECARGAR
       setShowCreateModal(false)
       setNewBooking({
         client_id: '',
@@ -887,9 +1341,18 @@ export default function BookingsManagement() {
 
     } catch (error) {
       console.error('Error creating booking:', error)
-      toast.error('Error inesperado al crear la cita')
+      toast.error(t('bookingsManagement.errors.unexpectedError'))
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleSort = (column) => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortColumn(column)
+      setSortDirection('asc')
     }
   }
 
@@ -900,25 +1363,13 @@ export default function BookingsManagement() {
       filtered = filtered.filter(booking => booking.estado === filter)
     }
 
-    if (dateFilter !== 'all') {
-      const now = new Date()
-      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    if (dateRangeStart && dateRangeEnd) {
+      const startDay = startOfDay(dateRangeStart)
+      const endDay = startOfDay(addDays(dateRangeEnd, 1))
       
       filtered = filtered.filter(booking => {
         const bookingDate = new Date(booking.fecha_hora)
-        
-        switch (dateFilter) {
-          case 'today':
-            return bookingDate >= today && bookingDate < new Date(today.getTime() + 24 * 60 * 60 * 1000)
-          case 'week':
-            const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)
-            return bookingDate >= weekAgo
-          case 'month':
-            const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
-            return bookingDate >= monthAgo
-          default:
-            return true
-        }
+        return bookingDate >= startDay && bookingDate < endDay
       })
     }
 
@@ -932,19 +1383,90 @@ export default function BookingsManagement() {
       )
     }
 
+    filtered.sort((a, b) => {
+      let compareA, compareB
+
+      switch (sortColumn) {
+        case 'fecha_hora':
+          compareA = new Date(a.fecha_hora)
+          compareB = new Date(b.fecha_hora)
+          break
+        
+        case 'cliente':
+          compareA = a.profiles?.nombre_completo?.toLowerCase() || ''
+          compareB = b.profiles?.nombre_completo?.toLowerCase() || ''
+          break
+        
+        case 'perro':
+          compareA = a.dogs?.nombre?.toLowerCase() || ''
+          compareB = b.dogs?.nombre?.toLowerCase() || ''
+          break
+        
+        case 'servicio':
+          compareA = a.services?.nombre?.toLowerCase() || ''
+          compareB = b.services?.nombre?.toLowerCase() || ''
+          break
+        
+        case 'estado':
+          compareA = a.estado || ''
+          compareB = b.estado || ''
+          break
+        
+        default:
+          return 0
+      }
+
+      if (compareA < compareB) {
+        return sortDirection === 'asc' ? -1 : 1
+      }
+      if (compareA > compareB) {
+        return sortDirection === 'asc' ? 1 : -1
+      }
+      return 0
+    })
+
     return filtered
+  }
+
+  const getStatsForDateRange = () => {
+    let filtered = bookings
+
+    if (dateRangeStart && dateRangeEnd) {
+      const startDay = startOfDay(dateRangeStart)
+      const endDay = startOfDay(addDays(dateRangeEnd, 1))
+      
+      filtered = filtered.filter(booking => {
+        const bookingDate = new Date(booking.fecha_hora)
+        return bookingDate >= startDay && bookingDate < endDay
+      })
+    }
+
+    return {
+      pendientes: filtered.filter(b => b.estado === 'pendiente').length,
+      completadas: filtered.filter(b => b.estado === 'completada').length,
+      canceladas: filtered.filter(b => b.estado === 'cancelada').length,
+      total: filtered.length
+    }
   }
 
   const getStatusBadge = (estado) => {
     const statusClasses = {
       pendiente: 'bg-yellow-100 text-yellow-800',
+      pendiente_confirmacion: 'bg-orange-100 text-orange-800',
       completada: 'bg-green-100 text-green-800',
       cancelada: 'bg-red-100 text-red-800'
     }
 
+    const statusText = {
+      pendiente: t('bookingsManagement.status.pending'),
+      pendiente_confirmacion: t('bookingsManagement.status.pendingConfirmation'),
+      completada: t('bookingsManagement.status.completed'),
+      cancelada: t('bookingsManagement.status.cancelled')
+    }
+
     return (
       <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusClasses[estado] || 'bg-gray-100 text-gray-800'}`}>
-        {estado}
+        {statusText[estado] || estado}
       </span>
     )
   }
@@ -964,7 +1486,26 @@ export default function BookingsManagement() {
     }
   }
 
-  // Renderizar vista móvil de citas como cards
+  const SortIcon = ({ column }) => {
+    if (sortColumn !== column) {
+      return (
+        <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+        </svg>
+      )
+    }
+
+    return sortDirection === 'asc' ? (
+      <svg className="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+      </svg>
+    ) : (
+      <svg className="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+      </svg>
+    )
+  }
+
   const renderMobileBookingCard = (booking) => (
     <div key={booking.id} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
       <div className="flex justify-between items-start mb-3">
@@ -987,33 +1528,54 @@ export default function BookingsManagement() {
       
       <div className="space-y-2 mb-3">
         <div className="flex justify-between text-sm">
-          <span className="text-gray-600">Cliente:</span>
+          <span className="text-gray-600">{t('bookingsManagement.client')}:</span>
           <span className="font-medium text-gray-900">{booking.profiles?.nombre_completo}</span>
         </div>
         <div className="flex justify-between text-sm">
-          <span className="text-gray-600">Perro:</span>
+          <span className="text-gray-600">{t('bookingsManagement.dog')}:</span>
           <span className="text-gray-900">{booking.dogs?.nombre}</span>
         </div>
       </div>
       
       <div className="flex justify-end space-x-2">
+        {booking.estado === 'pendiente_confirmacion' && (
+          <>
+            <button
+              onClick={() => confirmPendingBooking(booking.id)}
+              disabled={updating.has(booking.id)}
+              className="px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              title={t('bookingsManagement.actions.confirm')}
+            >
+              ✓ {t('bookingsManagement.actions.confirm')}
+            </button>
+            <button
+              onClick={() => rejectPendingBooking(booking.id)}
+              disabled={updating.has(booking.id)}
+              className="px-3 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              title={t('bookingsManagement.actions.reject')}
+            >
+              ✗ {t('bookingsManagement.actions.reject')}
+            </button>
+          </>
+        )}
+
         {(booking.estado === 'pendiente') && (
           <button
             onClick={() => updateBookingStatus(booking.id, 'cancelada')}
             disabled={updating.has(booking.id)}
             className="text-red-600 hover:text-red-900 disabled:opacity-50 p-1"
-            title="Cancelar"
+            title={t('bookingsManagement.actions.cancel')}
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         )}
-        
+
         <button
           onClick={() => setSelectedBooking(booking)}
           className="text-blue-600 hover:text-blue-900 p-1"
-          title="Ver detalles"
+          title={t('bookingsManagement.actions.viewDetails')}
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -1030,7 +1592,7 @@ export default function BookingsManagement() {
     return (
       <div className="flex justify-center items-center py-12">
         <div className="loading-spinner mr-3"></div>
-        <span className="text-gray-600">Cargando citas...</span>
+        <span className="text-gray-600">{t('bookingsManagement.loadingBookings')}</span>
       </div>
     )
   }
@@ -1038,11 +1600,10 @@ export default function BookingsManagement() {
   return (
     <div className="w-full max-w-full overflow-hidden">
       <div className="space-y-4 sm:space-y-6">
-        {/* Header responsive */}
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
           <div>
-            <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">Gestión de Citas</h2>
-            <p className="text-sm sm:text-base text-gray-600">Administra todas las citas del sistema</p>
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">{t('bookingsManagement.title')}</h2>
+            <p className="text-sm sm:text-base text-gray-600">{t('bookingsManagement.subtitle')}</p>
           </div>
           <button
             onClick={() => setShowCreateModal(true)}
@@ -1052,122 +1613,161 @@ export default function BookingsManagement() {
             <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
             </svg>
-            Nueva Cita
+            {t('bookingsManagement.newBooking')}
           </button>
         </div>
 
-        {/* Filtros responsive */}
         <div className="bg-white p-3 sm:p-4 rounded-lg shadow-sm border">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('bookingsManagement.filters.status')}</label>
               <select
                 value={filter}
                 onChange={(e) => setFilter(e.target.value)}
                 className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
               >
-                <option value="all">Todos los estados</option>
-                <option value="pendiente">Pendientes</option>
-                <option value="completada">Completadas</option>
-                <option value="cancelada">Canceladas</option>
+                <option value="all">{t('bookingsManagement.filters.allStatuses')}</option>
+                <option value="pendiente">{t('bookingsManagement.status.pending')}</option>
+                <option value="completada">{t('bookingsManagement.status.completed')}</option>
+                <option value="cancelada">{t('bookingsManagement.status.cancelled')}</option>
               </select>
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Período</label>
-              <select
-                value={dateFilter}
-                onChange={(e) => setDateFilter(e.target.value)}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-              >
-                <option value="all">Todas las fechas</option>
-                <option value="today">Hoy</option>
-                <option value="week">Última semana</option>
-                <option value="month">Último mes</option>
-              </select>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('bookingsManagement.filters.period')}</label>
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setShowDateRangePicker(!showDateRangePicker)}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-left flex justify-between items-center hover:bg-gray-50"
+                >
+                  <span>
+                    {isSameDay(dateRangeStart, dateRangeEnd) 
+                      ? format(dateRangeStart, 'dd/MM/yyyy')
+                      : `${format(dateRangeStart, 'dd/MM/yyyy')} - ${format(dateRangeEnd, 'dd/MM/yyyy')}`
+                    }
+                  </span>
+                  <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                  </svg>
+                </button>
+                
+                {showDateRangePicker && <DateRangePicker />}
+              </div>
             </div>
             
             <div className="sm:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Buscar</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('bookingsManagement.filters.search')}</label>
               <input
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Cliente, perro, servicio o email..."
+                placeholder={t('bookingsManagement.filters.searchPlaceholder')}
                 className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
               />
             </div>
           </div>
           
-          {/* Toggle vista móvil/desktop */}
           <div className="mt-3 sm:hidden flex bg-gray-100 rounded-md p-1">
             <button
               onClick={() => setViewMode('mobile')}
               className={`flex-1 px-3 py-1 text-xs rounded ${viewMode === 'mobile' ? 'bg-white shadow' : ''}`}
             >
-              Lista
+              {t('bookingsManagement.listView')}
             </button>
           </div>
         </div>
 
-        {/* Estadísticas responsive */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
           <div className="bg-white p-3 sm:p-4 rounded-lg shadow-sm border">
-            <div className="text-lg sm:text-2xl font-bold text-blue-600">{bookings.filter(b => b.estado === 'pendiente').length}</div>
-            <div className="text-xs sm:text-sm text-gray-600">Pendientes</div>
+            <div className="text-lg sm:text-2xl font-bold text-blue-600">
+              {getStatsForDateRange().pendientes}
+            </div>
+            <div className="text-xs sm:text-sm text-gray-600">{t('bookingsManagement.stats.pending')}</div>
           </div>
           <div className="bg-white p-3 sm:p-4 rounded-lg shadow-sm border">
-            <div className="text-lg sm:text-2xl font-bold text-gray-600">{bookings.filter(b => b.estado === 'completada').length}</div>
-            <div className="text-xs sm:text-sm text-gray-600">Completadas</div>
+            <div className="text-lg sm:text-2xl font-bold text-gray-600">
+              {getStatsForDateRange().completadas}
+            </div>
+            <div className="text-xs sm:text-sm text-gray-600">{t('bookingsManagement.stats.completed')}</div>
           </div>
           <div className="bg-white p-3 sm:p-4 rounded-lg shadow-sm border">
-            <div className="text-lg sm:text-2xl font-bold text-red-600">{bookings.filter(b => b.estado === 'cancelada').length}</div>
-            <div className="text-xs sm:text-sm text-gray-600">Canceladas</div>
+            <div className="text-lg sm:text-2xl font-bold text-red-600">
+              {getStatsForDateRange().canceladas}
+            </div>
+            <div className="text-xs sm:text-sm text-gray-600">{t('bookingsManagement.stats.cancelled')}</div>
           </div>
         </div>
 
-        {/* Lista de citas - Vista adaptativa */}
         <div className="bg-white rounded-lg shadow-sm border">
           <div className="px-4 sm:px-6 py-4 border-b">
             <h3 className="text-base sm:text-lg font-semibold">
-              Citas ({filteredBookings.length})
+              {t('bookingsManagement.bookingsList')} ({filteredBookings.length})
             </h3>
           </div>
           
           {filteredBookings.length === 0 ? (
             <div className="text-center py-12">
               <div className="text-gray-400 text-4xl mb-2">📅</div>
-              <h4 className="text-lg font-medium text-gray-900">No se encontraron citas</h4>
-              <p className="text-gray-600">Ajusta los filtros o crea una nueva cita</p>
+              <h4 className="text-lg font-medium text-gray-900">{t('bookingsManagement.noBookingsFound')}</h4>
+              <p className="text-gray-600">{t('bookingsManagement.adjustFilters')}</p>
             </div>
           ) : viewMode === 'mobile' ? (
-            // Vista móvil - Cards
             <div className="p-4 space-y-4">
               {filteredBookings.map(renderMobileBookingCard)}
             </div>
           ) : (
-            // Vista desktop - Tabla responsive
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Fecha/Hora
+                    <th 
+                      onClick={() => handleSort('fecha_hora')}
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span>{t('bookingsManagement.table.dateTime')}</span>
+                        <SortIcon column="fecha_hora" />
+                      </div>
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Cliente
+                    <th 
+                      onClick={() => handleSort('cliente')}
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span>{t('bookingsManagement.table.client')}</span>
+                        <SortIcon column="cliente" />
+                      </div>
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Perro
+                    <th 
+                      onClick={() => handleSort('perro')}
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span>{t('bookingsManagement.table.dog')}</span>
+                        <SortIcon column="perro" />
+                      </div>
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Servicio
+                    <th 
+                      onClick={() => handleSort('servicio')}
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span>{t('bookingsManagement.table.service')}</span>
+                        <SortIcon column="servicio" />
+                      </div>
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Estado
+                    <th 
+                      onClick={() => handleSort('estado')}
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span>{t('bookingsManagement.table.status')}</span>
+                        <SortIcon column="estado" />
+                      </div>
                     </th>
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Acciones
+                      {t('bookingsManagement.table.actions')}
                     </th>
                   </tr>
                 </thead>
@@ -1177,7 +1777,7 @@ export default function BookingsManagement() {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div>
                           <div className="text-sm font-medium text-gray-900">
-                            {format(new Date(booking.fecha_hora.substring(0, 10)), 'dd/MM/yyyy', { locale: es })}
+                            {format(new Date(booking.fecha_hora.substring(0, 10)), 'dd/MM/yyyy', { locale: getDateLocale() })}
                           </div>
                           <div className="text-sm text-gray-500">
                             {booking.fecha_hora.substring(11, 16)} ({booking.duracion_minutos}min)
@@ -1210,7 +1810,7 @@ export default function BookingsManagement() {
                           <div className="text-sm text-gray-900">
                             {booking.services?.nombre}
                             {booking.services?.tipo === 'rehabilitacion_domicilio' && (
-                              <div className="text-xs text-purple-600 font-medium">A domicilio</div>
+                              <div className="text-xs text-purple-600 font-medium">{t('bookingsManagement.homeVisit')}</div>
                             )}
                           </div>
                         </div>
@@ -1220,23 +1820,44 @@ export default function BookingsManagement() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <div className="flex justify-end space-x-2">
+                          {booking.estado === 'pendiente_confirmacion' && (
+                            <>
+                              <button
+                                onClick={() => confirmPendingBooking(booking.id)}
+                                disabled={updating.has(booking.id)}
+                                className="px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                title={t('bookingsManagement.actions.confirm')}
+                              >
+                                ✓ {t('bookingsManagement.actions.confirm')}
+                              </button>
+                              <button
+                                onClick={() => rejectPendingBooking(booking.id)}
+                                disabled={updating.has(booking.id)}
+                                className="px-3 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                title={t('bookingsManagement.actions.reject')}
+                              >
+                                ✗ {t('bookingsManagement.actions.reject')}
+                              </button>
+                            </>
+                          )}
+
                           {(booking.estado === 'pendiente') && (
                             <button
                               onClick={() => updateBookingStatus(booking.id, 'cancelada')}
                               disabled={updating.has(booking.id)}
                               className="text-red-600 hover:text-red-900 disabled:opacity-50"
-                              title="Cancelar"
+                              title={t('bookingsManagement.actions.cancel')}
                             >
                               <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                               </svg>
                             </button>
                           )}
-                          
+
                           <button
                             onClick={() => setSelectedBooking(booking)}
                             className="text-blue-600 hover:text-blue-900"
-                            title="Ver detalles"
+                            title={t('bookingsManagement.actions.viewDetails')}
                           >
                             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -1253,12 +1874,11 @@ export default function BookingsManagement() {
           )}
         </div>
 
-        {/* MODAL CREAR CITA RESPONSIVE */}
         {showCreateModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg p-4 sm:p-6 w-full max-w-2xl mx-4 max-h-screen overflow-y-auto">
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
+            <div className="bg-white rounded-lg p-3 sm:p-4 md:p-6 w-full max-w-2xl mx-2 sm:mx-4 max-h-[95vh] overflow-y-auto">
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-base sm:text-lg font-semibold">Nueva Cita</h3>
+                <h3 className="text-base sm:text-lg font-semibold">{t('bookingsManagement.modal.newBooking')}</h3>
                 <button
                   onClick={() => setShowCreateModal(false)}
                   className="text-gray-400 hover:text-gray-600"
@@ -1269,12 +1889,11 @@ export default function BookingsManagement() {
                 </button>
               </div>
               
-              {/* FORMULARIO RESPONSIVE */}
               <form onSubmit={createBooking} className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Cliente *
+                      {t('bookingsManagement.modal.client')} *
                     </label>
                     <select
                       value={newBooking.client_id}
@@ -1285,7 +1904,7 @@ export default function BookingsManagement() {
                       className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
                       required
                     >
-                      <option value="">Selecciona un cliente</option>
+                      <option value="">{t('bookingsManagement.modal.selectClient')}</option>
                       {clients.map(client => (
                         <option key={client.id} value={client.id}>
                           {client.nombre_completo} - {client.email}
@@ -1296,7 +1915,7 @@ export default function BookingsManagement() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Perro *
+                      {t('bookingsManagement.modal.dog')} *
                     </label>
                     <select
                       value={newBooking.dog_id}
@@ -1305,7 +1924,7 @@ export default function BookingsManagement() {
                       required
                       disabled={!newBooking.client_id}
                     >
-                      <option value="">Selecciona un perro</option>
+                      <option value="">{t('bookingsManagement.modal.selectDog')}</option>
                       {clientDogs.map(dog => (
                         <option key={dog.id} value={dog.id}>
                           {dog.nombre} {dog.raza && `(${dog.raza})`}
@@ -1317,7 +1936,7 @@ export default function BookingsManagement() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Servicio *
+                    {t('bookingsManagement.modal.service')} *
                   </label>
                   <select
                     value={newBooking.service_id}
@@ -1335,11 +1954,11 @@ export default function BookingsManagement() {
                     className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
                     required
                   >
-                    <option value="">Selecciona un servicio</option>
+                    <option value="">{t('bookingsManagement.modal.selectService')}</option>
                     {services.map(service => (
                       <option key={service.id} value={service.id}>
                         {getServiceIcon(service.tipo)} {service.nombre}
-                        {service.tipo === 'rehabilitacion_domicilio' ? '/hora' : ` - ${service.duracion_minutos}min`}
+                        {service.tipo === 'rehabilitacion_domicilio' ? `/${t('bookingsManagement.modal.perHour')}` : ` - ${service.duracion_minutos}min`}
                       </option>
                     ))}
                   </select>
@@ -1347,21 +1966,21 @@ export default function BookingsManagement() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Fecha *
+                    {t('bookingsManagement.modal.date')} *
                   </label>
                   <div className="relative">
                     <input
                       type="text"
                       value={newBooking.fecha ? format(new Date(newBooking.fecha), 'dd/MM/yyyy') : ''}
                       readOnly
-                      placeholder="Selecciona una fecha"
+                      placeholder={t('bookingsManagement.modal.selectDate')}
                       className="w-full border border-gray-300 rounded-md px-3 py-2 cursor-pointer text-sm"
                       onClick={() => setShowCalendar(!showCalendar)}
                       required
                     />
                     <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
                       <svg className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 002 2z" />
                       </svg>
                     </div>
                   </div>
@@ -1369,14 +1988,12 @@ export default function BookingsManagement() {
                   {showCalendar && <AdminCalendar />}
                 </div>
 
-                {/* Formulario condicional según tipo de servicio */}
                 {isHomeVisitService() ? (
-                  // Formulario para visitas a domicilio
                   <>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Hora de Inicio *
+                          {t('bookingsManagement.modal.startTime')} *
                         </label>
                         <select
                           value={newBooking.hora_inicio_domicilio}
@@ -1384,24 +2001,24 @@ export default function BookingsManagement() {
                           className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
                           required
                         >
-                          <option value="">Selecciona hora</option>
+                          <option value="">{t('bookingsManagement.modal.selectTime')}</option>
                           {newBooking.fecha && newBooking.service_id ? (
                             loadingSlots ? (
-                              <option disabled>Cargando...</option>
+                              <option disabled>{t('bookingsManagement.modal.loading')}</option>
                             ) : (
                               availableSlots.map(time => (
                                 <option key={time} value={time}>{time}</option>
                               ))
                             )
                           ) : (
-                            <option disabled>Selecciona fecha y servicio primero</option>
+                            <option disabled>{t('bookingsManagement.modal.selectDateServiceFirst')}</option>
                           )}
                         </select>
                       </div>
                       
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Hora de Fin *
+                          {t('bookingsManagement.modal.endTime')} *
                         </label>
                         <select
                           value={newBooking.hora_fin_domicilio}
@@ -1410,7 +2027,7 @@ export default function BookingsManagement() {
                           required
                           disabled={!newBooking.hora_inicio_domicilio}
                         >
-                          <option value="">Selecciona hora fin</option>
+                          <option value="">{t('bookingsManagement.modal.selectEndTime')}</option>
                           {endTimeSlots.map(time => (
                             <option key={time} value={time}>{time}</option>
                           ))}
@@ -1418,7 +2035,6 @@ export default function BookingsManagement() {
                       </div>
                     </div>
 
-                    {/* Mostrar duración y precio calculados */}
                     {newBooking.hora_inicio_domicilio && newBooking.hora_fin_domicilio && (
                       <div className="bg-blue-50 p-3 rounded-lg">
                         {(() => {
@@ -1428,10 +2044,10 @@ export default function BookingsManagement() {
                           ) : (
                             <div className="text-sm">
                               <p className="font-medium text-blue-800">
-                                Duración: {homeVisitData.duracionHoras}h ({homeVisitData.duracionMinutos} min)
+                                {t('bookingsManagement.modal.duration')}: {homeVisitData.duracionHoras}h ({homeVisitData.duracionMinutos} min)
                               </p>
                               <p className="font-semibold text-green-700">
-                                Precio: €{homeVisitData.precio.toFixed(2)}
+                                {t('bookingsManagement.modal.price')}: €{homeVisitData.precio.toFixed(2)}
                               </p>
                             </div>
                           )
@@ -1441,36 +2057,35 @@ export default function BookingsManagement() {
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Dirección del Domicilio *
+                        {t('bookingsManagement.modal.homeAddress')} *
                       </label>
                       <textarea
                         value={newBooking.direccion_domicilio}
                         onChange={(e) => setNewBooking({...newBooking, direccion_domicilio: e.target.value})}
                         rows={2}
                         className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-                        placeholder="Calle, número, piso, código postal, ciudad..."
+                        placeholder={t('bookingsManagement.modal.addressPlaceholder')}
                         required
                       />
                     </div>
                   </>
                 ) : (
-                  // Formulario para servicios normales (botones como antes)
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-4">
-                      Hora *
+                      {t('bookingsManagement.modal.time')} *
                     </label>
                     {newBooking.fecha && newBooking.service_id ? (
                       loadingSlots ? (
                         <div className="flex items-center justify-center py-8">
                           <div className="loading-spinner mr-2"></div>
-                          <span className="text-sm text-gray-600">Cargando horarios disponibles...</span>
+                          <span className="text-sm text-gray-600">{t('bookingsManagement.modal.loadingAvailableSchedules')}</span>
                         </div>
                       ) : availableSlots.length === 0 ? (
-                        <div className="text-amber-600 text-center py-8 bg-amber-50 rounded-lg">
-                          <p className="text-sm font-medium">No hay horarios disponibles para esta fecha.</p>
-                          <p className="text-xs mt-1">Esto puede deberse a citas programadas o visitas a domicilio.</p>
-                          <p className="text-xs">Prueba con otra fecha.</p>
-                        </div>
+                        <NoSlotsReason 
+                          fecha={newBooking.fecha} 
+                          serviceId={newBooking.service_id} 
+                          services={services}
+                       />
                       ) : (
                         <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2 max-h-48 overflow-y-auto">
                           {availableSlots.map((time) => (
@@ -1491,7 +2106,7 @@ export default function BookingsManagement() {
                       )
                     ) : (
                       <div className="text-center py-8 bg-gray-50 rounded-lg">
-                        <p className="text-sm text-gray-500">Selecciona fecha y servicio primero</p>
+                        <p className="text-sm text-gray-500">{t('bookingsManagement.modal.selectDateServiceFirst')}</p>
                       </div>
                     )}
                   </div>
@@ -1499,32 +2114,31 @@ export default function BookingsManagement() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Observaciones
+                    {t('bookingsManagement.modal.observations')}
                   </label>
                   <textarea
                     value={newBooking.observaciones}
                     onChange={(e) => setNewBooking({...newBooking, observaciones: e.target.value})}
                     rows={3}
                     className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-                    placeholder="Información adicional..."
+                    placeholder={t('bookingsManagement.modal.observationsPlaceholder')}
                   />
                 </div>
 
-                {/* BOTONES RESPONSIVE */}
                 <div className="flex flex-col sm:flex-row justify-end space-y-3 sm:space-y-0 sm:space-x-3 pt-4">
                   <button
                     type="button"
                     onClick={() => setShowCreateModal(false)}
                     className="w-full sm:w-auto px-4 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50"
                   >
-                    Cancelar
+                    {t('bookingsManagement.modal.cancel')}
                   </button>
                   <button
                     type="submit"
                     disabled={loading}
                     className="w-full sm:w-auto px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 disabled:opacity-50"
                   >
-                    {loading ? 'Creando...' : 'Crear Cita'}
+                    {loading ? t('bookingsManagement.modal.creating') : t('bookingsManagement.modal.createBooking')}
                   </button>
                 </div>
               </form>
@@ -1532,12 +2146,11 @@ export default function BookingsManagement() {
           </div>
         )}
 
-        {/* Modal detalles cita responsive */}
         {selectedBooking && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-lg p-4 sm:p-6 w-full max-w-lg mx-4">
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-base sm:text-lg font-semibold">Detalles de la Cita</h3>
+                <h3 className="text-base sm:text-lg font-semibold">{t('bookingsManagement.detailsModal.title')}</h3>
                 <button
                   onClick={() => setSelectedBooking(null)}
                   className="text-gray-400 hover:text-gray-600"
@@ -1551,12 +2164,12 @@ export default function BookingsManagement() {
               <div className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="text-sm font-medium text-gray-500">Cliente</label>
+                    <label className="text-sm font-medium text-gray-500">{t('bookingsManagement.detailsModal.client')}</label>
                     <p className="text-gray-900">{selectedBooking.profiles?.nombre_completo}</p>
                     <p className="text-sm text-gray-600">{selectedBooking.profiles?.email}</p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-500">Perro</label>
+                    <label className="text-sm font-medium text-gray-500">{t('bookingsManagement.detailsModal.dog')}</label>
                     <p className="text-gray-900">{selectedBooking.dogs?.nombre}</p>
                     {selectedBooking.dogs?.raza && (
                       <p className="text-sm text-gray-600">{selectedBooking.dogs.raza}</p>
@@ -1566,29 +2179,29 @@ export default function BookingsManagement() {
                 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="text-sm font-medium text-gray-500">Servicio</label>
+                    <label className="text-sm font-medium text-gray-500">{t('bookingsManagement.detailsModal.service')}</label>
                     <p className="text-gray-900 flex items-center">
                       <span className="mr-2">{getServiceIcon(selectedBooking.services?.tipo)}</span>
                       {selectedBooking.services?.nombre}
                     </p>
                     {selectedBooking.services?.tipo === 'rehabilitacion_domicilio' && (
-                      <p className="text-xs text-purple-600 font-medium mt-1">Visita a domicilio</p>
+                      <p className="text-xs text-purple-600 font-medium mt-1">{t('bookingsManagement.homeVisit')}</p>
                     )}
                   </div>
                 </div>
                 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="text-sm font-medium text-gray-500">Fecha y Hora</label>
+                    <label className="text-sm font-medium text-gray-500">{t('bookingsManagement.detailsModal.dateTime')}</label>
                     <p className="text-gray-900">
-                      {format(new Date(selectedBooking.fecha_hora.substring(0, 10)), 'EEEE d \'de\' MMMM \'de\' yyyy', { locale: es })}
+                      {format(new Date(selectedBooking.fecha_hora.substring(0, 10)), 'EEEE d \'de\' MMMM \'de\' yyyy', { locale: getDateLocale() })}
                     </p>
                     <p className="text-sm text-gray-600">
-                      {selectedBooking.fecha_hora.substring(11, 16)} ({selectedBooking.duracion_minutos} minutos)
+                      {selectedBooking.fecha_hora.substring(11, 16)} ({selectedBooking.duracion_minutos} {t('bookingsManagement.detailsModal.minutes')})
                     </p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-500">Estado</label>
+                    <label className="text-sm font-medium text-gray-500">{t('bookingsManagement.detailsModal.status')}</label>
                     <div className="mt-1">
                       {getStatusBadge(selectedBooking.estado)}
                     </div>
@@ -1597,7 +2210,7 @@ export default function BookingsManagement() {
                 
                 {selectedBooking.observaciones && (
                   <div>
-                    <label className="text-sm font-medium text-gray-500">Observaciones</label>
+                    <label className="text-sm font-medium text-gray-500">{t('bookingsManagement.detailsModal.observations')}</label>
                     <p className="text-gray-900 bg-gray-50 p-2 rounded text-sm">
                       {selectedBooking.observaciones}
                     </p>
@@ -1605,9 +2218,9 @@ export default function BookingsManagement() {
                 )}
                 
                 <div className="text-xs text-gray-500 border-t pt-2">
-                  <p>Creada: {format(parseISO(selectedBooking.created_at), 'dd/MM/yyyy HH:mm')}</p>
+                  <p>{t('bookingsManagement.detailsModal.created')}: {format(parseISO(selectedBooking.created_at), 'dd/MM/yyyy HH:mm')}</p>
                   {selectedBooking.updated_at !== selectedBooking.created_at && (
-                    <p>Actualizada: {format(parseISO(selectedBooking.updated_at), 'dd/MM/yyyy HH:mm')}</p>
+                    <p>{t('bookingsManagement.detailsModal.updated')}: {format(parseISO(selectedBooking.updated_at), 'dd/MM/yyyy HH:mm')}</p>
                   )}
                 </div>
               </div>
@@ -1615,7 +2228,6 @@ export default function BookingsManagement() {
           </div>
         )}
 
-        {/* Modal de confirmación */}
         <ConfirmModal
           isOpen={showDeleteModal}
           onClose={() => {
@@ -1623,10 +2235,11 @@ export default function BookingsManagement() {
             setBookingToDelete(null)
           }}
           onConfirm={deleteBooking}
-          title="Eliminar Cita"
-          message="¿Estás seguro que quieres eliminar esta cita? Esta acción no se puede deshacer."
-          confirmText="Eliminar"
-          cancelText="Cancelar"
+          title={t('bookingsManagement.deleteModal.title'
+          )}
+          message={t('bookingsManagement.deleteModal.message')}
+          confirmText={t('bookingsManagement.deleteModal.confirm')}
+          cancelText={t('bookingsManagement.deleteModal.cancel')}
           confirmButtonClass="bg-red-600 hover:bg-red-700"
         />
       </div>

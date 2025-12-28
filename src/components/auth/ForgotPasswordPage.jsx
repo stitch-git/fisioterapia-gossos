@@ -1,9 +1,11 @@
 import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import toast from 'react-hot-toast'
 import { useAuth } from '../../contexts/AuthContext'
 
 export default function ForgotPasswordPage() {
+  const { t } = useTranslation()
   const [email, setEmail] = useState('')
   const [isSubmitted, setIsSubmitted] = useState(false)
   const { resetPassword, loading } = useAuth()
@@ -12,12 +14,12 @@ export default function ForgotPasswordPage() {
     e.preventDefault()
     
     if (!email) {
-      toast.error('Por favor ingresa tu email')
+      toast.error(t('forgotPassword.errors.enterEmail'))
       return
     }
 
     if (!email.includes('@') || !email.includes('.')) {
-      toast.error('Por favor ingresa un email válido')
+      toast.error(t('forgotPassword.errors.invalidEmail'))
       return
     }
 
@@ -39,10 +41,10 @@ export default function ForgotPasswordPage() {
               </svg>
             </div>
             <h2 className="mt-6 text-3xl font-bold text-gray-900">
-              Email Enviado
+              {t('forgotPassword.success.title')}
             </h2>
             <p className="mt-2 text-sm text-gray-600">
-              Hemos enviado las instrucciones para restablecer tu contraseña a:
+              {t('forgotPassword.success.message')}
             </p>
             <p className="mt-2 text-sm font-medium text-gray-900">
               {email}
@@ -58,16 +60,16 @@ export default function ForgotPasswordPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <h3 className="text-lg font-medium text-blue-900 mb-2">
-                  Revisa tu bandeja de entrada
+                  {t('forgotPassword.success.checkInbox')}
                 </h3>
                 <p className="text-sm text-blue-700">
-                  Si no encuentras el email, revisa también la carpeta de spam o correo no deseado.
+                  {t('forgotPassword.success.spamWarning')}
                 </p>
               </div>
 
               <div className="text-sm text-gray-500 space-y-2">
-                <p>El enlace expirará en 60 minutos por seguridad.</p>
-                <p>Si no recibes el email en unos minutos, puedes intentar de nuevo.</p>
+                <p>{t('forgotPassword.success.linkExpires')}</p>
+                <p>{t('forgotPassword.success.retryMessage')}</p>
               </div>
 
               <div className="space-y-4">
@@ -78,14 +80,14 @@ export default function ForgotPasswordPage() {
                   }}
                   className="w-full btn btn-secondary"
                 >
-                  Intentar con otro email
+                  {t('forgotPassword.success.tryAnother')}
                 </button>
 
                 <Link 
                   to="/login" 
                   className="w-full btn btn-primary"
                 >
-                  Volver al inicio de sesión
+                  {t('forgotPassword.backToLogin')}
                 </Link>
               </div>
             </div>
@@ -105,10 +107,10 @@ export default function ForgotPasswordPage() {
             </svg>
           </div>
           <h2 className="mt-6 text-3xl font-bold text-gray-900">
-            ¿Olvidaste tu contraseña?
+            {t('forgotPassword.title')}
           </h2>
           <p className="mt-2 text-sm text-gray-600">
-            No te preocupes, te enviamos las instrucciones para restablecerla
+            {t('forgotPassword.subtitle')}
           </p>
         </div>
       </div>
@@ -118,7 +120,7 @@ export default function ForgotPasswordPage() {
           <form className="space-y-6" onSubmit={handleSubmit}>
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                Email registrado
+                {t('forgotPassword.emailLabel')}
               </label>
               <div className="mt-1">
                 <input
@@ -128,13 +130,13 @@ export default function ForgotPasswordPage() {
                   autoComplete="email"
                   required
                   className="input"
-                  placeholder="tu@email.com"
+                  placeholder={t('forgotPassword.emailPlaceholder')}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                 />
               </div>
               <p className="mt-2 text-xs text-gray-500">
-                Te enviaremos un enlace para restablecer tu contraseña
+                {t('forgotPassword.emailHint')}
               </p>
             </div>
 
@@ -147,14 +149,14 @@ export default function ForgotPasswordPage() {
                 {loading ? (
                   <>
                     <div className="loading-spinner mr-2"></div>
-                    Enviando...
+                    {t('forgotPassword.sending')}
                   </>
                 ) : (
                   <>
                     <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                     </svg>
-                    Enviar instrucciones
+                    {t('forgotPassword.sendButton')}
                   </>
                 )}
               </button>
@@ -167,7 +169,7 @@ export default function ForgotPasswordPage() {
                 <div className="w-full border-t border-gray-300" />
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">¿Recordaste tu contraseña?</span>
+                <span className="px-2 bg-white text-gray-500">{t('forgotPassword.rememberPassword')}</span>
               </div>
             </div>
 
@@ -176,7 +178,7 @@ export default function ForgotPasswordPage() {
                 to="/login" 
                 className="font-medium text-primary-600 hover:text-primary-500 transition-colors duration-200"
               >
-                Volver al inicio de sesión
+                {t('forgotPassword.backToLogin')}
               </Link>
             </div>
           </div>
