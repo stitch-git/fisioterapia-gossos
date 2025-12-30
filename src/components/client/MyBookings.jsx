@@ -308,9 +308,9 @@ export default function MyBookings() {
   const filteredBookings = bookings
     .filter(booking => {
       if (filter === 'all') return true
-      // Si el filtro es 'pendiente', incluir también 'pendiente_confirmacion'
+      // Si el filtro es 'pendiente', incluir 'pendiente_confirmacion' y 'confirmada'
       if (filter === 'pendiente') {
-        return ['pendiente', 'pendiente_confirmacion'].includes(booking.estado)
+        return ['pendiente', 'pendiente_confirmacion', 'confirmada'].includes(booking.estado)
       }
       return booking.estado === filter
     })

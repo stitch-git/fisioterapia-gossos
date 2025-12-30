@@ -175,7 +175,7 @@ export default function BookingsManagement() {
           updated_at,
           services!inner(id, nombre, tipo, duracion_minutos, precio),
           dogs!inner(id, nombre, raza),
-          profiles!bookings_client_id_fkey(id, nombre_completo, telefono, email),
+          profiles!bookings_client_id_fkey(id, nombre_completo, telefono, email, preferred_language),
           spaces(nombre)
         `)
         .order('fecha_hora', { ascending: false })
@@ -1041,10 +1041,23 @@ export default function BookingsManagement() {
       // Enviar email de confirmación al cliente
       try {
         const confirmedBooking = bookings.find(b => b.id === bookingId)
-        // TODO: Implementar notifyBookingConfirmedByAdmin
-        console.log('📧 Email de confirmación pendiente:', confirmedBooking)
+        
+        if (confirmedBooking) {
+          await notifyBookingConfirmed({
+            pet_name: confirmedBooking.dogs?.nombre,
+            service_name: confirmedBooking.services?.nombre,
+            fecha: confirmedBooking.fecha_hora.substring(0, 10),
+            hora: confirmedBooking.fecha_hora.substring(11, 16),
+            duracion: confirmedBooking.duracion_minutos?.toString() || '60',
+            precio: confirmedBooking.precio?.toString() || '0',
+            preferredLanguage: confirmedBooking.profiles?.preferred_language
+          })
+          console.log('✅ Email de confirmación enviado al cliente')
+          toast.success(t('bookingsManagement.toasts.bookingConfirmed'))
+        }
       } catch (emailError) {
         console.error('Error enviando email de confirmación:', emailError)
+        // No mostramos error al usuario, el cambio de estado ya se hizo
       }
 
       setBookings(prev =>
