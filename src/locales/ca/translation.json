@@ -78,6 +78,7 @@
     "status": {
       "pending": "Pendent",
       "pendingConfirmation": "Pendent de confirmació",
+      "confirmed": "Confirmada",
       "completed": "Completada",
       "cancelled": "Cancel·lada"
     },
@@ -1170,7 +1171,9 @@
       "passwordReset": "🔑 Restableix la teva contrasenya - Fisioteràpia Gossos",
       "passwordChanged": "✅ Contrasenya actualitzada - Fisioteràpia Gossos",
       "adminNewBooking": "🔔 Nova reserva registrada - Fisioteràpia Gossos",
-      "adminCancellation": "❌ Cita cancel·lada - Fisioteràpia Gossos"
+      "adminCancellation": "❌ Cita cancel·lada - Fisioteràpia Gossos",
+      "pendingConfirmation": "Reserva pendent de confirmació",
+      "adminPendingConfirmation": "Nova reserva pendent de confirmar"
     },
     "test": {
       "onlyInDevelopment": "⚠️ Test de emails només disponible en desenvolupament",

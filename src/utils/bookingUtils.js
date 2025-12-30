@@ -368,7 +368,7 @@ export const requiresAdminConfirmation = (selectedDateStr, selectedTimeStr) => {
   const currentHour = now.getHours()
 
   // Solo aplicar si es después de las 18:00 (6 PM)
-  if (currentHour < 18) {
+  if (currentHour < 11) {
     return false // Antes de las 6 PM, sin restricción
   }
 

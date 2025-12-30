@@ -1170,7 +1170,9 @@
       "passwordReset": "🔑 Restablece tu contraseña - Fisioterapia Gossos",
       "passwordChanged": "✅ Contraseña actualizada - Fisioterapia Gossos",
       "adminNewBooking": "🔔 Nueva reserva registrada - Fisioterapia Gossos",
-      "adminCancellation": "❌ Cita cancelada - Fisioterapia Gossos"
+      "adminCancellation": "❌ Cita cancelada - Fisioterapia Gossos",
+      "pendingConfirmation": "Reserva pendiente de confirmación",
+      "adminPendingConfirmation": "Nueva reserva pendiente de confirmar"
     },
     "test": {
       "onlyInDevelopment": "⚠️ Test de emails solo disponible en desarrollo",

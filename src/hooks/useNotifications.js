@@ -241,6 +241,47 @@ export const useNotifications = () => {
     }, adminLanguage, bookingId)
   }
 
+  // 🆕 NUEVA: Email al cliente cuando reserva requiere confirmación del admin
+  const sendPendingConfirmationEmail = async (bookingData, preferredLanguage = null, bookingId = null, userId = null) => {
+    const userLanguage = preferredLanguage || await getUserLanguage(bookingData.to)
+
+    return await sendEmail('pending_confirmation', bookingData.to, {
+      clientName: bookingData.clientName,
+      dogName: bookingData.dogName,
+      service: bookingData.service,
+      date: bookingData.date,
+      time: bookingData.time,
+      duration: bookingData.duration,
+      price: bookingData.price,
+      subject: t('emailNotifications.subjects.pendingConfirmation')
+    }, userLanguage, bookingId, userId)
+  }
+
+  // 🆕 NUEVA: Email al admin cuando hay una reserva pendiente de confirmar
+  const sendAdminPendingConfirmationEmail = async (bookingData, bookingId = null) => {
+    const adminEmail = await getAdminEmail()
+    if (!adminEmail) {
+      console.warn('No se pudo obtener el email del administrador')
+      return { success: false, error: 'Admin email not found' }
+    }
+
+    const adminLanguage = await getUserLanguage(adminEmail)
+
+    return await sendEmail('admin_pending_confirmation', adminEmail, {
+      clientName: bookingData.clientName,
+      clientEmail: bookingData.clientEmail,
+      dogName: bookingData.dogName,
+      service: bookingData.service,
+      date: bookingData.date,
+      time: bookingData.time,
+      duration: bookingData.duration,
+      price: bookingData.price,
+      spaces: bookingData.spaces,
+      observations: bookingData.observations,
+      subject: t('emailNotifications.subjects.adminPendingConfirmation')
+    }, adminLanguage, bookingId)
+  }
+
   const showToast = (type, message) => {
     switch (type) {
       case 'success':
@@ -509,6 +550,8 @@ export const useNotifications = () => {
     sendPasswordChangedEmail,
     sendAdminNewBookingEmail,
     sendAdminCancellationEmail,
+    sendPendingConfirmationEmail,        // 🆕 NUEVA
+    sendAdminPendingConfirmationEmail,   // 🆕 NUEVA
     handlePasswordReset,
     confirmPasswordChanged,
     notifyAdminNewBooking,

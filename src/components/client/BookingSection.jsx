@@ -23,7 +23,7 @@ import { useTranslation } from 'react-i18next'
 export default function BookingSection({ onNavigateToSection }) {
   const { user, profile } = useAuth()
   const { notifyBookingConfirmed } = useBookingNotifications()
-  const { notifyAdminNewBooking } = useNotifications()
+  const { notifyAdminNewBooking, sendPendingConfirmationEmail, sendAdminPendingConfirmationEmail } = useNotifications()
   const { t, i18n } = useTranslation()
   const getDateLocale = () => i18n.language === 'ca' ? ca : es
   
@@ -583,17 +583,31 @@ export default function BookingSection({ onNavigateToSection }) {
       try {
         // Enviar emails diferentes según si requiere confirmación o no
         if (needsConfirmation) {
-          // Email al cliente: Reserva pendiente de confirmación
-          await notifyBookingConfirmed({
-            pet_name: dogData.nombre,
-            service_name: selectedService.nombre,
-            fecha: selectedDate,
-            hora: selectedTime,
-            duracion: selectedService.duracion_minutos.toString(),
-            precio: selectedService.precio.toString(),
-            requiresConfirmation: true, // 🚨 Indicar que requiere confirmación
-            preferredLanguage: profile?.preferred_language // Idioma del usuario
-          })
+          // 🆕 Email al cliente: Reserva PENDIENTE de confirmación
+          await sendPendingConfirmationEmail({
+            to: profile.email || user.email,
+            clientName: profile.nombre_completo,
+            dogName: dogData.nombre,
+            service: selectedService.nombre,
+            date: selectedDate,
+            time: selectedTime,
+            duration: selectedService.duracion_minutos.toString(),
+            price: selectedService.precio.toString()
+          }, profile?.preferred_language, result.booking_id, user.id)
+
+          // 🆕 Email al admin: Nueva reserva PENDIENTE de confirmar
+          await sendAdminPendingConfirmationEmail({
+            clientName: profile.nombre_completo,
+            clientEmail: profile.email || user.email,
+            dogName: dogData.nombre,
+            service: selectedService.nombre,
+            date: selectedDate,
+            time: selectedTime,
+            duration: selectedService.duracion_minutos.toString(),
+            price: selectedService.precio.toString(),
+            spaces: spaceInfo.display,
+            observations: observaciones.trim() || null
+          }, result.booking_id)
 
           // 🔔 NUEVO: Programar recordatorio 24h antes (solo si no requiere confirmación)
           try {
