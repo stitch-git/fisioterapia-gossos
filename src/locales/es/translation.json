@@ -83,6 +83,8 @@
     },
     "stats": {
       "pending": "Pendientes",
+      "pendingConfirmation": "Pendientes Confirmación",
+      "confirmed": "Confirmadas",
       "completed": "Completadas",
       "cancelled": "Canceladas"
     },
@@ -812,8 +814,10 @@
     "status": {
       "pending": "Pendiente",
       "pendingConfirmation": "Pendiente de confirmación",
+      "confirmed": "Confirmada",
       "completed": "Completada",
       "cancelled": "Cancelada"
+
     },
     "noBookings": {
       "title": "No hay citas",

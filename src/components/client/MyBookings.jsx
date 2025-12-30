@@ -263,6 +263,7 @@ export default function MyBookings() {
     const statusClasses = {
       pendiente: 'status-pending',
       pendiente_confirmacion: 'status-pending-confirmation',
+      confirmada: 'status-confirmed',
       completada: 'status-completed',
       cancelada: 'status-cancelled'
     }
@@ -270,6 +271,7 @@ export default function MyBookings() {
     const statusText = {
       pendiente: t('myBookings.status.pending'),
       pendiente_confirmacion: t('myBookings.status.pendingConfirmation'),
+      confirmada: t('myBookings.status.confirmed'),
       completada: t('myBookings.status.completed'),
       cancelada: t('myBookings.status.cancelled')
     }
@@ -646,6 +648,29 @@ export default function MyBookings() {
           .status-pending {
             background-color: #fef3c7;
             color: #92400e;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            display: inline-block;
+          }
+
+
+          .status-pending-confirmation {
+            background-color: #fed7aa;
+            color: #9a3412;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            display: inline-block;
+          }
+
+          .status-confirmed {
+            background-color: #dbeafe;
+            color: #1e40af;
             padding: 0.25rem 0.75rem;
             border-radius: 9999px;
             font-size: 0.75rem;

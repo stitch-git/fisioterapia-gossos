@@ -1031,7 +1031,7 @@ export default function BookingsManagement() {
       const { error } = await supabase
         .from('bookings')
         .update({
-          estado: 'pendiente',
+          estado: 'confirmada',
           updated_at: new Date().toISOString()
         })
         .eq('id', bookingId)
@@ -1050,7 +1050,7 @@ export default function BookingsManagement() {
       setBookings(prev =>
         prev.map(booking =>
           booking.id === bookingId
-            ? { ...booking, estado: 'pendiente', updated_at: new Date().toISOString() }
+            ? { ...booking, estado: 'confirmada', updated_at: new Date().toISOString() }
             : booking
         )
       )
@@ -1443,6 +1443,8 @@ export default function BookingsManagement() {
 
     return {
       pendientes: filtered.filter(b => b.estado === 'pendiente').length,
+      pendientes_confirmacion: filtered.filter(b => b.estado === 'pendiente_confirmacion').length,
+      confirmadas: filtered.filter(b => b.estado === 'confirmada').length,
       completadas: filtered.filter(b => b.estado === 'completada').length,
       canceladas: filtered.filter(b => b.estado === 'cancelada').length,
       total: filtered.length
@@ -1453,6 +1455,7 @@ export default function BookingsManagement() {
     const statusClasses = {
       pendiente: 'bg-yellow-100 text-yellow-800',
       pendiente_confirmacion: 'bg-orange-100 text-orange-800',
+      confirmada: 'bg-blue-100 text-blue-800',  // ← AÑADIR ESTA LÍNEA
       completada: 'bg-green-100 text-green-800',
       cancelada: 'bg-red-100 text-red-800'
     }
@@ -1460,6 +1463,7 @@ export default function BookingsManagement() {
     const statusText = {
       pendiente: t('bookingsManagement.status.pending'),
       pendiente_confirmacion: t('bookingsManagement.status.pendingConfirmation'),
+      confirmada: t('bookingsManagement.status.confirmed'),  // ← AÑADIR ESTA LÍNEA
       completada: t('bookingsManagement.status.completed'),
       cancelada: t('bookingsManagement.status.cancelled')
     }
@@ -1628,6 +1632,8 @@ export default function BookingsManagement() {
               >
                 <option value="all">{t('bookingsManagement.filters.allStatuses')}</option>
                 <option value="pendiente">{t('bookingsManagement.status.pending')}</option>
+                <option value="pendiente_confirmacion">{t('bookingsManagement.status.pendingConfirmation')}</option>
+                <option value="confirmada">{t('bookingsManagement.status.confirmed')}</option>
                 <option value="completada">{t('bookingsManagement.status.completed')}</option>
                 <option value="cancelada">{t('bookingsManagement.status.cancelled')}</option>
               </select>
@@ -1678,15 +1684,27 @@ export default function BookingsManagement() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
           <div className="bg-white p-3 sm:p-4 rounded-lg shadow-sm border">
-            <div className="text-lg sm:text-2xl font-bold text-blue-600">
+            <div className="text-lg sm:text-2xl font-bold text-yellow-600">
               {getStatsForDateRange().pendientes}
             </div>
             <div className="text-xs sm:text-sm text-gray-600">{t('bookingsManagement.stats.pending')}</div>
           </div>
           <div className="bg-white p-3 sm:p-4 rounded-lg shadow-sm border">
-            <div className="text-lg sm:text-2xl font-bold text-gray-600">
+            <div className="text-lg sm:text-2xl font-bold text-orange-600">
+              {getStatsForDateRange().pendientes_confirmacion}
+            </div>
+            <div className="text-xs sm:text-sm text-gray-600">{t('bookingsManagement.stats.pendingConfirmation')}</div>
+          </div>
+          <div className="bg-white p-3 sm:p-4 rounded-lg shadow-sm border">
+            <div className="text-lg sm:text-2xl font-bold text-blue-600">
+              {getStatsForDateRange().confirmadas}
+            </div>
+            <div className="text-xs sm:text-sm text-gray-600">{t('bookingsManagement.stats.confirmed')}</div>
+          </div>
+          <div className="bg-white p-3 sm:p-4 rounded-lg shadow-sm border">
+            <div className="text-lg sm:text-2xl font-bold text-green-600">
               {getStatsForDateRange().completadas}
             </div>
             <div className="text-xs sm:text-sm text-gray-600">{t('bookingsManagement.stats.completed')}</div>

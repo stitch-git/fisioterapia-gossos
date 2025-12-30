@@ -83,6 +83,8 @@
     },
     "stats": {
       "pending": "Pendents",
+      "pendingConfirmation": "Pendents Confirmació",
+      "confirmed": "Confirmades",
       "completed": "Completades",
       "cancelled": "Cancel·lades"
     },
@@ -813,6 +815,7 @@
     "status": {
       "pending": "Pendent",
       "pendingConfirmation": "Pendent de confirmació",
+      "confirmed": "Confirmada",
       "completed": "Completada",
       "cancelled": "Cancel·lada"
     },
