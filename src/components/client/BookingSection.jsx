@@ -642,34 +642,6 @@ export default function BookingSection({ onNavigateToSection }) {
             console.error('⚠️ Error programando recordatorio (no crítico):', reminderError)
           }
 
-
-
-          // Email al admin: Nueva reserva pendiente de confirmación
-          await notifyAdminNewBooking({
-            clientName: profile.nombre_completo,
-            clientEmail: profile.email || user.email,
-            dogName: dogData.nombre,
-            service: selectedService.nombre,
-            date: selectedDate,
-            time: selectedTime,
-            duration: selectedService.duracion_minutos.toString(),
-            price: selectedService.precio.toString(),
-            spaces: spaceInfo.display,
-            observations: observaciones.trim() || null,
-            requiresConfirmation: true // 🚨 Indicar que requiere confirmación
-          })
-        } else {
-          // Emails normales (reserva confirmada directamente)
-          await notifyBookingConfirmed({
-            pet_name: dogData.nombre,
-            service_name: selectedService.nombre,
-            fecha: selectedDate,
-            hora: selectedTime,
-            duracion: selectedService.duracion_minutos.toString(),
-            precio: selectedService.precio.toString(),
-            preferredLanguage: profile?.preferred_language // Idioma del usuario
-          })
-
           await notifyAdminNewBooking({
             clientName: profile.nombre_completo,
             clientEmail: profile.email || user.email,
