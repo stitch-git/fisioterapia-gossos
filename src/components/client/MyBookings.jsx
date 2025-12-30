@@ -352,7 +352,7 @@ export default function MyBookings() {
     })
 
   const canCancelBooking = (booking) => {
-    return ['pendiente', 'pendiente_confirmacion'].includes(booking.estado)
+    return ['pendiente', 'pendiente_confirmacion', 'confirmada'].includes(booking.estado)
   }
 
   const renderBookingAction = (booking) => {

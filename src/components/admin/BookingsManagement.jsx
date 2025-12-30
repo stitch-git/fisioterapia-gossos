@@ -1050,6 +1050,8 @@ export default function BookingsManagement() {
             hora: confirmedBooking.fecha_hora.substring(11, 16),
             duracion: confirmedBooking.duracion_minutos?.toString() || '60',
             precio: confirmedBooking.precio?.toString() || '0',
+            client_email: confirmedBooking.profiles?.email,
+            client_name: confirmedBooking.profiles?.nombre_completo,
             preferredLanguage: confirmedBooking.profiles?.preferred_language
           })
           console.log('✅ Email de confirmación enviado al cliente')
@@ -1576,18 +1578,18 @@ export default function BookingsManagement() {
           </>
         )}
 
-        {(booking.estado === 'pendiente') && (
+        {(['pendiente', 'pendiente_confirmacion', 'confirmada'].includes(booking.estado)) && (
           <button
             onClick={() => updateBookingStatus(booking.id, 'cancelada')}
             disabled={updating.has(booking.id)}
-            className="text-red-600 hover:text-red-900 disabled:opacity-50 p-1"
+            className="text-red-600 hover:text-red-900 disabled:opacity-50"
             title={t('bookingsManagement.actions.cancel')}
           >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
-        )}
+)}
 
         <button
           onClick={() => setSelectedBooking(booking)}
