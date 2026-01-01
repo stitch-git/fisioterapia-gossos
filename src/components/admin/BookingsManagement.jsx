@@ -307,16 +307,6 @@ export default function BookingsManagement() {
 
   useEffect(() => {
     if (newBooking.fecha && newBooking.service_id) {
-      const interval = setInterval(() => {
-        loadAvailableSlots(true)
-      }, 30000)
-      
-      return () => clearInterval(interval)
-    }
-  }, [newBooking.fecha, newBooking.service_id])
-
-  useEffect(() => {
-    if (newBooking.fecha && newBooking.service_id) {
       console.log('📅 Admin - ' + t('bookingsManagement.loadingSchedulesFor'), newBooking.fecha)
       loadAvailableSlots()
     } else {

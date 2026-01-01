@@ -364,16 +364,6 @@ export default function BookingSection({ onNavigateToSection }) {
   }, [selectedDate, selectedService, loadAvailableSlots])
 
   useEffect(() => {
-    if (!selectedDate || !selectedService) return
-    
-    const interval = setInterval(() => {
-      loadAvailableSlots(true)
-    }, 30000)
-    
-    return () => clearInterval(interval)
-  }, [selectedDate, selectedService, loadAvailableSlots])
-
-  useEffect(() => {
     const handleFocus = () => {
       if (selectedDate && selectedService) {
         console.log('🔄 Ventana recuperó focus - refrescando horarios')
