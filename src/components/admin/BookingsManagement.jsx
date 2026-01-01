@@ -961,7 +961,6 @@ export default function BookingsManagement() {
           }
 
           await notifyBookingCanceled(cancelationData)
-          await notifyAdminCancellation(cancelationData)
           
         } catch (emailError) {
           console.error('Error enviando emails de cancelación:', emailError)
