@@ -7,6 +7,7 @@ import ConfirmModal from '../common/ConfirmModal'
 import { useBookingNotifications } from "../NotificationProvider";
 import { useNotifications } from '../../hooks/useNotifications'
 import { useRealtimeBookings, useRealtimeBookingUpdates } from '../../hooks/useRealtimeBookings'
+import { useRealtimeAdminSlots } from '../../hooks/useRealtimeAdminSlots'
 import { useTranslation } from 'react-i18next'
 
 import { 
@@ -248,6 +249,22 @@ export default function BookingsManagement() {
       loadAvailableSlots(true)
     }
     
+    loadMonthAvailability()
+  })
+
+  // 🆕 Escuchar cambios en configuración de horarios del admin
+  useRealtimeAdminSlots(({ date, eventType }) => {
+    console.log('🔔 [ADMIN] Configuración de horarios cambió:', { date, eventType })
+    
+    // Limpiar cache de configuración admin
+    clearAvailableTimeSlotsCache()
+    
+    // Si afecta la fecha del formulario, recargar slots
+    if (newBooking.fecha && date === newBooking.fecha) {
+      loadAvailableSlots(true)
+    }
+    
+    // Recargar disponibilidad del mes
     loadMonthAvailability()
   })
 

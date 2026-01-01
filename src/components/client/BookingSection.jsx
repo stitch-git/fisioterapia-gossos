@@ -18,6 +18,7 @@ import {
 import { useBookingNotifications } from '../NotificationProvider'
 import { useNotifications } from '../../hooks/useNotifications'
 import { useRealtimeBookings, useRealtimeBookingUpdates } from '../../hooks/useRealtimeBookings'
+import { useRealtimeAdminSlots } from '../../hooks/useRealtimeAdminSlots'
 import { useTranslation } from 'react-i18next'
 
 export default function BookingSection({ onNavigateToSection }) {
@@ -314,6 +315,31 @@ export default function BookingSection({ onNavigateToSection }) {
     })
     
     loadAvailableSlots(true)
+    
+    if (selectedService) {
+      loadDayAvailability(currentMonth)
+    }
+  })
+
+  // 🆕 Escuchar cambios en configuración de horarios del admin
+  useRealtimeAdminSlots(({ date, eventType }) => {
+    console.log('🔔 [CLIENT] Admin cambió horarios:', { date, eventType })
+    
+    // Limpiar cache de configuración admin
+    clearAvailableTimeSlotsCache()
+    
+    // Si afecta la fecha seleccionada, recargar slots
+    if (selectedDate && date === selectedDate) {
+      loadAvailableSlots(true)
+    }
+    
+    // Limpiar cache del mes y recargar calendario
+    const monthKey = format(currentMonth, 'yyyy-MM')
+    setMonthAvailabilityCache(prev => {
+      const newCache = { ...prev }
+      delete newCache[monthKey]
+      return newCache
+    })
     
     if (selectedService) {
       loadDayAvailability(currentMonth)
