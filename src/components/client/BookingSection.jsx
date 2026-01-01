@@ -637,6 +637,28 @@ export default function BookingSection({ onNavigateToSection }) {
         console.error('Error enviando notificaciones:', emailError)
       }
 
+      // 🔔 Programar recordatorio 24h antes
+      try {
+        const { scheduleEmailReminder } = await import('../../utils/emailService')
+        await scheduleEmailReminder({
+          id: result.booking_id,
+          user_id: user.id,
+          fecha: selectedDate,
+          hora: selectedTime,
+          profiles: {
+            nombre_completo: profile.nombre_completo,
+            email: profile.email || user.email
+          },
+          pet_name: dogData.nombre,
+          service_name: selectedService.nombre,
+          duracion_minutos: selectedService.duracion_minutos.toString()
+        })
+        console.log('✅ Recordatorio programado para 24h antes')
+      } catch (reminderError) {
+        console.error('⚠️ Error programando recordatorio:', reminderError)
+        // No bloqueamos la reserva si falla el recordatorio
+      }
+
       setSelectedService(null)
       setSelectedDog('')
       setSelectedDate('')
