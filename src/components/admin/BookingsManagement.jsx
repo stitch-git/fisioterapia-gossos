@@ -17,7 +17,6 @@ import {
   filterTodaySlots,
   getBlockedTimeRange,
   getRestTimeByServiceType,
-  invalidateCacheAndNotify,
   isTimeSlotBlocked
 } from '../../utils/bookingUtils'
 
@@ -342,28 +341,6 @@ export default function BookingsManagement() {
   useEffect(() => {
     loadMonthAvailability()
   }, [currentMonth, services, bookings])
-
-  useEffect(() => {
-    const handleBookingUpdate = (event) => {
-      const { dateString, timestamp } = event.detail
-      
-      console.log('📡 Admin ' + t('bookingsManagement.receivedBookingUpdate') + ' (legacy):', { dateString, timestamp })
-      
-      loadBookings(true)
-      
-      if (newBooking.fecha && (!dateString || dateString === newBooking.fecha)) {
-        loadAvailableSlots(true)
-      }
-      
-      loadMonthAvailability()
-    }
-    
-    window.addEventListener('booking-updated', handleBookingUpdate)
-    
-    return () => {
-      window.removeEventListener('booking-updated', handleBookingUpdate)
-    }
-  }, [newBooking.fecha, loadBookings, t])
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -1281,8 +1258,8 @@ export default function BookingsManagement() {
 
       toast.success(t('bookingsManagement.toasts.bookingCreated'))
 
-      invalidateCacheAndNotify(newBooking.fecha)
-      console.log('🚨 Admin ' + t('bookingsManagement.notifiedNewBooking'))
+      clearAvailableTimeSlotsCache(newBooking.fecha)
+      console.log('🗑️ Admin - Cache de slots limpiado para:', newBooking.fecha)
 
       try {
         const selectedClient = clients.find(c => c.id === newBooking.client_id)

@@ -600,35 +600,6 @@ export const generateFilteredTimeSlots = async (service, dateString, existingBoo
 }
 
 /**
- * 🚨 NUEVA FUNCIÓN: Invalidar cache y notificar actualización global SIN DELAY
- */
-export const invalidateCacheAndNotifyImmediate = (dateString = null) => {
-  // Limpiar cache local INMEDIATAMENTE
-  clearAvailableTimeSlotsCache(dateString)
-  
-  // Disparar evento personalizado INMEDIATAMENTE
-  if (typeof window !== 'undefined') {
-    const eventDetail = { 
-      dateString, 
-      timestamp: Date.now(),
-      source: 'immediate_invalidation'
-    }
-    
-    window.dispatchEvent(new CustomEvent('booking-updated', { detail: eventDetail }))
-    
-    debugLog(`🚨 INVALIDACIÓN INMEDIATA - Cache limpio y evento disparado`, eventDetail)
-  }
-}
-
-/**
- * FUNCIÓN LEGACY: Invalidar cache y notificar actualización global
- */
-export const invalidateCacheAndNotify = (dateString = null) => {
-  // Usar la nueva función inmediata
-  invalidateCacheAndNotifyImmediate(dateString)
-}
-
-/**
  * 🚨 NUEVA: Función de debug para mostrar información detallada sobre disponibilidad
  */
 export const debugSlotAvailabilityDetailed = async (service, dateString, timeSlot) => {

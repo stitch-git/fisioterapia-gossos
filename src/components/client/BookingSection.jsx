@@ -12,7 +12,6 @@ import {
   getRestTimeByServiceType,
   clearAvailableTimeSlotsCache,
   isTimeSlotBlocked,
-  invalidateCacheAndNotify,
   requiresAdminConfirmation
 } from '../../utils/bookingUtils'
 import { useBookingNotifications } from '../NotificationProvider'
@@ -333,16 +332,22 @@ export default function BookingSection({ onNavigateToSection }) {
       loadAvailableSlots(true)
     }
     
-    // Limpiar cache del mes y recargar calendario
+    // Invalidación inteligente: solo limpiar mes afectado
     const monthKey = format(currentMonth, 'yyyy-MM')
-    setMonthAvailabilityCache(prev => {
-      const newCache = { ...prev }
-      delete newCache[monthKey]
-      return newCache
-    })
+    const affectedMonth = date.substring(0, 7) // "2025-01-15" → "2025-01"
     
-    if (selectedService) {
-      loadDayAvailability(currentMonth)
+    // Solo actualizar si el cambio afecta el mes visible
+    if (monthKey === affectedMonth) {
+      setMonthAvailabilityCache(prev => {
+        const newCache = { ...prev }
+        delete newCache[monthKey]
+        return newCache
+      })
+      
+      // Recalcular calendario si hay servicio seleccionado
+      if (selectedService) {
+        loadDayAvailability(currentMonth)
+      }
     }
   })
 
@@ -384,31 +389,6 @@ export default function BookingSection({ onNavigateToSection }) {
     return () => {
       window.removeEventListener('focus', handleFocus)
       document.removeEventListener('visibilitychange', handleVisibilityChange)
-    }
-  }, [selectedDate, selectedService, loadAvailableSlots])
-
-  useEffect(() => {
-    const handleBookingUpdate = (event) => {
-      const { dateString, timestamp } = event.detail
-      
-      console.log('📡 Recibida actualización de reserva (legacy):', { dateString, timestamp })
-      
-      if (selectedDate && (!dateString || dateString === selectedDate)) {
-        console.log('🔄 Actualizando horarios por cambio de reserva (legacy)')
-        if (selectedDate && selectedService) {
-          loadAvailableSlots(true)
-        }
-      }
-      
-      if (selectedService) {
-        loadDayAvailability()
-      }
-    }
-    
-    window.addEventListener('booking-updated', handleBookingUpdate)
-    
-    return () => {
-      window.removeEventListener('booking-updated', handleBookingUpdate)
     }
   }, [selectedDate, selectedService, loadAvailableSlots])
 
@@ -593,8 +573,8 @@ export default function BookingSection({ onNavigateToSection }) {
         toast.success(t('bookingSection.toasts.bookingSuccess'))
       }
 
-      invalidateCacheAndNotify(selectedDate)
-      console.log('🚨 Notificación enviada a todos los usuarios sobre nueva reserva')
+      clearAvailableTimeSlotsCache(selectedDate)
+      console.log('🗑️ Cache de slots limpiado para:', selectedDate)
 
       try {
         // Enviar emails diferentes según si requiere confirmación o no
