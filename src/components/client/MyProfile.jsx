@@ -5,6 +5,7 @@ import CountrySelector, { validatePhoneNumber, getCountryByCode, COUNTRIES } fro
 import NotificationPreferences, { validateNotificationPreferences } from '../common/NotificationPreferences'
 import LanguageSettings from '../common/LanguageSettings'
 import { useTranslation } from 'react-i18next'
+import FontSizeSelector from '../common/FontSizeSelector'
 
 export default function MyProfile() {
   const { user, profile, updateProfile } = useAuth()
@@ -400,6 +401,8 @@ export default function MyProfile() {
               <LanguageSettings userId={user?.id} />
             </div>
           </div>
+
+          <FontSizeSelector />
         </div>
     </div>
   </div>

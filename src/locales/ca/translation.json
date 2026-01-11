@@ -1423,5 +1423,29 @@
     "ogDescription": "Sistema de reserves professional per a fisioteràpia canina",
     "twitterTitle": "Fisioteràpia Gossos - Sistema de Reserves",
     "twitterDescription": "Sistema de reserves professional per a fisioteràpia canina"
+  },
+
+  "fontSize": {
+    "title": "Mida de Lletra",
+    "deviceDesktop": "Configuració per a escriptori",
+    "deviceMobile": "Configuració per a mòbil",
+    "preview": "Vista prèvia",
+    "previewText": "Així es veurà el text al sistema",
+    "size": "Mida",
+    "sizes": {
+      "verySmall": "Molt petita",
+      "small": "Petita",
+      "normal": "Normal",
+      "large": "Gran",
+      "veryLarge": "Molt gran"
+    },
+    "apply": "Aplicar",
+    "applying": "Aplicant...",
+    "reset": "Restablir",
+    "updated": "Mida de lletra actualitzada correctament",
+    "error": "Error en actualitzar la mida de lletra",
+    "noChanges": "No hi ha canvis per aplicar",
+    "resetSuccess": "Mida de lletra restablerta",
+    "info": "La mida es guarda per separat per a mòbil i escriptori"
   }
 }

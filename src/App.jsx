@@ -2,6 +2,7 @@ import React from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
+import { FontSizeProvider } from './contexts/FontSizeContext'
 import NotificationProvider from './components/NotificationProvider'
 import CookieBanner from './components/common/CookieBanner'
 import { useTranslation } from 'react-i18next'
@@ -193,8 +194,9 @@ export default function App() {
   
   return (
     <AuthProvider>
-      <ErrorTracker /> {/* ✅ NUEVO: Captura errores globalmente */}
-      <NotificationProvider>
+      <FontSizeProvider>
+        <ErrorTracker /> {/* ✅ NUEVO: Captura errores globalmente */}
+        <NotificationProvider>
         <AppRouter />
         
         <Toaster 
@@ -222,6 +224,7 @@ export default function App() {
         
         <CookieBanner />
       </NotificationProvider>
+      </FontSizeProvider>
     </AuthProvider>
   )
 }

@@ -2,9 +2,18 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ========================================
+   🎨 SISTEMA DE TAMAÑO DE FUENTE DINÁMICO
+   ======================================== */
+:root {
+  --base-font-size: 16px; /* Default */
+}
+
 /* Custom base styles */
 @layer base {
   html {
+    /* Tamaño base dinámico - escala TODO proporcionalmente */
+    font-size: var(--base-font-size);
     scroll-behavior: smooth;
   }
   
@@ -13,6 +22,11 @@
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+  }
+  
+  /* Excepciones: elementos que NO deben escalar */
+  svg, img, input[type="checkbox"], input[type="radio"] {
+    font-size: 1em !important;
   }
   
   * {

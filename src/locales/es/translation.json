@@ -1422,5 +1422,31 @@
     "ogDescription": "Sistema de reservas profesional para fisioterapia canina",
     "twitterTitle": "Fisioterapia Gossos - Sistema de Reservas",
     "twitterDescription": "Sistema de reservas profesional para fisioterapia canina"
+  },
+
+  "fontSize": {
+    "title": "Tamaño de Letra",
+    "deviceDesktop": "Configuración para escritorio",
+    "deviceMobile": "Configuración para móvil",
+    "preview": "Vista previa",
+    "previewText": "Así se verá el texto en el sistema",
+    "size": "Tamaño",
+    "sizes": {
+      "verySmall": "Muy pequeño",
+      "small": "Pequeño",
+      "normal": "Normal",
+      "large": "Grande",
+      "veryLarge": "Muy grande"
+    },
+    "apply": "Aplicar",
+    "applying": "Aplicando...",
+    "reset": "Restablecer",
+    "updated": "Tamaño de letra actualizado correctamente",
+    "error": "Error al actualizar el tamaño de letra",
+    "noChanges": "No hay cambios que aplicar",
+    "resetSuccess": "Tamaño de letra restablecido",
+    "info": "El tamaño se guarda por separado para móvil y escritorio"
   }
 }
+
+
