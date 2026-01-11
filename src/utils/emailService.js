@@ -149,6 +149,7 @@ export const checkIfFirstAppointment = async (userId) => {
   }
 }
 
+// 🚨 FUNCIÓN CORREGIDA
 export const scheduleEmailReminder = async (bookingData) => {
   if (!bookingData.fecha || !bookingData.hora) return false
 
@@ -162,6 +163,8 @@ export const scheduleEmailReminder = async (bookingData) => {
       return await sendReminderEmail(bookingData)
     }
 
+    // 🚨 IMPORTANTE: Guardar los datos con los nombres CORRECTOS
+    // Usar camelCase, NO snake_case para que coincida con send-scheduled-reminders
     const { error } = await supabase
       .from('scheduled_email_reminders')
       .insert({
@@ -175,7 +178,8 @@ export const scheduleEmailReminder = async (bookingData) => {
           dogName: bookingData.pet_name || bookingData.dogName,
           service: bookingData.service_name || bookingData.service,
           date: bookingData.fecha,
-          time: bookingData.hora
+          time: bookingData.hora,
+          duration: bookingData.duracion_minutos || bookingData.duration || '60'  // ✅ AÑADIDO
         },
         is_sent: false,
         created_at: new Date().toISOString()
