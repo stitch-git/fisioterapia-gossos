@@ -149,22 +149,42 @@ export const checkIfFirstAppointment = async (userId) => {
   }
 }
 
-// 🚨 FUNCIÓN CORREGIDA
+// 🚨 FUNCIÓN CORREGIDA - Recordatorios a las 5 AM para citas en menos de 24h
 export const scheduleEmailReminder = async (bookingData) => {
   if (!bookingData.fecha || !bookingData.hora) return false
 
   try {
     const bookingDateTime = new Date(`${bookingData.fecha}T${bookingData.hora}`)
-    const reminderTime = new Date(bookingDateTime.getTime() - (24 * 60 * 60 * 1000))
     const now = new Date()
-
+    
+    // Calcular cuántas horas faltan para la cita
+    const hoursUntilBooking = (bookingDateTime - now) / (1000 * 60 * 60)
+    
+    let reminderTime
+    let emailType
+    
+    if (hoursUntilBooking < 24) {
+      // Si la cita es en menos de 24h, programar para las 5:00 AM del día de la cita
+      reminderTime = new Date(bookingData.fecha)
+      reminderTime.setHours(5, 0, 0, 0)
+      emailType = 'reminder_same_day'
+      
+      console.log('⚠️ Cita en menos de 24h - Recordatorio programado para las 5 AM del día de la cita')
+    } else {
+      // Si la cita es en más de 24h, recordatorio 24h antes
+      reminderTime = new Date(bookingDateTime.getTime() - (24 * 60 * 60 * 1000))
+      emailType = 'reminder_24h'
+      
+      console.log('✅ Recordatorio programado para 24h antes de la cita')
+    }
+    
+    // Si el recordatorio ya pasó (ej: cita hoy antes de las 5 AM), no programar
     if (reminderTime <= now) {
-      console.log('⚠️ La cita es en menos de 24h, enviando recordatorio inmediato')
-      return await sendReminderEmail(bookingData)
+      console.log('⚠️ El momento del recordatorio ya pasó, no se programará')
+      return false
     }
 
-    // 🚨 IMPORTANTE: Guardar los datos con los nombres CORRECTOS
-    // Usar camelCase, NO snake_case para que coincida con send-scheduled-reminders
+    // Guardar en la base de datos
     const { error } = await supabase
       .from('scheduled_email_reminders')
       .insert({
@@ -172,14 +192,14 @@ export const scheduleEmailReminder = async (bookingData) => {
         user_id: bookingData.user_id,
         email: bookingData.profiles?.email || bookingData.clientEmail,
         scheduled_for: reminderTime.toISOString(),
-        email_type: 'reminder_24h',
+        email_type: emailType, // 'reminder_24h' o 'reminder_same_day'
         booking_data: {
           clientName: bookingData.profiles?.nombre_completo || bookingData.clientName,
           dogName: bookingData.pet_name || bookingData.dogName,
           service: bookingData.service_name || bookingData.service,
           date: bookingData.fecha,
           time: bookingData.hora,
-          duration: bookingData.duracion_minutos || bookingData.duration || '60'  // ✅ AÑADIDO
+          duration: bookingData.duracion_minutos || bookingData.duration || '60'
         },
         is_sent: false,
         created_at: new Date().toISOString()
@@ -187,7 +207,7 @@ export const scheduleEmailReminder = async (bookingData) => {
 
     if (error) throw error
 
-    console.log('⏰ Recordatorio por email programado para:', reminderTime.toLocaleString())
+    console.log(`⏰ Recordatorio tipo "${emailType}" programado para:`, reminderTime.toLocaleString())
     return true
 
   } catch (error) {
