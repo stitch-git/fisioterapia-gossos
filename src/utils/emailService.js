@@ -6,10 +6,10 @@ const sendEmail = async (type, to, data) => {
     console.log(`📧 Enviando email tipo: ${type} a: ${to}`)
 
     const emailPayload = {
-      type,
-      to,
-      ...data
-    }
+     emailType: type,
+     to,
+     ...data
+   }
 
     const { data: response, error } = await supabase.functions.invoke('resend-email', {
       body: emailPayload
